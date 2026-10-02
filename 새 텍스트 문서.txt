@@ -31,9 +31,12 @@ git을 만들고 폴더를 만들었다면, 원격저장소인 GitHub에 저장�
 	
 	- git commit -m "오늘 무엇을 했는지 적는 곳" 
 		-> 오늘 내가 무엇을 했는지 적는 곳이다. 그래서 하나의 기능 또는 하나의 파일을 완성했다면 수시로 올리는 것이 좋다
+		
+	- git remote add origin "여기는 github에서 만든 repository의 주소" 
+		-> 실제로 입력할 때는 (git remote add origin https://github.com/사용자명/BASEBOT.git) 이런 식으로 해야됨
 	
-	- git push origin main -> 원격저장소와 연결한 repository에 올라가게 된다
-	
-	
-	
-	
+	- git branch -M main -> D:\jisung\Github\basebot(main) 이렇게 되어 있다고 했는데
+		-> D:\jisung\Github\basebot(master) 이렇게 되어있을 수도 있다 그래서 (master)을 (main)으로 바꾼것
+		
+	- git push -u origin main -> 원격저장소와 연결한 repository에 올라가게 된다
+		-> -u는 처음에 하게 되면 나중에 git push만 해도 올라가게 해줌
