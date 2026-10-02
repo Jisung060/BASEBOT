@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+python-dotenv
+pyjwt
+pwdlib
+pandas
+scikit-learn
+google-generativeai
+python-multipart
