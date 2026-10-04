@@ -1,65 +1,288 @@
-* {
-    box-sizing: border-box;
+/* ========================================
+   로그인 페이지
+======================================== */
+
+.login-content {
+    min-width: 0;
 }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
+
+/* ========================================
+   페이지 제목
+======================================== */
+
+.login-title {
+    padding-bottom: 25px;
+    border-bottom: 2px solid #222;
 }
 
-.login-container {
-    width: 400px;
-    margin: 100px auto;
-    padding: 40px;
-
-    background-color: white;
-
-    border: 1px solid #ddd;
-    border-radius: 10px;
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.input-group {
-    margin-bottom: 20px;
-}
-
-.input-group label {
-    display: block;
+.login-title h1 {
     margin-bottom: 8px;
+    font-size: 30px;
 }
 
-.input-group input {
+.login-title p {
+    font-size: 14px;
+    color: #777;
+}
+
+
+/* ========================================
+   로그인 박스
+======================================== */
+
+.login-box {
     width: 100%;
-    padding: 12px;
+    margin-top: 40px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+
+/* ========================================
+   환영 문구
+======================================== */
+
+.login-box h2 {
+    padding: 25px 20px;
+
+    border-bottom: 1px solid #ddd;
+
+    font-size: 20px;
+    font-weight: 700;
+
+    text-align: center;
+}
+
+
+/* ========================================
+   로그인 입력 영역
+======================================== */
+
+.login-form-area {
+    display: flex;
+    align-items: center;
+
+    min-height: 200px;
+
+    padding: 35px 40px;
+}
+
+
+/* ========================================
+   BASEBOT 로고
+======================================== */
+
+.login-logo {
+    width: 180px;
+
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.login-logo a {
+    font-size: 28px;
+    font-weight: 900;
+
+    color: #102d63;
+
+    letter-spacing: -1px;
+}
+
+
+/* ========================================
+   구분선
+======================================== */
+
+.login-divider {
+    width: 1px;
+    height: 80px;
+
+    margin: 0 30px;
+
+    background: #ddd;
+
+    flex-shrink: 0;
+}
+
+
+/* ========================================
+   아이디 / 비밀번호
+======================================== */
+
+.login-input-area {
+    width: 400px;
+}
+
+.login-input-row {
+    width: 100%;
+}
+
+.login-input-row + .login-input-row {
+    margin-top: 8px;
+}
+
+.login-input-row input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
 
     border: 1px solid #ccc;
-    border-radius: 5px;
+
+    outline: none;
+
+    font-size: 14px;
 }
 
-button {
-    width: 100%;
-    padding: 12px;
+.login-input-row input:focus {
+    border-color: #123f91;
+}
 
-    border: none;
-    border-radius: 5px;
 
-    background-color: #222;
-    color: white;
+/* ========================================
+   로그인 버튼
+======================================== */
+
+.login-button {
+    width: 100px;
+    height: 92px;
+
+    margin-left: 8px;
+
+    border: 1px solid #123f91;
+
+    background: #123f91;
+
+    color: #fff;
+
+    font-size: 14px;
+    font-weight: 700;
 
     cursor: pointer;
 }
 
-#message {
-    margin-top: 20px;
+.login-button:hover {
+    background: #0d3275;
+}
+
+
+/* ========================================
+   회원가입 안내
+======================================== */
+
+.login-signup-guide {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 30px;
+
+    min-height: 90px;
+
+    padding: 20px;
+
+    border-top: 1px solid #eee;
+
+    background: #f7f8fa;
+}
+
+.login-signup-guide p {
+    margin: 0;
+
+    font-size: 13px;
+
+    line-height: 1.8;
+
+    color: #777;
+
     text-align: center;
+}
+
+
+/* ========================================
+   회원가입 버튼
+======================================== */
+
+.signup-button {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 100px;
+    height: 40px;
+
+    border: 1px solid #123f91;
+
+    background: #fff;
+
+    color: #123f91;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.signup-button:hover {
+    background: #123f91;
+    color: #fff;
+}
+
+
+/* ========================================
+   반응형
+======================================== */
+
+@media (max-width: 900px) {
+
+    .login-form-area {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .login-input-area {
+        width: 350px;
+    }
+}
+
+
+@media (max-width: 800px) {
+
+    .login-form-area {
+        flex-direction: column;
+
+        padding: 35px 20px;
+    }
+
+    .login-logo {
+        margin-bottom: 25px;
+    }
+
+    .login-divider {
+        width: 100%;
+        height: 1px;
+
+        margin: 0 0 25px;
+    }
+
+    .login-input-area {
+        width: 100%;
+    }
+
+    .login-button {
+        width: 100%;
+        height: 45px;
+
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    .login-signup-guide {
+        flex-direction: column;
+
+        gap: 15px;
+
+        text-align: center;
+    }
 }

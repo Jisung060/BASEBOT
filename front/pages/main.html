@@ -1,10 +1,669 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>Title</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>BASEBOT</title>
+
+
+    <!-- CSS -->
+    <link
+        rel="stylesheet"
+        href="../css/main.css"
+    >
+
 </head>
+
+
 <body>
 
+
+<!-- ==================================================
+     HEADER
+     header.html이 들어오는 위치
+================================================== -->
+
+<div id="header"></div>
+
+
+
+<!-- ==================================================
+     MAIN
+================================================== -->
+
+<main class="main">
+
+
+    <!-- ==============================
+         메인 배너
+    =============================== -->
+
+    <section class="main-banner">
+
+        <div class="banner-content">
+
+            <p class="banner-small">
+                BASEBALL AI SERVICE
+            </p>
+
+            <h1>
+                야구를 더 재미있게<br>
+                BASEBOT
+            </h1>
+
+            <p class="banner-description">
+                경기 정보부터 예측까지<br>
+                야구에 필요한 정보를 한 곳에서 확인하세요.
+            </p>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         오늘의 경기
+    =============================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+
+            <h2>
+                오늘의 경기
+            </h2>
+
+            <a href="#">
+                더보기 +
+            </a>
+
+        </div>
+
+
+        <div class="game-list">
+
+
+            <!-- 경기 1 -->
+            <div class="game-card">
+
+                <div class="game-info">
+                    14:00
+                </div>
+
+                <div class="game-team">
+
+                    <span>
+                        팀 A
+                    </span>
+
+                    <strong>
+                        VS
+                    </strong>
+
+                    <span>
+                        팀 B
+                    </span>
+
+                </div>
+
+                <div class="game-status">
+                    경기 예정
+                </div>
+
+            </div>
+
+
+            <!-- 경기 2 -->
+            <div class="game-card">
+
+                <div class="game-info">
+                    17:00
+                </div>
+
+                <div class="game-team">
+
+                    <span>
+                        팀 C
+                    </span>
+
+                    <strong>
+                        VS
+                    </strong>
+
+                    <span>
+                        팀 D
+                    </span>
+
+                </div>
+
+                <div class="game-status">
+                    경기 예정
+                </div>
+
+            </div>
+
+
+            <!-- 경기 3 -->
+            <div class="game-card">
+
+                <div class="game-info">
+                    18:30
+                </div>
+
+                <div class="game-team">
+
+                    <span>
+                        팀 E
+                    </span>
+
+                    <strong>
+                        VS
+                    </strong>
+
+                    <span>
+                        팀 F
+                    </span>
+
+                </div>
+
+                <div class="game-status">
+                    경기 예정
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         경기 예측 / 경기 결과
+    =============================== -->
+
+    <section class="content-grid">
+
+
+        <!-- 경기 예측 -->
+
+        <div class="content-box">
+
+            <div class="section-title">
+
+                <h2>
+                    경기 예측
+                </h2>
+
+                <a href="#">
+                    더보기 +
+                </a>
+
+            </div>
+
+
+            <div class="prediction-box">
+
+                <div class="prediction-team">
+
+                    <div class="team-logo">
+                        A
+                    </div>
+
+                    <span>
+                        팀 A
+                    </span>
+
+                </div>
+
+
+                <div class="prediction-vs">
+                    VS
+                </div>
+
+
+                <div class="prediction-team">
+
+                    <div class="team-logo">
+                        B
+                    </div>
+
+                    <span>
+                        팀 B
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="prediction-result">
+
+                AI 경기 예측 결과 영역
+
+            </div>
+
+        </div>
+
+
+
+        <!-- 경기 결과 -->
+
+        <div class="content-box">
+
+            <div class="section-title">
+
+                <h2>
+                    경기 결과
+                </h2>
+
+                <a href="#">
+                    더보기 +
+                </a>
+
+            </div>
+
+
+            <div class="result-list">
+
+
+                <div class="result-item">
+
+                    <span>
+                        팀 A
+                    </span>
+
+                    <strong>
+                        5 : 3
+                    </strong>
+
+                    <span>
+                        팀 B
+                    </span>
+
+                </div>
+
+
+                <div class="result-item">
+
+                    <span>
+                        팀 C
+                    </span>
+
+                    <strong>
+                        2 : 7
+                    </strong>
+
+                    <span>
+                        팀 D
+                    </span>
+
+                </div>
+
+
+                <div class="result-item">
+
+                    <span>
+                        팀 E
+                    </span>
+
+                    <strong>
+                        4 : 4
+                    </strong>
+
+                    <span>
+                        팀 F
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         팀 순위
+    =============================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+
+            <h2>
+                팀 순위
+            </h2>
+
+            <a href="#">
+                더보기 +
+            </a>
+
+        </div>
+
+
+        <div class="ranking-table">
+
+
+            <!-- 제목 -->
+
+            <div class="ranking-header">
+
+                <span>순위</span>
+
+                <span>팀</span>
+
+                <span>경기</span>
+
+                <span>승</span>
+
+                <span>패</span>
+
+                <span>승률</span>
+
+            </div>
+
+
+            <!-- 1위 -->
+
+            <div class="ranking-row">
+
+                <span>1</span>
+
+                <span>팀 A</span>
+
+                <span>100</span>
+
+                <span>65</span>
+
+                <span>35</span>
+
+                <span>0.650</span>
+
+            </div>
+
+
+            <!-- 2위 -->
+
+            <div class="ranking-row">
+
+                <span>2</span>
+
+                <span>팀 B</span>
+
+                <span>100</span>
+
+                <span>62</span>
+
+                <span>38</span>
+
+                <span>0.620</span>
+
+            </div>
+
+
+            <!-- 3위 -->
+
+            <div class="ranking-row">
+
+                <span>3</span>
+
+                <span>팀 C</span>
+
+                <span>100</span>
+
+                <span>58</span>
+
+                <span>42</span>
+
+                <span>0.580</span>
+
+            </div>
+
+
+            <!-- 4위 -->
+
+            <div class="ranking-row">
+
+                <span>4</span>
+
+                <span>팀 D</span>
+
+                <span>100</span>
+
+                <span>55</span>
+
+                <span>45</span>
+
+                <span>0.550</span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         뉴스 / 커뮤니티
+    =============================== -->
+
+    <section class="content-grid">
+
+
+        <!-- 야구 뉴스 -->
+
+        <div class="content-box">
+
+            <div class="section-title">
+
+                <h2>
+                    야구 뉴스
+                </h2>
+
+                <a href="#">
+                    더보기 +
+                </a>
+
+            </div>
+
+
+            <ul class="news-list">
+
+                <li>
+
+                    <a href="#">
+                        오늘의 주요 야구 소식을 확인하세요.
+                    </a>
+
+                    <span>
+                        10.03
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        이번 경기 주요 선수들의 기록
+                    </a>
+
+                    <span>
+                        10.03
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        이번 주 경기 일정 안내
+                    </a>
+
+                    <span>
+                        10.02
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        팀별 최신 경기 정보
+                    </a>
+
+                    <span>
+                        10.02
+                    </span>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+
+
+        <!-- 커뮤니티 -->
+
+        <div class="content-box">
+
+            <div class="section-title">
+
+                <h2>
+                    커뮤니티
+                </h2>
+
+                <a href="#">
+                    더보기 +
+                </a>
+
+            </div>
+
+
+            <ul class="news-list">
+
+                <li>
+
+                    <a href="#">
+                        오늘 경기 어떻게 생각하시나요?
+                    </a>
+
+                    <span>
+                        10.03
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        이번 시즌 가장 기대되는 선수
+                    </a>
+
+                    <span>
+                        10.03
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        팀별 전력에 대한 이야기
+                    </a>
+
+                    <span>
+                        10.02
+                    </span>
+
+                </li>
+
+
+                <li>
+
+                    <a href="#">
+                        야구 팬들과 자유롭게 이야기해보세요.
+                    </a>
+
+                    <span>
+                        10.02
+                    </span>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         AI 챗봇
+    =============================== -->
+
+    <section class="chatbot-banner">
+
+        <div>
+
+            <h2>
+                BASEBOT AI
+            </h2>
+
+            <p>
+                야구에 대해 궁금한 내용을 AI 챗봇에게 물어보세요.
+            </p>
+
+        </div>
+
+
+        <button type="button">
+
+            AI 챗봇 시작하기
+
+        </button>
+
+    </section>
+
+
+</main>
+
+
+
+<!-- ==================================================
+     FOOTER
+     footer.html이 들어오는 위치
+================================================== -->
+
+<div id="footer"></div>
+
+
+
+<!-- ==================================================
+     JavaScript
+================================================== -->
+
+<script src="../js/main.js"></script>
+
+
 </body>
+
 </html>

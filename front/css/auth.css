@@ -1,0 +1,595 @@
+/* =========================================================
+   BASEBOT - 회원가입
+========================================================= */
+
+
+/* =========================================================
+   전체 영역
+========================================================= */
+
+.auth-main {
+    width: 1280px;
+    margin: 0 auto;
+    padding-top: 50px;
+    padding-bottom: 80px;
+    flex: 1;
+}
+
+.auth-layout {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 50px;
+}
+
+
+/* =========================================================
+   Sidebar
+========================================================= */
+
+.auth-sidebar {
+    width: 220px;
+}
+
+.auth-sidebar-title {
+    font-size: 21px;
+    font-weight: 700;
+    color: #222;
+    padding-bottom: 18px;
+}
+
+.auth-sidebar-line {
+    width: 100%;
+    height: 1px;
+    background-color: #222;
+    margin-bottom: 10px;
+}
+
+.auth-sidebar-menu {
+    width: 100%;
+}
+
+.auth-sidebar-menu a {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+    height: 48px;
+
+    padding: 0 15px;
+
+    border-bottom: 1px solid #eee;
+
+    font-size: 14px;
+    color: #555;
+
+    transition: all 0.2s;
+}
+
+.auth-sidebar-menu a:hover {
+    background-color: #f5f7fa;
+    color: #123f91;
+}
+
+.auth-sidebar-menu a.active {
+    background-color: #f1f5fb;
+    color: #123f91;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   회원가입 Content
+========================================================= */
+
+.signup-content {
+    min-width: 0;
+}
+
+.signup-title {
+    padding-bottom: 25px;
+    border-bottom: 2px solid #222;
+}
+
+.signup-title h1 {
+    font-size: 30px;
+    margin-bottom: 8px;
+}
+
+.signup-title p {
+    font-size: 14px;
+    color: #777;
+}
+
+
+/* =========================================================
+   Step Navigation
+========================================================= */
+
+.signup-steps {
+    width: 100%;
+    height: 80px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-bottom: 1px solid #ddd;
+
+    margin-bottom: 35px;
+}
+
+.signup-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #aaa;
+}
+
+.signup-step span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    border-radius: 50%;
+
+    background-color: #eee;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.signup-step strong {
+    font-size: 14px;
+}
+
+.signup-step.active {
+    color: #123f91;
+}
+
+.signup-step.active span {
+    background-color: #123f91;
+    color: #fff;
+}
+
+.step-arrow {
+    margin: 0 30px;
+
+    color: #bbb;
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   Step Page
+========================================================= */
+
+.signup-page {
+    display: none;
+}
+
+.signup-page.active {
+    display: block;
+}
+
+.signup-page-title {
+    margin-bottom: 25px;
+}
+
+.signup-page-title h2 {
+    font-size: 21px;
+    margin-bottom: 8px;
+}
+
+.signup-page-title p {
+    font-size: 13px;
+    color: #777;
+}
+
+
+/* =========================================================
+   약관
+========================================================= */
+
+.agreement-box {
+    margin-bottom: 25px;
+    border: 1px solid #ddd;
+}
+
+.agreement-title {
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 20px;
+
+    background-color: #f7f8fa;
+
+    border-bottom: 1px solid #ddd;
+}
+
+.agreement-title h3 {
+    font-size: 15px;
+}
+
+.required {
+    color: #123f91;
+    margin-right: 5px;
+}
+
+.agreement-content {
+    height: 190px;
+
+    overflow-y: auto;
+
+    padding: 20px;
+
+    font-size: 13px;
+    line-height: 1.7;
+    color: #666;
+}
+
+.agreement-content h4 {
+    margin-bottom: 6px;
+
+    font-size: 13px;
+    color: #333;
+}
+
+.agreement-content p {
+    margin-bottom: 15px;
+}
+
+.agreement-check {
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 20px;
+
+    border-top: 1px solid #eee;
+
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.agreement-check input {
+    margin-right: 8px;
+}
+
+
+/* =========================================================
+   Form
+========================================================= */
+
+.form-table {
+    width: 100%;
+    border-top: 2px solid #222;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+
+    min-height: 90px;
+
+    border-bottom: 1px solid #eee;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+
+    padding-left: 20px;
+
+    background-color: #f7f8fa;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.form-label span {
+    margin-left: 4px;
+    color: #d33;
+}
+
+.form-input-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 15px 20px;
+}
+
+.form-input-area input,
+.form-input-area select {
+    width: 400px;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: 1px solid #ccc;
+
+    outline: none;
+
+    font-size: 14px;
+
+    background-color: #fff;
+}
+
+.form-input-area input:focus,
+.form-input-area select:focus {
+    border-color: #123f91;
+}
+
+.input-with-button {
+    display: flex;
+    width: 500px;
+}
+
+.input-with-button input {
+    width: 400px;
+}
+
+.check-button {
+    width: 100px;
+    height: 42px;
+
+    border: 1px solid #123f91;
+    background-color: #fff;
+
+    color: #123f91;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+.check-button:hover {
+    background-color: #f1f5fb;
+}
+
+.input-guide {
+    margin-top: 7px;
+
+    font-size: 12px;
+    color: #888;
+}
+
+
+/* =========================================================
+   버튼
+========================================================= */
+
+.signup-button-area {
+    display: flex;
+    align-items: center;
+
+    margin-top: 30px;
+}
+
+.signup-button-area.right {
+    justify-content: flex-end;
+}
+
+.signup-button-area.between {
+    justify-content: space-between;
+}
+
+.btn {
+    min-width: 120px;
+    height: 45px;
+
+    padding: 0 25px;
+
+    border: 1px solid #ccc;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.btn.primary {
+    background-color: #123f91;
+    border-color: #123f91;
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background-color: #0a2b68;
+}
+
+.btn.secondary {
+    background-color: #fff;
+    color: #555;
+}
+
+.btn.secondary:hover {
+    background-color: #f5f5f5;
+}
+
+
+/* =========================================================
+   회원정보 확인
+========================================================= */
+
+.confirm-table {
+    width: 100%;
+
+    border-top: 2px solid #222;
+}
+
+.confirm-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+
+    min-height: 60px;
+
+    border-bottom: 1px solid #eee;
+}
+
+.confirm-label {
+    display: flex;
+    align-items: center;
+
+    padding-left: 20px;
+
+    background-color: #f7f8fa;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.confirm-value {
+    display: flex;
+    align-items: center;
+
+    padding: 0 20px;
+
+    font-size: 14px;
+    color: #444;
+}
+
+.confirm-notice {
+    margin-top: 25px;
+    padding: 20px;
+
+    background-color: #f7f8fa;
+
+    border: 1px solid #eee;
+
+    text-align: center;
+
+    font-size: 13px;
+    line-height: 1.8;
+    color: #777;
+}
+
+
+/* =========================================================
+   회원가입 완료
+========================================================= */
+
+.complete-page {
+    min-height: 430px;
+
+    display: none;
+
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+.complete-page.active {
+    display: flex;
+}
+
+.complete-icon {
+    width: 70px;
+    height: 70px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 25px;
+
+    border-radius: 50%;
+
+    background-color: #123f91;
+
+    color: #fff;
+
+    font-size: 35px;
+    font-weight: 700;
+}
+
+.complete-page h2 {
+    margin-bottom: 15px;
+
+    font-size: 24px;
+}
+
+.complete-message {
+    margin-bottom: 30px;
+
+    font-size: 15px;
+    color: #777;
+}
+
+.complete-button-area {
+    display: flex;
+    gap: 10px;
+}
+
+
+/* =========================================================
+   반응형
+========================================================= */
+
+@media (max-width: 1280px) {
+
+    .auth-main {
+        width: 100%;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+}
+
+
+@media (max-width: 800px) {
+
+    .auth-layout {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .auth-sidebar {
+        width: 100%;
+    }
+
+    .auth-sidebar-menu {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .signup-steps {
+        justify-content: space-between;
+    }
+
+    .step-arrow {
+        margin: 0 8px;
+    }
+
+    .signup-step strong {
+        display: none;
+    }
+
+    .form-row {
+        grid-template-columns: 120px 1fr;
+    }
+
+    .form-input-area input,
+    .form-input-area select {
+        width: 100%;
+    }
+
+    .input-with-button {
+        width: 100%;
+    }
+
+    .input-with-button input {
+        width: calc(100% - 100px);
+    }
+
+}
