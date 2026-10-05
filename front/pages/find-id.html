@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>아이디 찾기 | BASEBOT</title>
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/main.css">
+
+    <!-- 인증 페이지 공통 CSS -->
+    <link rel="stylesheet" href="../css/auth.css">
+
+    <!-- 아이디 찾기 CSS -->
+    <link rel="stylesheet" href="../css/find-id.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div id="header"></div>
+
+
+    <!-- Main -->
+    <main class="auth-main">
+
+        <div class="auth-layout">
+
+            <!-- Sidebar -->
+            <div id="auth-sidebar"></div>
+
+
+            <!-- 아이디 찾기 -->
+            <section class="find-id-content">
+
+                <!-- 페이지 제목 -->
+                <div class="find-id-title">
+                    <h1>아이디 찾기</h1>
+
+                    <p>
+                        가입 시 등록한 정보를 입력해주세요.
+                    </p>
+                </div>
+
+
+                <!-- 아이디 찾기 박스 -->
+                <div class="find-id-box">
+
+                    <h2>아이디 찾기</h2>
+
+
+                    <!-- 입력 영역 -->
+                    <div class="find-id-form">
+
+                        <!-- 닉네임 -->
+                        <div class="find-id-row">
+
+                            <label for="nickname">
+                                닉네임
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nickname"
+                                name="nickname"
+                                placeholder="닉네임을 입력해주세요."
+                            >
+
+                        </div>
+
+
+                        <!-- 이메일 -->
+                        <div class="find-id-row">
+
+                            <label for="email">
+                                이메일
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="가입 시 등록한 이메일을 입력해주세요."
+                            >
+
+                        </div>
+
+
+                        <!-- 버튼 -->
+                        <button
+                            type="button"
+                            id="findIdButton"
+                            class="find-id-button"
+                        >
+                            아이디 찾기
+                        </button>
+
+                    </div>
+
+
+                    <!-- 결과 -->
+                    <div
+                        id="find-id-result"
+                        class="find-id-result"
+                    >
+
+                        <h3>아이디 찾기 결과</h3>
+
+                        <p>
+                            회원님의 아이디는
+                        </p>
+
+                        <strong id="foundUsername">
+                            -
+                        </strong>
+
+                        <div class="find-id-result-buttons">
+
+                            <a
+                                href="login.html"
+                                class="find-id-login-button"
+                            >
+                                로그인
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+
+    <!-- 공통 JS -->
+    <script src="../js/main.js"></script>
+
+    <!-- 아이디 찾기 JS -->
+    <script src="../js/find-id.js"></script>
+
+</body>
+</html>

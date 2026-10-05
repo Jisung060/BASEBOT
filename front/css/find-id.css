@@ -1,0 +1,242 @@
+/* ========================================
+   아이디 찾기
+======================================== */
+
+.find-id-content {
+    min-width: 0;
+}
+
+
+/* ========================================
+   페이지 제목
+======================================== */
+
+.find-id-title {
+    padding-bottom: 25px;
+
+    border-bottom: 2px solid #222;
+}
+
+.find-id-title h1 {
+    margin-bottom: 8px;
+
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.find-id-title p {
+    font-size: 14px;
+    color: #777;
+}
+
+
+/* ========================================
+   아이디 찾기 박스
+======================================== */
+
+.find-id-box {
+    width: 600px;
+
+    margin: 50px auto 0;
+
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+
+/* ========================================
+   박스 제목
+======================================== */
+
+.find-id-box h2 {
+    padding: 20px;
+
+    border-bottom: 1px solid #ddd;
+
+    background: #f7f8fa;
+
+    font-size: 18px;
+
+    text-align: center;
+}
+
+
+/* ========================================
+   입력 영역
+======================================== */
+
+.find-id-form {
+    padding: 35px 45px;
+}
+
+
+/* ========================================
+   입력 행
+======================================== */
+
+.find-id-row {
+    display: grid;
+
+    grid-template-columns: 100px 1fr;
+
+    align-items: center;
+
+    min-height: 55px;
+
+    margin-bottom: 10px;
+}
+
+.find-id-row label {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.find-id-row input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: 1px solid #ccc;
+
+    outline: none;
+
+    font-size: 14px;
+}
+
+.find-id-row input:focus {
+    border-color: #123f91;
+}
+
+
+/* ========================================
+   아이디 찾기 버튼
+======================================== */
+
+.find-id-button {
+    display: block;
+
+    width: 100%;
+    height: 48px;
+
+    margin-top: 20px;
+
+    border: 1px solid #123f91;
+
+    background: #123f91;
+
+    color: #fff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.find-id-button:hover {
+    background: #0d3275;
+}
+
+
+/* ========================================
+   결과
+======================================== */
+
+.find-id-result {
+    display: none;
+
+    padding: 30px;
+
+    border-top: 1px solid #ddd;
+
+    background: #f7f8fa;
+
+    text-align: center;
+}
+
+.find-id-result.active {
+    display: block;
+}
+
+.find-id-result h3 {
+    margin-bottom: 15px;
+
+    font-size: 17px;
+    color: #222;
+}
+
+.find-id-result p {
+    margin-bottom: 10px;
+
+    font-size: 13px;
+    color: #777;
+}
+
+.find-id-result strong {
+    display: block;
+
+    margin-bottom: 25px;
+
+    font-size: 20px;
+    color: #123f91;
+}
+
+
+/* ========================================
+   결과 버튼
+======================================== */
+
+.find-id-result-buttons {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 10px;
+}
+
+.find-id-login-button {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 120px;
+    height: 40px;
+
+    border: 1px solid #123f91;
+
+    background: #123f91;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.find-id-login-button:hover {
+    background: #0d3275;
+}
+
+
+/* ========================================
+   반응형
+======================================== */
+
+@media (max-width: 800px) {
+
+    .find-id-box {
+        width: 100%;
+    }
+
+    .find-id-form {
+        padding: 30px 20px;
+    }
+
+    .find-id-row {
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+
+        margin-bottom: 20px;
+    }
+}
