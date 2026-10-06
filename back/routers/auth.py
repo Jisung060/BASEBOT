@@ -1,44 +1,167 @@
-from fastapi import APIRouter, Depends
+from aiohttp import payload
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database.db_connection import get_session
-from models.users import User
-from schemas.user import LoginRequest
+from models.user import User
 
+from schemas.user import (
+    SignupRequest,
+    SignupResponse,
+    UsernameCheckResponse,
+    LoginRequest,
+    LoginResponse
+)
+from auth.password import hash_password, verify_password
+from auth.jwt import create_access_token
 
 router = APIRouter(
     prefix="/auth",
     tags=["Auth"]
 )
 
-
-@router.post("/login")
-def login(
-    request: LoginRequest,
-    session: Session = Depends(get_session)
+# 회원가입
+@router.post(
+    "/signup",
+    response_model=SignupResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def signup(
+        request_model: SignupRequest,
+        db: Session = Depends(get_session),
 ):
-    statement = select(User).where(
-        User.username == request.username,
-        User.password == request.password
+
+    # 아이디 중복 확인
+    existing_user = db.scalar(
+        select(User).where(
+            User.username == request_model.username
+        )
     )
 
-    user = session.scalar(statement)
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="이미 사용 중인 아이디 입니다."
+        )
 
-    if user is None:
-        return {
-            "success": False,
-            "message": "아이디 또는 비밀번호가 올바르지 않습니다."
-        }
+    # 닉네임 중복 확인
+    existing_nickname = db.scalar(
+        select(User).where(
+            User.nickname == request_model.nickname
+        )
+    )
 
-    return {
-        "success": True,
-        "message": "로그인 성공",
-        "user": {
-            "user_id": user.user_id,
-            "username": user.username,
-            "nickname": user.nickname,
-            "grade": user.grade,
-            "point": user.point
-        }
-    }
+    if existing_nickname:
+        raise HTTPException(
+            status_code=409,
+            detail="이미 사용 중인 닉네임입니다."
+        )
+
+    # 이메일 중복 확인
+    existing_email = db.scalar(
+        select(User).where(
+            User.email == request_model.email
+        )
+    )
+
+    if existing_email:
+        raise HTTPException(
+            status_code=409,
+            detail="이미 사용중인 이메일입니다."
+        )
+
+    # 비밀번호 해시
+    hashed_password = hash_password(
+        request_model.password
+    )
+
+    # 회원 객체 생성
+    user = User(
+        username=request_model.username,
+        password=hashed_password,
+        nickname=request_model.nickname,
+        email=request_model.email,
+        favorite_team_id=request_model.favorite_team_id,
+    )
+
+    # DB 저장
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    # 응답
+    return SignupResponse(
+        user_id=user.user_id,
+        username=user.username,
+        nickname=user.nickname,
+        email=user.email,
+        favorite_team_id=user.favorite_team_id,
+    )
+
+# 아이디 중복확인
+@router.get(
+    "/username-check",
+    response_model=UsernameCheckResponse
+)
+def username_check(
+        username: str,
+        db: Session = Depends(get_session),
+):
+    existing_user = db.scalar(
+        select(User).where(
+            User.username == username
+        )
+    )
+
+    if existing_user:
+        return UsernameCheckResponse(
+            available=False,
+            message="이미 사용 중인 아이디입니다."
+        )
+
+    return UsernameCheckResponse(
+        available=True,
+        message="사용 가능한 아이디입니다."
+    )
+
+# 로그인
+@router.post(
+    "/login",
+    response_model=LoginResponse
+)
+def login(
+        request_model: LoginRequest,
+        db: Session = Depends(get_session),
+):
+    # 1. 아이디로 회원 조회
+    user = db.scalar(
+        select(User).where(
+            User.username == request_model.username
+        )
+    )
+
+    # 2. 아이디가 없거나 비밀번호가 틀린 경우
+    if not user or not verify_password(
+        request_model.password,
+        user.password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="아이디 또는 비밀번호가 올바르지 않습니다."
+        )
+
+    # 3. JWT 생성
+    access_token = create_access_token(
+        user_id=user.user_id,
+        username=user.username
+    )
+
+    # 4. 로그인 결과 반환
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=user.user_id,
+        username=user.username,
+        nickname=user.nickname
+    )

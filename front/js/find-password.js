@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
        사이드바
     ======================================== */
 
-    fetch("../components/auth-sidebar.html")
+    fetch("/components/auth-sidebar.html")
         .then(response => response.text())
         .then(data => {
 

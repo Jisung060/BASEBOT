@@ -7,10 +7,10 @@
     <title>회원가입 | BASEBOT</title>
 
     <!-- 기존 메인 CSS -->
-    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="/css/main.css">
 
     <!-- 회원가입 전용 CSS -->
-    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="/css/auth.css">
 </head>
 
 <body>
@@ -181,7 +181,8 @@
                                            maxlength="15"
                                            placeholder="영문 소문자와 숫자 조합">
                                     <button type="button"
-                                            class="check-button">
+                                            class="check-button"
+                                            id="checkUsername">
                                         중복확인
                                     </button>
                                 </div>
@@ -265,14 +266,12 @@
                             </div>
                             <div class="form-input-area">
                                 <select id="favoriteTeam">
-                                    <option value="">
-                                        선택하지 않음
-                                    </option>
-                                    <option value="1">팀 A</option>
-                                    <option value="2">팀 B</option>
-                                    <option value="3">팀 C</option>
-                                    <option value="4">팀 D</option>
-                                    <option value="5">팀 E</option>
+                                    <option value="">선택하지 않음</option>
+                                    <option value="147">New York Yankees</option>
+                                    <option value="119">Los Angeles Dodgers</option>
+                                    <option value="111">Boston Red Sox</option>
+                                    <option value="117">Houston Astros</option>
+                                    <option value="112">Chicago Cubs</option>
                                 </select>
                                 <p class="input-guide">
                                     응원하는 구단을 선택해주세요. (선택사항)
@@ -406,10 +405,10 @@
 
 
     <!-- 기존 공통 JS -->
-    <script src="../js/main.js"></script>
+    <script src="/js/main.js"></script>
 
     <!-- 회원가입 JS -->
-    <script src="../js/auth.js"></script>
+    <script src="/js/auth.js"></script>
 
 </body>
 </html>
