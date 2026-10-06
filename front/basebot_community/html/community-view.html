@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 | BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/community.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="community-main">
+    <div class="community-layout">
+
+        <aside class="community-sidebar">
+            <div class="community-sidebar-title">커뮤니티</div>
+            <div class="community-sidebar-line"></div>
+            <nav class="community-sidebar-menu">
+                <a href="community.html" class="active">전체 게시글</a>
+                <a href="community.html?category=GENERAL">자유게시판</a>
+                <a href="community.html?category=ANALYSIS">분석 / 토론</a>
+                <a href="community.html?category=GAME_THREAD">경기 스레드</a>
+                <a href="community.html?category=NEWS">뉴스 / 소식</a>
+            </nav>
+        </aside>
+
+        <section class="community-content">
+            <div class="community-title">
+                <h1>게시글</h1>
+                <p>야구 팬들과 자유롭게 이야기를 나눠보세요.</p>
+            </div>
+
+            <article class="post-detail">
+                <div class="post-head">
+                    <span class="category-label analysis">분석</span>
+                    <h2>오타니 이번 시즌 wRC+ 분석 (배럴 비율 중심)</h2>
+                </div>
+
+                <div class="post-meta">
+                    <span>작성자 <strong>sabermetrics</strong></span>
+                    <span>작성일 <strong>2026.10.05 09:30</strong></span>
+                    <span>관련 구단 <strong>Los Angeles Dodgers</strong></span>
+                    <span>조회 <strong>1,204</strong></span>
+                </div>
+
+                <div class="post-body">
+                    <p>오타니 이번 시즌 기록을 정리해봤습니다.</p>
+                    <p>배럴 비율과 하드힛 비율이 시즌 후반으로 갈수록 올라가면서 wRC+도 함께 상승했습니다.</p>
+                    <div class="post-images">
+                        <div class="post-image-placeholder">첨부 이미지 영역</div>
+                    </div>
+                </div>
+
+                <div class="post-action-area">
+                    <button type="button" class="post-action like" id="postLikeButton">
+                        ♥ 좋아요 <strong>57</strong>
+                    </button>
+                    <button type="button" class="post-action" id="postScrapButton">
+                        🔖 스크랩
+                    </button>
+                    <button type="button" class="post-action" id="postShareButton">
+                        🔗 공유하기
+                    </button>
+                    <button type="button" class="post-action report" id="postReportButton">
+                        ⚠ 신고
+                    </button>
+                </div>
+
+                <div class="post-owner-area">
+                    <a href="community-edit.html?postId=127" class="community-btn small">수정</a>
+                    <button type="button" class="community-btn small">삭제</button>
+                </div>
+            </article>
+
+            <section class="comment-section">
+                <div class="comment-section-title">댓글 <span>18</span></div>
+
+                <form class="comment-write" id="commentForm">
+                    <textarea name="content" placeholder="댓글을 입력하세요" aria-label="댓글 입력"></textarea>
+                    <button type="submit">댓글 등록</button>
+                </form>
+
+                <div class="comment-item">
+                    <div class="comment-head">
+                        <strong>homerun_king</strong>
+                        <span>2026.10.05 10:12</span>
+                    </div>
+                    <p class="comment-text">배럴 비율 정리 잘 봤습니다. 시즌 후반에 특히 올라간 게 인상적이네요.</p>
+                    <div class="comment-actions">
+                        <button type="button" class="comment-like-button">♥ 좋아요 <strong>5</strong></button>
+                        <button type="button" class="reply-button">답글</button>
+                    </div>
+
+                    <div class="reply-list">
+                        <div class="comment-item reply">
+                            <div class="comment-head">
+                                <strong>sabermetrics</strong>
+                                <span>2026.10.05 10:40</span>
+                            </div>
+                            <p class="comment-text">감사합니다. 시즌 후반 기록을 중심으로 봤습니다.</p>
+                            <div class="comment-actions">
+                                <button type="button" class="comment-like-button">♥ 좋아요 <strong>3</strong></button>
+                                <button type="button" class="reply-button">답글</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comment-item">
+                    <div class="comment-head">
+                        <strong>newbie01</strong>
+                        <span>2026.10.05 11:05</span>
+                    </div>
+                    <p class="comment-text">입문자인데 도움이 많이 됐어요. 감사합니다!</p>
+                    <div class="comment-actions">
+                        <button type="button" class="comment-like-button">♥ 좋아요 <strong>1</strong></button>
+                        <button type="button" class="reply-button">답글</button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="post-bottom-area">
+                <a href="community.html" class="community-btn">목록</a>
+            </div>
+        </section>
+    </div>
+</main>
+
+<div id="shareModal" class="modal-backdrop" hidden>
+    <div class="share-modal">
+        <div class="modal-header">
+            <h3>공유하기</h3>
+            <button type="button" id="closeShareModal" class="modal-close" aria-label="공유 창 닫기">×</button>
+        </div>
+        <div class="share-body">
+            <button type="button" class="share-option" id="copyLinkButton">
+                <span class="share-icon">🔗</span>
+                <span><strong>링크 복사</strong><small>게시글 주소를 복사합니다.</small></span>
+            </button>
+            <button type="button" class="share-option" id="nativeShareButton">
+                <span class="share-icon">📤</span>
+                <span><strong>기기 공유</strong><small>카카오톡 등 설치된 공유 앱을 선택합니다.</small></span>
+            </button>
+        </div>
+        <p class="share-notice">※ 카카오톡의 전용 게시글 카드 공유는 추후 카카오 개발자 앱 연동 후 추가할 수 있습니다.</p>
+    </div>
+</div>
+
+<div id="reportModal" class="modal-backdrop" hidden>
+    <div class="report-modal">
+        <div class="modal-head">
+            <h3>게시글 신고</h3>
+            <button type="button" class="modal-close" id="closeReportModal">×</button>
+        </div>
+        <div class="report-body">
+            <label><input type="radio" name="reportReason" value="ABUSE"> 욕설 / 비방</label>
+            <label><input type="radio" name="reportReason" value="AD"> 광고 / 홍보</label>
+            <label><input type="radio" name="reportReason" value="SPAM"> 도배</label>
+            <label><input type="radio" name="reportReason" value="INAPPROPRIATE"> 부적절한 내용</label>
+            <label><input type="radio" name="reportReason" value="ETC"> 기타</label>
+            <textarea id="reportContent" placeholder="신고 내용을 입력해주세요."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="community-btn" id="cancelReport">취소</button>
+            <button type="button" class="community-btn primary" id="submitReport">신고하기</button>
+        </div>
+    </div>
+</div>
+
+<div id="footer"></div>
+<script src="../js/main.js"></script>
+<script src="../js/community.js"></script>
+</body>
+</html>

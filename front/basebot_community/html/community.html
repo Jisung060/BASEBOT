@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>커뮤니티 | BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/community.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="community-main">
+    <div class="community-layout">
+
+        <aside class="community-sidebar">
+            <div class="community-sidebar-title">커뮤니티</div>
+            <div class="community-sidebar-line"></div>
+            <nav class="community-sidebar-menu">
+                <a href="community.html" class="active">전체 게시글</a>
+            </nav>
+        </aside>
+
+        <section class="community-content">
+            <div class="community-title">
+                <h1>커뮤니티</h1>
+                <p>야구 팬들과 자유롭게 이야기를 나눠보세요.</p>
+            </div>
+
+            <section class="league-filter-card">
+                
+
+                <div class="league-filter-grid">
+                    <div>
+                        <label for="leagueSelect">리그</label>
+                        <select id="leagueSelect">
+                            <option value="">전체 리그</option>
+                            <option value="AL">아메리칸리그</option>
+                            <option value="NL">내셔널리그</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="divisionSelect">지구</label>
+                        <select id="divisionSelect" disabled>
+                            <option value="">전체 지구</option>
+                            <option value="EAST">동부</option>
+                            <option value="CENTRAL">중부</option>
+                            <option value="WEST">서부</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="teamSelect">팀</label>
+                        <select id="teamSelect" disabled>
+                            <option value="">전체 팀</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="category-filter-row">
+                    <span class="category-filter-label">분류</span>
+                    <div class="category-toggle-group" role="group" aria-label="게시글 분류 선택">
+                        <button type="button" class="category-toggle active" data-category-filter="">전체</button>
+                        <button type="button" class="category-toggle" data-category-filter="GENERAL">자유</button>
+                        <button type="button" class="category-toggle" data-category-filter="ANALYSIS">분석</button>
+                        <button type="button" class="category-toggle" data-category-filter="GAME_THREAD">경기</button>
+                        <button type="button" class="category-toggle" data-category-filter="NEWS">뉴스</button>
+                    </div>
+                </div>
+
+                <div class="filter-search-row">
+                    <div class="selected-filter" id="selectedFilter">
+                        전체 게시글
+                    </div>
+                    <button type="button" id="teamFilterSearchButton" class="filter-search-button" title="선택한 조건으로 검색">검색</button>
+                </div>
+            </section>
+
+            <section class="popular-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-kicker">HOT</span>
+                        <h2>인기 게시글</h2>
+                    </div>
+                    <span class="section-description">추천과 조회가 많은 게시글</span>
+                </div>
+
+                <div class="popular-grid">
+                    <a href="community-view.html?postId=127" class="popular-card" data-league="NL" data-division="WEST" data-team="LAD" data-category="ANALYSIS">
+                        <div class="popular-card-top">
+                            <span class="category-label analysis">분석</span>
+                            <span>추천 57</span>
+                        </div>
+                        <h3>오타니 이번 시즌 타격 지표 분석</h3>
+                        <p>배럴 비율과 하드힛 비율을 중심으로 살펴봤습니다.</p>
+                        <div class="popular-card-meta">sabermetrics · 조회 1,204</div>
+                    </a>
+
+                    <a href="community-view.html?postId=126" class="popular-card" data-league="AL" data-division="EAST" data-team="NYY" data-category="GAME_THREAD">
+                        <div class="popular-card-top">
+                            <span class="category-label game">경기</span>
+                            <span>추천 42</span>
+                        </div>
+                        <h3>오늘 양키스 경기 같이 보실 분?</h3>
+                        <p>경기 시작 전 라인업과 예상 선발을 정리했습니다.</p>
+                        <div class="popular-card-meta">homerun_king · 조회 932</div>
+                    </a>
+
+                    <a href="community-view.html?postId=125" class="popular-card" data-league="AL" data-division="EAST" data-team="BOS" data-category="NEWS">
+                        <div class="popular-card-top">
+                            <span class="category-label news">뉴스</span>
+                            <span>추천 31</span>
+                        </div>
+                        <h3>이번 주 해외야구 주요 소식 정리</h3>
+                        <p>이번 주에 나온 주요 이슈를 한 번에 확인하세요.</p>
+                        <div class="popular-card-meta">baseball_news · 조회 781</div>
+                    </a>
+                </div>
+            </section>
+
+            <section class="board-section">
+                <div class="board-toolbar">
+                    <div class="board-total">전체 게시글 <strong>8</strong></div>
+                    <div class="board-toolbar-right">
+                        <select id="sortSelect">
+                            <option value="latest">최신순</option>
+                            <option value="views">조회순</option>
+                            <option value="likes">추천순</option>
+                        </select>
+                        <a href="community-write.html" class="community-btn primary">글쓰기</a>
+                    </div>
+                </div>
+
+                <div class="board">
+                    <div class="board-header">
+                        <div>번호</div>
+                        <div>분류</div>
+                        <div>제목</div>
+                        <div>작성자</div>
+                        <div>날짜</div>
+                        <div>조회</div>
+                        <div>추천</div>
+                    </div>
+
+                    <a class="board-row" href="community-view.html?postId=130"
+                       data-league="AL" data-division="EAST" data-team="TB" data-category="ANALYSIS" data-date="2026-10-05" data-views="842" data-likes="36">
+                        <div>130</div>
+                        <div><span class="category-label analysis">분석</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">AL · 동부 · 탬파베이 레이스</div>
+                            <span class="board-title">레이스 이번 시즌 타선과 불펜 분석</span>
+                            <span class="comment-count">[14]</span>
+                        </div>
+                        <div>ray_fan</div>
+                        <div>10.05</div>
+                        <div>842</div>
+                        <div>36</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=129"
+                       data-league="AL" data-division="EAST" data-team="NYY" data-category="GAME_THREAD" data-date="2026-10-05" data-views="932" data-likes="42">
+                        <div>129</div>
+                        <div><span class="category-label game">경기</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">AL · 동부 · 뉴욕 양키스</div>
+                            <span class="board-title">오늘 양키스 경기 선발 라인업 예상</span>
+                            <span class="comment-count">[24]</span>
+                        </div>
+                        <div>homerun_king</div>
+                        <div>10.05</div>
+                        <div>932</div>
+                        <div>42</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=128"
+                       data-league="AL" data-division="EAST" data-team="BOS" data-category="NEWS" data-date="2026-10-05" data-views="781" data-likes="31">
+                        <div>128</div>
+                        <div><span class="category-label news">뉴스</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">AL · 동부 · 보스턴 레드삭스</div>
+                            <span class="board-title">레드삭스 이번 주 주요 소식 정리</span>
+                            <span class="comment-count">[11]</span>
+                        </div>
+                        <div>baseball_news</div>
+                        <div>10.05</div>
+                        <div>781</div>
+                        <div>31</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=127"
+                       data-league="NL" data-division="WEST" data-team="LAD" data-category="ANALYSIS" data-date="2026-10-05" data-views="1204" data-likes="57">
+                        <div>127</div>
+                        <div><span class="category-label analysis">분석</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">NL · 서부 · LA 다저스</div>
+                            <span class="board-title">오타니 이번 시즌 타격 지표 분석</span>
+                            <span class="comment-count">[18]</span>
+                        </div>
+                        <div>sabermetrics</div>
+                        <div>10.05</div>
+                        <div>1,204</div>
+                        <div>57</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=126"
+                       data-league="AL" data-division="CENTRAL" data-team="DET" data-category="GAME_THREAD" data-date="2026-10-04" data-views="516" data-likes="19">
+                        <div>126</div>
+                        <div><span class="category-label game">경기</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">AL · 중부 · 디트로이트 타이거스</div>
+                            <span class="board-title">타이거스 경기 흐름과 승부처 정리</span>
+                            <span class="comment-count">[8]</span>
+                        </div>
+                        <div>detroit_fan</div>
+                        <div>10.04</div>
+                        <div>516</div>
+                        <div>19</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=125"
+                       data-league="NL" data-division="EAST" data-team="PHI" data-category="NEWS" data-date="2026-10-04" data-views="403" data-likes="15">
+                        <div>125</div>
+                        <div><span class="category-label news">뉴스</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">NL · 동부 · 필라델피아 필리스</div>
+                            <span class="board-title">필리스 로테이션 관련 최신 소식</span>
+                            <span class="comment-count">[6]</span>
+                        </div>
+                        <div>phillies_fan</div>
+                        <div>10.04</div>
+                        <div>403</div>
+                        <div>15</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=124"
+                       data-league="NL" data-division="WEST" data-team="SD" data-category="ANALYSIS" data-date="2026-10-04" data-views="638" data-likes="27">
+                        <div>124</div>
+                        <div><span class="category-label analysis">분석</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">NL · 서부 · 샌디에이고 파드리스</div>
+                            <span class="board-title">파드리스 중심 타선 장단점 분석</span>
+                            <span class="comment-count">[12]</span>
+                        </div>
+                        <div>petco_fan</div>
+                        <div>10.04</div>
+                        <div>638</div>
+                        <div>27</div>
+                    </a>
+
+                    <a class="board-row" href="community-view.html?postId=123"
+                       data-league="AL" data-division="WEST" data-team="SEA" data-category="ANALYSIS" data-date="2026-10-04" data-views="487" data-likes="21">
+                        <div>123</div>
+                        <div><span class="category-label analysis">분석</span></div>
+                        <div class="col-title">
+                            <div class="post-filter-info">AL · 서부 · 시애틀 매리너스</div>
+                            <span class="board-title">매리너스 선발진을 데이터로 살펴보기</span>
+                            <span class="comment-count">[9]</span>
+                        </div>
+                        <div>statcast</div>
+                        <div>10.04</div>
+                        <div>487</div>
+                        <div>21</div>
+                    </a>
+
+<div id="filterEmptyMessage" class="filter-empty-message" hidden>
+                        선택한 리그 / 지구 / 팀에 해당하는 게시글이 없습니다.
+                    </div>
+                </div>
+
+                <div class="pagination">
+                    <a href="#" class="active">1</a>
+                    <a href="#">2</a>
+                    <a href="#">3</a>
+                    <a href="#">4</a>
+                    <a href="#">5</a>
+                    <a href="#">›</a>
+                </div>
+
+                <form class="search-area" onsubmit="return false;">
+                    <select id="searchType">
+                        <option value="title_content">제목+내용</option>
+                        <option value="title">제목</option>
+                        <option value="writer">작성자</option>
+                    </select>
+                    <input id="searchInput" type="search" placeholder="검색어를 입력하세요">
+                    <button type="submit" class="community-btn">검색</button>
+                </form>
+            </section>
+        </section>
+    </div>
+</main>
+
+<div id="footer"></div>
+<script src="../js/main.js"></script>
+<script src="../js/community.js"></script>
+</body>
+</html>
