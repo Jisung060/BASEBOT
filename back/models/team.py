@@ -14,7 +14,7 @@ class Team(Base):
     )
 
     team_name: Mapped[str] = mapped_column(
-        String,
+        String(100),
         unique=True,
         nullable=False
     )

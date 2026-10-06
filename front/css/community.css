@@ -304,7 +304,9 @@
 }
 
 .board {
+    width: 100%;
     border-top: 2px solid #172033;
+    overflow-x: auto;
 }
 
 .board-header,
@@ -846,7 +848,9 @@
     }
 
     .board {
+        width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
     }
 
     .board-header,
@@ -966,4 +970,442 @@
     .category-toggle {
         min-width: 52px;
     }
+}
+
+/* ==================================================
+   공유 팝업
+================================================== */
+
+.share-modal {
+    width: min(440px, calc(100vw - 40px));
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    animation: shareModalOpen 0.2s ease-out;
+}
+
+
+/* 팝업 열릴 때 애니메이션 */
+
+@keyframes shareModalOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+
+/* 팝업 상단 */
+
+.share-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 26px 28px 18px;
+    border-bottom: 1px solid #eef1f5;
+}
+
+
+.share-modal-label {
+    display: block;
+    margin-bottom: 5px;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+
+    color: #526581;
+}
+
+
+.share-modal-header h3 {
+    margin: 0;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    color: #172033;
+}
+
+
+/* 닫기 버튼 */
+
+.share-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #f4f6f8;
+
+    color: #687386;
+
+    font-size: 24px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s,
+        color 0.2s;
+}
+
+
+.share-modal-close:hover {
+    background: #e9edf2;
+    color: #172033;
+}
+
+
+/* 설명 */
+
+.share-modal-description {
+    padding: 20px 28px 10px;
+}
+
+
+.share-modal-description p {
+    margin: 0;
+
+    font-size: 14px;
+    line-height: 1.6;
+
+    color: #687386;
+}
+
+
+/* 공유 옵션 영역 */
+
+.share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    padding: 10px 28px 24px;
+}
+
+
+/* 각각의 공유 버튼 */
+
+.share-option {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+
+    padding: 16px;
+
+    border: 1px solid #e7ebf0;
+    border-radius: 14px;
+
+    background: #ffffff;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s,
+        background 0.2s,
+        transform 0.2s;
+}
+
+
+.share-option:hover {
+    border-color: #b9c4d4;
+    background: #f8fafc;
+
+    transform: translateY(-1px);
+}
+
+
+/* 아이콘 */
+
+.share-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 44px;
+    height: 44px;
+
+    margin-right: 14px;
+
+    border-radius: 12px;
+
+    font-size: 20px;
+}
+
+
+.share-icon.copy {
+    background: #eef4ff;
+}
+
+
+.share-icon.device {
+    background: #f1f6f3;
+}
+
+
+/* 글자 영역 */
+
+.share-option-text {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    flex: 1;
+}
+
+
+.share-option-text strong {
+    font-size: 15px;
+    font-weight: 700;
+
+    color: #172033;
+}
+
+
+.share-option-text small {
+    font-size: 12px;
+    line-height: 1.4;
+
+    color: #7b8494;
+}
+
+
+/* 오른쪽 화살표 */
+
+.share-option-arrow {
+    margin-left: 12px;
+
+    font-size: 18px;
+
+    color: #9aa3b1;
+
+    transition:
+        transform 0.2s,
+        color 0.2s;
+}
+
+
+.share-option:hover .share-option-arrow {
+    color: #526581;
+    transform: translateX(3px);
+}
+
+
+/* 안내 문구 */
+
+.share-modal-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    padding: 15px 28px;
+
+    background: #f7f8fa;
+
+    border-top: 1px solid #eef1f5;
+}
+
+
+.share-modal-notice > span {
+    flex-shrink: 0;
+
+    font-size: 13px;
+
+    color: #7c8797;
+}
+
+
+.share-modal-notice p {
+    margin: 0;
+
+    font-size: 11px;
+    line-height: 1.6;
+
+    color: #7c8797;
+}
+
+
+/* 모바일 */
+
+@media (max-width: 600px) {
+
+    .share-modal {
+        width: calc(100vw - 28px);
+        border-radius: 18px;
+    }
+
+
+    .share-modal-header {
+        padding: 22px 20px 16px;
+    }
+
+
+    .share-modal-description {
+        padding: 18px 20px 8px;
+    }
+
+
+    .share-options {
+        padding: 8px 20px 20px;
+    }
+
+
+    .share-modal-notice {
+        padding: 14px 20px;
+    }
+
+}
+/* ==================================================
+   사이드바 없는 커뮤니티 페이지
+================================================== */
+
+.community-layout.no-sidebar {
+    display: block;
+}
+
+.community-layout.no-sidebar .community-content {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+/* =========================================
+   BASEBOT 완료 팝업
+========================================= */
+
+.basebot-modal {
+    position: fixed;
+    inset: 0;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    z-index: 9999;
+}
+
+.basebot-modal.show {
+    display: flex;
+}
+
+.basebot-modal-box {
+    width: min(420px, calc(100% - 40px));
+
+    padding: 36px 30px 30px;
+
+    background: #ffffff;
+
+    border-radius: 18px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.2);
+
+    animation:
+        basebotModalOpen
+        0.2s
+        ease-out;
+}
+
+.basebot-modal-icon {
+    width: 58px;
+    height: 58px;
+
+    margin: 0 auto 18px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #111111;
+
+    color: #ffffff;
+
+    font-size: 28px;
+
+    font-weight: bold;
+}
+
+.basebot-modal-box h3 {
+    margin: 0 0 10px;
+
+    font-size: 21px;
+
+    font-weight: 700;
+}
+
+.basebot-modal-box p {
+    margin: 0 0 24px;
+
+    color: #666666;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+}
+
+.basebot-modal-box .community-btn {
+    min-width: 110px;
+}
+
+@keyframes basebotModalOpen {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(10px)
+            scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
+    }
+
+}
+
+
+/* =========================================
+   에디터 placeholder
+========================================= */
+
+.editor-content:empty::before {
+
+    content:
+        "여기에 글을 작성하세요.";
+
+    color: #999999;
+
+    pointer-events: none;
 }

@@ -1,134 +1,434 @@
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>글수정 | BASEBOT</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/community.css">
+
+    <link
+        rel="stylesheet"
+        href="../css/main.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="../css/community.css"
+    >
+
 </head>
+
+
 <body>
+
+
 <div id="header"></div>
 
+
 <main class="community-main">
+
     <div class="community-layout no-sidebar">
 
         <section class="community-content">
+
+
             <div class="community-title">
+
                 <h1>글수정</h1>
-                <p>작성한 게시글을 수정합니다.</p>
+
+                <p>
+                    작성한 게시글을 수정합니다.
+                </p>
+
             </div>
 
-            <form class="write-form" action="#" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="postId" value="127">
+
+            <form
+                class="write-form"
+                id="editForm"
+            >
+
+
                 <div class="write-table">
 
+
+                    <!-- 분류 -->
                     <div class="write-row">
-                        <div class="write-label">분류<span>*</span></div>
+
+                        <div class="write-label">
+                            분류<span>*</span>
+                        </div>
+
                         <div class="write-input-area">
-                            <select name="category" required>
-                                <option value="">분류를 선택하세요</option>
-                                <option value="GENERAL">자유</option>
-                                <option value="ANALYSIS">분석</option>
-                                <option value="GAME_THREAD">경기 스레드</option>
-                                <option value="NEWS">뉴스</option>
+
+                            <select
+                                name="category"
+                                required
+                            >
+
+                                <option value="">
+                                    분류를 선택하세요
+                                </option>
+
+                                <option value="GENERAL">
+                                    자유
+                                </option>
+
+                                <option value="ANALYSIS">
+                                    분석
+                                </option>
+
+                                <option value="GAME_THREAD">
+                                    경기 스레드
+                                </option>
+
+                                <option value="NEWS">
+                                    뉴스
+                                </option>
+
                             </select>
+
                         </div>
+
                     </div>
 
+
+                    <!-- 관련 리그 -->
                     <div class="write-row">
-                        <div class="write-label">관련 리그</div>
+
+                        <div class="write-label">
+                            관련 리그
+                        </div>
+
                         <div class="write-input-area">
-                            <select id="writeLeagueSelect" name="league">
-                                <option value="">선택 안 함</option>
-                                <option value="AL">아메리칸리그</option>
-                                <option value="NL">내셔널리그</option>
+
+                            <select
+                                id="writeLeagueSelect"
+                                name="league"
+                            >
+
+                                <option value="">
+                                    선택 안 함
+                                </option>
+
+                                <option value="AL">
+                                    아메리칸리그
+                                </option>
+
+                                <option value="NL">
+                                    내셔널리그
+                                </option>
+
                             </select>
+
                         </div>
+
                     </div>
 
+
+                    <!-- 관련 지구 -->
                     <div class="write-row">
-                        <div class="write-label">관련 지구</div>
+
+                        <div class="write-label">
+                            관련 지구
+                        </div>
+
                         <div class="write-input-area">
-                            <select id="writeDivisionSelect" name="division">
-                                <option value="">선택 안 함</option>
-                                <option value="EAST">동부</option>
-                                <option value="CENTRAL">중부</option>
-                                <option value="WEST">서부</option>
+
+                            <select
+                                id="writeDivisionSelect"
+                                name="division"
+                            >
+
+                                <option value="">
+                                    선택 안 함
+                                </option>
+
+                                <option value="EAST">
+                                    동부
+                                </option>
+
+                                <option value="CENTRAL">
+                                    중부
+                                </option>
+
+                                <option value="WEST">
+                                    서부
+                                </option>
+
                             </select>
+
                         </div>
+
                     </div>
 
+
+                    <!-- 관련 구단 -->
                     <div class="write-row">
-                        <div class="write-label">관련 구단</div>
+
+                        <div class="write-label">
+                            관련 구단
+                        </div>
+
                         <div class="write-input-area">
-                            <select id="writeTeamSelect" name="related_team_id">
-                                <option value="">선택 안 함</option>
+
+                            <select
+                                id="writeTeamSelect"
+                                name="related_team_code"
+                            >
+
+                                <option value="">
+                                    선택 안 함
+                                </option>
+
                             </select>
-                            <p class="input-guide">특정 구단과 관련된 글이면 선택하세요. (선택 사항)</p>
+
+                            <p class="input-guide">
+                                특정 구단과 관련된 글이면 선택하세요. (선택 사항)
+                            </p>
+
                         </div>
+
                     </div>
 
+
+                    <!-- 제목 -->
                     <div class="write-row">
-                        <div class="write-label">제목<span>*</span></div>
-                        <div class="write-input-area">
-                            <input type="text" name="title" maxlength="200"
-                                   placeholder="제목을 입력하세요 (최대 200자)" required>
+
+                        <div class="write-label">
+                            제목<span>*</span>
                         </div>
+
+                        <div class="write-input-area">
+
+                            <input
+                                type="text"
+                                name="title"
+                                maxlength="200"
+                                placeholder="제목을 입력하세요 (최대 200자)"
+                                required
+                            >
+
+                        </div>
+
                     </div>
 
+
+                    <!-- 내용 -->
                     <div class="write-row content-row">
-                        <div class="write-label">내용<span>*</span></div>
-                        <div class="write-input-area">
-                            <div class="editor">
-                                <div class="editor-toolbar">
-                                    <button type="button" data-command="bold"><b>B</b></button>
-                                    <button type="button" data-command="italic"><i>I</i></button>
-                                    <button type="button" data-command="underline"><u>U</u></button>
 
-                                    <select id="fontSizeSelect" aria-label="글씨 크기">
-                                        <option value="">글씨 크기</option>
-                                        <option value="2">작게</option>
-                                        <option value="3">보통</option>
-                                        <option value="4">크게</option>
-                                        <option value="5">아주 크게</option>
+                        <div class="write-label">
+                            내용<span>*</span>
+                        </div>
+
+                        <div class="write-input-area">
+
+
+                            <div class="editor">
+
+
+                                <div class="editor-toolbar">
+
+
+                                    <button
+                                        type="button"
+                                        data-command="bold"
+                                    >
+                                        <b>B</b>
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        data-command="italic"
+                                    >
+                                        <i>I</i>
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        data-command="underline"
+                                    >
+                                        <u>U</u>
+                                    </button>
+
+
+                                    <select
+                                        id="fontSizeSelect"
+                                        aria-label="글씨 크기"
+                                    >
+
+                                        <option value="">
+                                            글씨 크기
+                                        </option>
+
+                                        <option value="2">
+                                            작게
+                                        </option>
+
+                                        <option value="3">
+                                            보통
+                                        </option>
+
+                                        <option value="4">
+                                            크게
+                                        </option>
+
+                                        <option value="5">
+                                            아주 크게
+                                        </option>
+
                                     </select>
 
-                                    <button type="button" data-command="justifyLeft">왼쪽</button>
-                                    <button type="button" data-command="justifyCenter">가운데</button>
-                                    <button type="button" data-command="justifyRight">오른쪽</button>
+
+                                    <button
+                                        type="button"
+                                        data-command="justifyLeft"
+                                    >
+                                        왼쪽
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        data-command="justifyCenter"
+                                    >
+                                        가운데
+                                    </button>
+
+
+                                    <button
+                                        type="button"
+                                        data-command="justifyRight"
+                                    >
+                                        오른쪽
+                                    </button>
+
 
                                     <label class="image-button">
+
                                         🖼 이미지
-                                        <input type="file" id="editorImage" accept="image/*" hidden>
+
+                                        <input
+                                            type="file"
+                                            id="editorImage"
+                                            accept="image/*"
+                                            hidden
+                                        >
+
                                     </label>
+
+
                                 </div>
 
-                                <div id="editor" class="editor-content" contenteditable="true">
-                                    <p>오타니 이번 시즌 기록을 정리해봤습니다.</p><p><b>배럴 비율과 하드힛 비율</b>을 중심으로 시즌 후반 기록을 분석했습니다.</p>
-                                </div>
+
+                                <div
+                                    id="editor"
+                                    class="editor-content"
+                                    contenteditable="true"
+                                ></div>
+
+
                             </div>
 
-                            <input type="hidden" name="content" id="contentInput">
+
+                            <input
+                                type="hidden"
+                                name="content"
+                                id="contentInput"
+                            >
+
+
                             <p class="input-guide">
-                                글을 작성하면서 이미지가 본문에 표시됩니다. 글씨를 선택한 후 서식을 적용할 수 있습니다.
+                                글을 작성하면서 이미지가 본문에 표시됩니다.
+                                글씨를 선택한 후 서식을 적용할 수 있습니다.
                             </p>
+
+
                         </div>
+
                     </div>
 
                 </div>
 
+
+                <!-- 버튼 -->
                 <div class="write-button-area">
-                    <a href="community-view.html?postId=127" class="community-btn">취소</a>
-                    <button type="submit" class="community-btn primary">수정완료</button>
+
+                    <a
+                        href="community.html"
+                        class="community-btn"
+                    >
+                        취소
+                    </a>
+
+
+                    <button
+                        type="submit"
+                        class="community-btn primary"
+                    >
+                        수정완료
+                    </button>
+
                 </div>
+
+
             </form>
+
+
         </section>
+
     </div>
+
 </main>
 
+
 <div id="footer"></div>
+
+
+<!-- BASEBOT 완료 팝업 -->
+<div
+    id="basebotModal"
+    class="basebot-modal"
+>
+
+    <div class="basebot-modal-box">
+
+        <div class="basebot-modal-icon">
+            ✓
+        </div>
+
+        <h3 id="basebotModalTitle">
+            완료되었습니다.
+        </h3>
+
+        <p id="basebotModalMessage">
+            작업이 완료되었습니다.
+        </p>
+
+        <button
+            type="button"
+            id="basebotModalButton"
+            class="community-btn primary"
+        >
+            확인
+        </button>
+
+    </div>
+
+</div>
+
+
 <script src="../js/main.js"></script>
 <script src="../js/community.js"></script>
+
 </body>
 </html>
+```

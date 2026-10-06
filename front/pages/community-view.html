@@ -55,9 +55,19 @@
                     </button>
                 </div>
 
-                <div class="post-owner-area">
-                    <a href="community-edit.html?postId=127" class="community-btn small">수정</a>
-                    <button type="button" class="community-btn small">삭제</button>
+               <div class="post-owner-area">
+                    <a href="community-edit.html?postId=127"
+                       class="community-btn small"
+                       id="editPostButton">
+                        수정
+                    </a>
+
+                    <button
+                        type="button"
+                        class="community-btn small"
+                        id="deletePostButton">
+                        삭제
+                    </button>
                 </div>
             </article>
 
@@ -253,6 +263,30 @@
             <button type="button" class="community-btn" id="cancelReport">취소</button>
             <button type="button" class="community-btn primary" id="submitReport">신고하기</button>
         </div>
+    </div>
+</div>
+
+<!-- BASEBOT 공통 팝업 -->
+<div id="basebotModal" class="basebot-modal">
+    <div class="basebot-modal-box">
+
+        <div class="basebot-modal-icon">✓</div>
+
+        <h3 id="basebotModalTitle">
+            완료되었습니다.
+        </h3>
+
+        <p id="basebotModalMessage">
+            작업이 완료되었습니다.
+        </p>
+
+        <button
+            type="button"
+            id="basebotModalButton"
+            class="community-btn primary">
+            확인
+        </button>
+
     </div>
 </div>
 

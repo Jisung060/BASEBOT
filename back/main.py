@@ -16,6 +16,7 @@ from models.user import User
 from models.team import Team
 
 from routers.auth import router as auth_router
+from routers.community import router as community_router
 
 
 app = FastAPI(
@@ -46,7 +47,7 @@ app.add_middleware(
 
 # Router
 app.include_router(auth_router)
-
+app.include_router(community_router)
 
 # 정적 파일
 # CSS
