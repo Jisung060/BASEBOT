@@ -11,7 +11,13 @@ from schemas.user import (
     SignupResponse,
     UsernameCheckResponse,
     LoginRequest,
-    LoginResponse
+    LoginResponse,
+    FindIdRequest,
+    FindIdResponse,
+    PasswordResetRequest,
+    PasswordResetResponse,
+    PasswordResetVerifyRequest,
+    PasswordResetVerifyResponse,
 )
 from auth.password import hash_password, verify_password
 from auth.jwt import create_access_token
@@ -164,4 +170,99 @@ def login(
         user_id=user.user_id,
         username=user.username,
         nickname=user.nickname
+    )
+
+@router.post(
+    "/find-id",
+    response_model=FindIdResponse
+)
+def find_id(
+        request_model: FindIdRequest,
+        db: Session = Depends(get_session)
+):
+    user = db.scalar(
+        select(User).where(
+            User.nickname == request_model.nickname,
+            User.email == request_model.email
+        )
+    )
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="입력하신 정보와 일치하는 회원이 없습니다."
+        )
+    return FindIdResponse(
+        username=user.username
+    )
+
+# 아이디 + 이메일 확인
+@router.post(
+    "/verify-password-reset",
+    response_model=PasswordResetVerifyResponse
+)
+def verify_password_reset(
+        request_model: PasswordResetVerifyRequest,
+        db: Session = Depends(get_session),
+):
+    user = db.scalar(
+        select(User).where(
+            User.username == request_model.username,
+            User.email == request_model.email
+        )
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="입력하신 정보와 일치하는 회원이 없습니다."
+        )
+    return PasswordResetVerifyResponse(
+        verified=True
+    )
+
+# 비밀번호 변경
+@router.post(
+    "/reset-password",
+    response_model=PasswordResetResponse
+)
+def reset_password(
+        request_model: PasswordResetRequest,
+        db: Session = Depends(get_session),
+):
+    print("===== 비밀번호 변경 시작 =====")
+
+    print("username:", request_model.username)
+    print("email:", request_model.email)
+
+    user = db.scalar(
+        select(User).where(
+            User.username == request_model.username,
+            User.email == request_model.email
+        )
+    )
+
+    print("조회된 user:", user)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="입력하신 정보와 일치하는 회원이 없습니다."
+        )
+
+    # 기존 비밀번호
+    print("기존 password:", user.password)
+
+    # 새 비밀번호 해싱
+    user.password = hash_password(
+        request_model.new_password
+    )
+
+    print("변경된 password:", user.password)
+
+    db.commit()
+
+    print("===== DB commit 완료 =====")
+
+    return PasswordResetResponse(
+        message="비밀번호가 변경되었습니다."
     )
