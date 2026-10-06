@@ -127,24 +127,124 @@
     </div>
 </main>
 
+<!-- ==============================
+     공유 팝업
+============================== -->
+
 <div id="shareModal" class="modal-backdrop" hidden>
+
     <div class="share-modal">
-        <div class="modal-header">
-            <h3>공유하기</h3>
-            <button type="button" id="closeShareModal" class="modal-close" aria-label="공유 창 닫기">×</button>
-        </div>
-        <div class="share-body">
-            <button type="button" class="share-option" id="copyLinkButton">
-                <span class="share-icon">🔗</span>
-                <span><strong>링크 복사</strong><small>게시글 주소를 복사합니다.</small></span>
+
+        <!-- 팝업 상단 -->
+        <div class="share-modal-header">
+
+            <div>
+                <span class="share-modal-label">
+                    BASEBOT
+                </span>
+
+                <h3>
+                    공유하기
+                </h3>
+            </div>
+
+            <button
+                type="button"
+                id="closeShareModal"
+                class="share-modal-close"
+                aria-label="공유 창 닫기"
+            >
+                ×
             </button>
-            <button type="button" class="share-option" id="nativeShareButton">
-                <span class="share-icon">📤</span>
-                <span><strong>기기 공유</strong><small>카카오톡 등 설치된 공유 앱을 선택합니다.</small></span>
-            </button>
+
         </div>
-        <p class="share-notice">※ 카카오톡의 전용 게시글 카드 공유는 추후 카카오 개발자 앱 연동 후 추가할 수 있습니다.</p>
+
+
+        <!-- 설명 -->
+        <div class="share-modal-description">
+
+            <p>
+                이 게시글을 다른 사람과 공유해보세요.
+            </p>
+
+        </div>
+
+
+        <!-- 공유 방법 -->
+        <div class="share-options">
+
+            <!-- 링크 복사 -->
+            <button
+                type="button"
+                class="share-option"
+                id="copyLinkButton"
+            >
+
+                <span class="share-icon copy">
+                    🔗
+                </span>
+
+                <span class="share-option-text">
+                    <strong>
+                        링크 복사
+                    </strong>
+
+                    <small>
+                        게시글 주소를 클립보드에 복사합니다.
+                    </small>
+                </span>
+
+                <span class="share-option-arrow">
+                    →
+                </span>
+
+            </button>
+
+
+            <!-- 기기 공유 -->
+            <button
+                type="button"
+                class="share-option"
+                id="nativeShareButton"
+            >
+
+                <span class="share-icon device">
+                    📤
+                </span>
+
+                <span class="share-option-text">
+                    <strong>
+                        기기 공유
+                    </strong>
+
+                    <small>
+                        카카오톡 등 설치된 공유 앱을 이용합니다.
+                    </small>
+                </span>
+
+                <span class="share-option-arrow">
+                    →
+                </span>
+
+            </button>
+
+        </div>
+
+
+        <!-- 안내 -->
+        <div class="share-modal-notice">
+
+            <span>ⓘ</span>
+
+            <p>
+                카카오톡 전용 공유 기능은
+                추후 카카오 개발자 앱 연동 후 추가할 수 있습니다.
+            </p>
+
+        </div>
+
     </div>
+
 </div>
 
 <div id="reportModal" class="modal-backdrop" hidden>
