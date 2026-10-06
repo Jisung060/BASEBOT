@@ -112,3 +112,28 @@ function logout() {
     location.href = "main.html";
 
 }
+
+
+/* ==================================================
+   AI CHATBOT
+================================================== */
+
+const chatbotButton = document.getElementById("chatbotButton");
+const chatbotWindow = document.getElementById("chatbotWindow");
+const chatbotClose = document.getElementById("chatbotClose");
+
+
+// 챗봇 열기 / 닫기
+chatbotButton.addEventListener("click", function () {
+
+    chatbotWindow.classList.toggle("active");
+
+});
+
+
+// 챗봇 닫기
+chatbotClose.addEventListener("click", function () {
+
+    chatbotWindow.classList.remove("active");
+
+});

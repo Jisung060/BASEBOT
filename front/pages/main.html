@@ -371,21 +371,100 @@
 
         <!-- ==============================
             AI 챗봇
-        =============================== -->
+        ============================== -->
 
-        <section class="chatbot-banner">
-            <div>
-                <h2>
+        <div class="chatbot">
+
+            <!-- 챗봇 버튼 -->
+            <button type="button" class="chatbot-button" id="chatbotButton">
+
+                <span class="chatbot-icon">
+                    AI
+                </span>
+
+                <span class="chatbot-button-text">
                     BASEBOT AI
-                </h2>
-                <p>
-                    야구에 대해 궁금한 내용을 AI 챗봇에게 물어보세요.
-                </p>
-            </div>
-            <button type="button">
-                AI 챗봇 시작하기
+                </span>
+
             </button>
-        </section>
+
+
+            <!-- 챗봇 창 -->
+            <div class="chatbot-window" id="chatbotWindow">
+
+                <!-- 챗봇 헤더 -->
+                <div class="chatbot-header">
+
+                    <div class="chatbot-title">
+
+                        <div class="chatbot-title-icon">
+                            AI
+                        </div>
+
+                        <div>
+                            <strong>
+                                BASEBOT AI
+                            </strong>
+
+                            <span>
+                                야구 AI 챗봇
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="chatbot-close"
+                        id="chatbotClose"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <!-- 챗봇 메시지 -->
+                <div class="chatbot-body">
+
+                    <div class="chatbot-message bot">
+
+                        <div class="message-icon">
+                            AI
+                        </div>
+
+                        <div class="message-content">
+                            안녕하세요! 👋<br>
+                            BASEBOT AI입니다.<br>
+                            야구에 대해 궁금한 내용을 질문해주세요.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- 챗봇 입력 -->
+                <div class="chatbot-input-area">
+
+                    <input
+                        type="text"
+                        id="chatbotInput"
+                        placeholder="야구에 대해 질문해보세요."
+                    >
+
+                    <button
+                        type="button"
+                        id="chatbotSend"
+                    >
+                        ↑
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </main>
 
