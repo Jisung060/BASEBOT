@@ -1,0 +1,219 @@
+/* ==================================================
+   매치업 셀렉터 바
+================================================== */
+.matchup-selector-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background-color: #f7f9fc;
+    border: 1px solid #e1e7f0;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 30px;
+}
+
+.select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.select-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #666;
+}
+
+.select-group select {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 220px;
+    background: #fff;
+    outline: none;
+}
+
+.vs-badge {
+    font-size: 18px;
+    font-weight: 900;
+    color: #102d63;
+    margin-top: 18px;
+}
+
+.btn-predict {
+    margin-top: 18px;
+    padding: 10px 24px;
+    background-color: #102d63;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-predict:hover {
+    background-color: #174a9c;
+}
+
+/* ==================================================
+   메인 예측 대진 카드
+================================================== */
+.prediction-main-card {
+    border: 1px solid #ddd;
+    background: #fff;
+    padding: 40px 30px;
+    display: grid;
+    grid-template-columns: 240px 1fr 240px;
+    align-items: center;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+}
+
+.team-predict-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+}
+
+.team-logo-big {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+}
+
+.team-predict-side h3 {
+    font-size: 20px;
+    color: #111;
+    font-weight: 800;
+}
+
+.prob-tag {
+    font-size: 32px;
+    font-weight: 900;
+    color: #102d63;
+}
+
+.btn-vote {
+    padding: 8px 18px;
+    border: 1px solid #102d63;
+    background: #fff;
+    color: #102d63;
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-vote:hover {
+    background: #102d63;
+    color: #fff;
+}
+
+.predict-center-gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 30px;
+    gap: 15px;
+}
+
+.ai-badge {
+    background: #102d63;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.verdict-text {
+    font-size: 18px;
+    font-weight: 800;
+    color: #102d63;
+    margin-top: 6px;
+    text-align: center;
+}
+
+.gauge-container {
+    width: 100%;
+    height: 18px;
+    background: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+}
+
+.gauge-bar-away {
+    background: #5c6bc0;
+    transition: width 0.6s ease;
+}
+
+.gauge-bar-home {
+    background: #102d63;
+    transition: width 0.6s ease;
+}
+
+.h2h-pill {
+    padding: 6px 16px;
+    background: #f0f3f8;
+    color: #444;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ==================================================
+   팬 투표 영역
+================================================== */
+.user-vote-section {
+    background: #fcfdfe;
+    border: 1px solid #e1e7f0;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 35px;
+}
+
+.vote-title-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.vote-gauge-container {
+    width: 100%;
+    height: 24px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 24px;
+    text-align: center;
+}
+
+.vote-bar-away {
+    background: #7986cb;
+    transition: width 0.4s;
+}
+
+.vote-bar-home {
+    background: #283593;
+    transition: width 0.4s;
+}
+
+.metric-num {
+    font-size: 16px;
+    font-weight: 800;
+    color: #102d63;
+}

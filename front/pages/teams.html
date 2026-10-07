@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB 구단 정보 - BASEBOT</title>
+    <!-- css 폴더 상대 경로 참조 -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/player-detail.css">
+    <style>
+        .league-title {
+            font-size: 22px;
+            font-weight: 900;
+            color: #102d63;
+            margin: 30px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #102d63;
+        }
+        .division-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            margin: 20px 0 10px 0;
+        }
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .team-card {
+            border: 1px solid #e1e7f0;
+            background: #fff;
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .team-card:hover {
+            border-color: #102d63;
+            box-shadow: 0 4px 12px rgba(16, 45, 99, 0.1);
+            transform: translateY(-2px);
+        }
+        .team-logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+        .team-card-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #222;
+        }
+        .team-card-city {
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="sub-container">
+        <!-- 좌측 사이드바 -->
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-title">MLB 구단</div>
+            <div class="sub-sidebar-line"></div>
+            <nav class="sub-sidebar-menu">
+                <a href="teams.html" class="active">30개 구단 전체</a>
+                <a href="#al">아메리칸 리그 (AL)</a>
+                <a href="#nl">내셔널 리그 (NL)</a>
+            </nav>
+        </aside>
+
+        <!-- 우측 본문 -->
+        <section class="sub-content">
+            <!-- 브레드크럼 -->
+            <div class="breadcrumb">
+                <a href="../main.html">홈</a> &gt; <span>팀 정보</span>
+            </div>
+
+            <div class="content-header">
+                <h2>MLB 30개 구단</h2>
+                <p>원하시는 구단을 선택하여 소속 선수 명단과 세이버메트릭스 기록을 확인하세요.</p>
+            </div>
+
+            <div id="teamsContainer">
+                <p style="padding: 40px; text-align: center; color: #888;">구단 데이터를 불러오는 중입니다...</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // pages 폴더 기준 상대 경로로 컴포넌트 로드
+            loadComponent("header", "../components/header.html");
+            loadComponent("footer", "../components/footer.html");
+            fetchTeams();
+        });
+
+        async function loadComponent(id, path) {
+            try {
+                const res = await fetch(path);
+                if (res.ok) {
+                    document.getElementById(id).innerHTML = await res.text();
+                } else {
+                    console.warn(`컴포넌트 로드 실패 (${path}): HTTP ${res.status}`);
+                }
+            } catch(e) {
+                console.warn(`컴포넌트 로드 에러 (${path}):`, e);
+            }
+        }
+
+        async function fetchTeams() {
+            try {
+                const res = await fetch("http://127.0.0.1:8000/api/teams");
+                if (!res.ok) {
+                    throw new Error(`API 호출 실패 (HTTP ${res.status})`);
+                }
+                const teams = await res.json();
+                renderTeams(teams);
+            } catch (err) {
+                console.error("구단 데이터 로딩 에러:", err);
+                document.getElementById("teamsContainer").innerHTML =
+                    `<p style="padding: 40px; text-align: center; color: #d32f2f;">구단 데이터를 불러오지 못했습니다. 백엔드 서버(FastAPI)가 실행 중인지 확인해 주세요.</p>`;
+            }
+        }
+
+        function renderTeams(teams) {
+            const structure = {
+                "AL": { "East": [], "Central": [], "West": [] },
+                "NL": { "East": [], "Central": [], "West": [] }
+            };
+
+            teams.forEach(t => {
+                if (structure[t.league] && structure[t.league][t.division]) {
+                    structure[t.league][t.division].push(t);
+                }
+            });
+
+            let html = "";
+            for (const [league, divs] of Object.entries(structure)) {
+                const leagueId = league.toLowerCase();
+                const leagueName = league === "AL" ? "아메리칸 리그 (American League)" : "내셔널 리그 (National League)";
+                html += `<div class="league-title" id="${leagueId}">${leagueName}</div>`;
+
+                for (const [div, teamList] of Object.entries(divs)) {
+                    html += `<div class="division-title">${league} ${div} Division</div><div class="team-grid">`;
+                    teamList.forEach(t => {
+                        // 같은 폴더이므로 pages/ 없이 파일명으로 바로 이동
+                        html += `
+                            <div class="team-card" onclick="location.href='team-detail.html?id=${t.team_id}'">
+                                <img src="${t.logo_url}" class="team-logo-img" alt="${t.team_name}">
+                                <div class="team-card-name">${t.team_name}</div>
+                                <div class="team-card-city">${t.city || ''}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+            }
+            document.getElementById("teamsContainer").innerHTML = html;
+        }
+    </script>
+</body>
+</html>

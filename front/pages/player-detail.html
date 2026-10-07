@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선수 상세 정보 - BASEBOT</title>
+    <!-- 기본 메인 스타일 및 선수 상세 전용 스타일 -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/player-detail.css">
+</head>
+<body>
+
+    <!-- ==================================================
+        HEADER (동적 로드)
+    ================================================== -->
+    <div id="header"></div>
+
+    <!-- ==================================================
+        MAIN CONTAINER (2열 서브 레이아웃)
+    ================================================== -->
+    <main class="sub-container">
+        
+        <!-- 좌측 사이드바 (서브 메뉴) -->
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-title">선수 정보</div>
+            <div class="sub-sidebar-line"></div>
+            <nav class="sub-sidebar-menu">
+                <a href="#" class="active">선수 상세 프로필</a>
+                <a href="#">타자 랭킹 (홈런/타율)</a>
+                <a href="#">세이버메트릭스 분석</a>
+                <a href="#">Statcast 타구 속도</a>
+                <a href="#">팀별 로스터</a>
+            </nav>
+        </aside>
+
+        <!-- 우측 본문 콘텐츠 영역 -->
+        <section class="sub-content">
+
+            <!-- 브레드크럼 (계층 경로) -->
+            <div class="breadcrumb">
+                <a href="/main.html">홈</a> &gt; 
+                <a href="/pages/teams.html">팀 정보</a> &gt; 
+                <a href="#" id="bcTeamLink"><span id="bcTeamName">소속팀</span></a> &gt; 
+                <span id="bcPlayerName">선수명</span>
+            </div>
+            
+            <!-- 페이지 타이틀 -->
+            <div class="content-header">
+                <h2>선수 상세 정보</h2>
+                <p>선수의 기본 정보 및 3사 통합 세이버메트릭스 기록을 확인하세요.</p>
+            </div>
+
+            <!-- 선수 프로필 카드 -->
+            <div class="player-profile-card">
+                <div class="player-headshot-box">
+                    <img id="playerHeadshot" src="https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/generic/headshot/67/current" alt="선수 사진">
+                </div>
+                <div class="player-info-details">
+                    <div class="team-badge" id="playerTeamBadge">MLB</div>
+                    <h1 class="player-name" id="playerName">선수 이름 로딩 중...</h1>
+                    <div class="player-meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">소속 팀</span>
+                            <span class="meta-value" id="playerTeamName">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">선수 ID</span>
+                            <span class="meta-value" id="playerIdText">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">주요 지표</span>
+                            <span class="meta-value highlight" id="playerHighlightStat">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 핵심 지표 요약 카드 (Statcast / WAR) -->
+            <div class="stats-summary-grid">
+                <div class="stat-summary-box">
+                    <div class="stat-summary-title">Baseball Reference bWAR</div>
+                    <div class="stat-summary-num" id="cardBwar">-</div>
+                    <div class="stat-summary-desc">대체 선수 대비 승리 기여도</div>
+                </div>
+                <div class="stat-summary-box">
+                    <div class="stat-summary-title">Savant 평균 타구속도</div>
+                    <div class="stat-summary-num" id="cardExitVelo">- <span class="unit">mph</span></div>
+                    <div class="stat-summary-desc">Statcast Average Exit Velocity</div>
+                </div>
+                <div class="stat-summary-box">
+                    <div class="stat-summary-title">배럴 타구 비율 (Barrel %)</div>
+                    <div class="stat-summary-num" id="cardBarrel">- <span class="unit">%</span></div>
+                    <div class="stat-summary-desc">최적 발사각 & 고속 타구 비율</div>
+                </div>
+                <div class="stat-summary-box">
+                    <div class="stat-summary-title">하드힛 비율 (Hard Hit %)</div>
+                    <div class="stat-summary-num" id="cardHardHit">- <span class="unit">%</span></div>
+                    <div class="stat-summary-desc">95mph 이상 강한 타구 비율</div>
+                </div>
+            </div>
+
+            <!-- 시즌별 상세 기록 테이블 -->
+            <div class="section-title">
+                <h2>시즌별 세이버메트릭스 기록</h2>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="player-stats-table">
+                    <thead>
+                        <tr>
+                            <th>시즌</th>
+                            <th>경기</th>
+                            <th>타율</th>
+                            <th>안타</th>
+                            <th>홈런</th>
+                            <th>타점</th>
+                            <th>bWAR</th>
+                            <th>평균 타구속도</th>
+                            <th>배럴 %</th>
+                            <th>하드힛 %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerStatsBody">
+                        <tr>
+                            <td colspan="10" class="no-data">기록 데이터를 불러오는 중입니다...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 하단 버튼 영역 -->
+            <div class="bottom-action-bar">
+                <button type="button" class="btn-list" onclick="history.back()">목록으로 돌아가기</button>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ==================================================
+        FOOTER (동적 로드)
+    ================================================== -->
+    <div id="footer"></div>
+
+    <!-- 스크립트 -->
+    <script src="/js/player-detail.js"></script>
+</body>
+</html>

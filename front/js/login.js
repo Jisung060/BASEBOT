@@ -117,15 +117,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 /* ==================================================
                    JWT 저장
                 ================================================== */
-                localStorage.setItem(
-                    "access_token",
-                    data.access_token
-                );
+                sessionStorage.setItem("access_token", data.access_token);
 
                 /* ==================================================
                    로그인 사용자 정보 저장
                 ================================================== */
-                localStorage.setItem(
+                sessionStorage.setItem(
                     "user",
                     JSON.stringify({
                         user_id: data.user_id,
