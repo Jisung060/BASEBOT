@@ -1,0 +1,302 @@
+/* ==================================================
+   선수 상세 페이지 레이아웃 (서브 컨테이너 1280px)
+================================================== */
+.sub-container {
+    width: 1280px;
+    margin: 0 auto;
+    padding-top: 40px;
+    padding-bottom: 80px;
+    display: flex;
+    gap: 50px;
+    flex: 1;
+}
+
+/* ==================================================
+   좌측 서브 사이드바 (로그인 사이드바 디자인 계승)
+================================================== */
+.sub-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+}
+
+.sub-sidebar-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 12px;
+}
+
+.sub-sidebar-line {
+    width: 100%;
+    height: 2px;
+    background-color: #222;
+    margin-bottom: 15px;
+}
+
+.sub-sidebar-menu {
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-sidebar-menu a {
+    padding: 12px 15px;
+    font-size: 14px;
+    color: #555;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.sub-sidebar-menu a:hover {
+    color: #102d63;
+    background-color: #f7f9fc;
+}
+
+.sub-sidebar-menu a.active {
+    background-color: #eef2f9;
+    color: #102d63;
+    font-weight: 700;
+}
+
+/* ==================================================
+   우측 본문 콘텐츠 영역
+================================================== */
+.sub-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.content-header {
+    border-bottom: 2px solid #222;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.content-header h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 8px;
+}
+
+.content-header p {
+    font-size: 14px;
+    color: #666;
+}
+
+/* ==================================================
+   선수 프로필 카드
+================================================== */
+.player-profile-card {
+    border: 1px solid #ddd;
+    background-color: #fff;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 35px;
+    margin-bottom: 35px;
+}
+
+.player-headshot-box {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #f4f5f8;
+    border: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.player-headshot-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-info-details {
+    flex: 1;
+}
+
+.team-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #102d63;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.player-name {
+    font-size: 30px;
+    font-weight: 900;
+    color: #102d63;
+    margin-bottom: 15px;
+    letter-spacing: -0.5px;
+}
+
+.player-meta-grid {
+    display: flex;
+    gap: 40px;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.meta-label {
+    font-size: 12px;
+    color: #888;
+}
+
+.meta-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #222;
+}
+
+.meta-value.highlight {
+    color: #d32f2f;
+}
+
+/* ==================================================
+   핵심 지표 요약 그리드 (4칸)
+================================================== */
+.stats-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.stat-summary-box {
+    border: 1px solid #e1e7f0;
+    background-color: #f8fafd;
+    padding: 20px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.stat-summary-title {
+    font-size: 13px;
+    color: #555;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.stat-summary-num {
+    font-size: 28px;
+    font-weight: 900;
+    color: #102d63;
+    margin-bottom: 6px;
+}
+
+.stat-summary-num .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: #777;
+}
+
+.stat-summary-desc {
+    font-size: 11px;
+    color: #888;
+}
+
+/* ==================================================
+   시즌별 스탯 테이블
+================================================== */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 35px;
+}
+
+.player-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 2px solid #222;
+    text-align: center;
+}
+
+.player-stats-table th {
+    background-color: #f5f6f8;
+    color: #333;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 13px 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.player-stats-table td {
+    padding: 14px 8px;
+    font-size: 14px;
+    border-bottom: 1px solid #eee;
+    color: #444;
+}
+
+.player-stats-table tbody tr:hover {
+    background-color: #fcfdfe;
+}
+
+.player-stats-table .no-data {
+    padding: 40px;
+    color: #888;
+}
+
+/* ==================================================
+   하단 버튼
+================================================== */
+.bottom-action-bar {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-list {
+    padding: 12px 35px;
+    border: 1px solid #102d63;
+    background-color: #fff;
+    color: #102d63;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-list:hover {
+    background-color: #102d63;
+    color: #fff;
+}
+
+/* ==================================================
+   브레드크럼 (Breadcrumb 페이지 계층 네비게이션)
+================================================== */
+.breadcrumb {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumb a {
+    color: #555;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb a:hover {
+    color: #102d63;
+    text-decoration: underline;
+}
+
+.breadcrumb span {
+    color: #102d63;
+    font-weight: 700;
+}

@@ -55,7 +55,7 @@
                     </button>
                 </div>
 
-               <div class="post-owner-area">
+                <div class="post-owner-area">
                     <a href="community-edit.html?postId=127"
                        class="community-btn small"
                        id="editPostButton">
@@ -268,26 +268,36 @@
 
 <!-- BASEBOT 공통 팝업 -->
 <div id="basebotModal" class="basebot-modal">
+
     <div class="basebot-modal-box">
 
-        <div class="basebot-modal-icon">✓</div>
+        <h3 id="basebotModalTitle"></h3>
 
-        <h3 id="basebotModalTitle">
-            완료되었습니다.
-        </h3>
+        <p id="basebotModalMessage"></p>
 
-        <p id="basebotModalMessage">
-            작업이 완료되었습니다.
-        </p>
+        <div class="basebot-modal-button-area">
 
-        <button
-            type="button"
-            id="basebotModalButton"
-            class="community-btn primary">
-            확인
-        </button>
+            <button
+                type="button"
+                id="basebotModalCancelButton"
+                class="community-btn"
+                style="display: none;"
+            >
+                취소
+            </button>
+
+            <button
+                type="button"
+                id="basebotModalButton"
+                class="community-btn primary"
+            >
+                확인
+            </button>
+
+        </div>
 
     </div>
+
 </div>
 
 <div id="footer"></div>
@@ -295,3 +305,4 @@
 <script src="../js/community.js"></script>
 </body>
 </html>
+

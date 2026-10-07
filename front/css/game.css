@@ -1,0 +1,220 @@
+/* ==========================================================================
+   game.css (경기 일정 및 결과 - PC 전용)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CONTAINER & HEADER
+   -------------------------------------------------------------------------- */
+.game-container {
+    width: 1100px;
+    margin: 0 auto;
+    padding: 30px 0 80px;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: #222222;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #222222;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+
+.game-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. DATE NAVIGATOR (날짜 이동 컨트롤)
+   -------------------------------------------------------------------------- */
+.date-navigator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 30px;
+}
+
+.btn-date-prev,
+.btn-date-next {
+    background: #ffffff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-date-prev:hover,
+.btn-date-next:hover {
+    background-color: #e9ecef;
+}
+
+.current-date-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.current-date {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111111;
+}
+
+.btn-datepicker {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   3. GAME LIST GRID & CARD (경기 카드)
+   -------------------------------------------------------------------------- */
+.game-list-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.game-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.game-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 경기 상태 및 시간 */
+.game-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.game-status-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.status-scheduled { background-color: #e9ecef; color: #495057; }
+.status-live { background-color: #ffe3e3; color: #e03131; }
+.status-finished { background-color: #e7f5ff; color: #1971c2; }
+.status-canceled { background-color: #f1f3f5; color: #868e96; }
+
+.game-time-venue {
+    font-size: 13px;
+    color: #666666;
+}
+
+/* 팀 스코어 정보 */
+.game-teams-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.team-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.team-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.team-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.team-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.pitcher-name {
+    font-size: 12px;
+    color: #888888;
+    margin-left: 6px;
+}
+
+.team-score {
+    font-size: 22px;
+    font-weight: 700;
+    color: #333333;
+}
+
+.team-row.winner .team-name,
+.team-row.winner .team-score {
+    color: #000000;
+    font-weight: 800;
+}
+
+/* 카드 하단 액션 버튼 */
+.game-card-footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f3f5;
+}
+
+.btn-game-detail,
+.btn-game-relay {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-game-detail {
+    background-color: #f1f3f5;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.btn-game-detail:hover {
+    background-color: #e9ecef;
+}
+
+.btn-game-relay {
+    background-color: #22b8cf;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-game-relay:hover {
+    background-color: #15aabf;
+}

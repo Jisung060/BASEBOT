@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 경기 예측 & 투표 - BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/player-detail.css">
+    <link rel="stylesheet" href="../css/prediction.css">
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="sub-container">
+        <!-- 좌측 사이드바 -->
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-title">경기 예측</div>
+            <div class="sub-sidebar-line"></div>
+            <nav class="sub-sidebar-menu">
+                <a href="prediction.html" class="active">AI 승부예측 & 투표</a>
+                <a href="prediction-history.html">예측 적중률 랭킹</a>
+                <a href="game.html">경기 일정 및 결과</a>
+            </nav>
+        </aside>
+
+        <!-- 우측 본문 -->
+        <section class="sub-content">
+            <!-- 브레드크럼 -->
+            <div class="breadcrumb">
+                <a href="../main.html">홈</a> &gt; <span>경기 예측</span>
+            </div>
+
+            <div class="content-header">
+                <h2>AI 경기 예측 & 승부 투표</h2>
+                <p>세이버메트릭스 기반 머신러닝 분석 결과와 팬들의 실시간 투표 현황을 확인하세요.</p>
+            </div>
+
+            <!-- 내 보유 포인트 표시 카드 -->
+            <div class="user-point-card" id="userPointCard">
+                <div class="point-info-left">
+                    <span class="point-icon">🪙</span>
+                    <span class="point-label">내 보유 포인트:</span>
+                    <strong class="point-amount" id="userPointDisplay">- P</strong>
+                </div>
+                <div class="point-info-right">
+                    <span class="bet-info-tag">1회 투표 시 100 P 베팅 (적중 시 2배 지급)</span>
+                </div>
+            </div>
+
+            <!-- 특정 경기 선택 바로 개편 -->
+            <div class="matchup-selector-bar">
+                <div class="select-group" style="flex: 1;">
+                    <label>투표할 경기 선택</label>
+                    <select id="gameSelect" style="width: 100%;">
+                        <option value="">경기를 불러오는 중...</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-predict" id="btnLoadGame">분석 및 투표 불러오기</button>
+            </div>
+
+            <!-- 메인 예측 대진 카드 -->
+            <div class="prediction-main-card">
+                <!-- 원정팀 영역 -->
+                <div class="team-predict-side away-side">
+                    <img id="awayLogo" src="" class="team-logo-big" alt="원정팀">
+                    <h3 id="awayName">원정팀</h3>
+                    <div class="prob-tag" id="awayProbTag">0.0%</div>
+                    <button type="button" class="btn-vote" id="btnVoteAway">원정팀 승리 투표 (100P)</button>
+                </div>
+
+                <!-- 중앙 VS 및 게이지 바 -->
+                <div class="predict-center-gauge">
+                    <div class="ai-verdict-box">
+                        <span class="ai-badge">BASEBOT ML</span>
+                        <div class="verdict-text" id="verdictText">경기 선택 대기</div>
+                    </div>
+                    <!-- 확률 게이지 바 -->
+                    <div class="gauge-container">
+                        <div class="gauge-bar-away" id="gaugeAway" style="width: 50%;"></div>
+                        <div class="gauge-bar-home" id="gaugeHome" style="width: 50%;"></div>
+                    </div>
+                    <div class="h2h-pill" id="h2hPill">올 시즌 상대전적 요약</div>
+                </div>
+
+                <!-- 홈팀 영역 -->
+                <div class="team-predict-side home-side">
+                    <img id="homeLogo" src="" class="team-logo-big" alt="홈팀">
+                    <h3 id="homeName">홈팀</h3>
+                    <div class="prob-tag" id="homeProbTag">0.0%</div>
+                    <button type="button" class="btn-vote" id="btnVoteHome">홈팀 승리 투표 (100P)</button>
+                </div>
+            </div>
+
+            <!-- 유저 투표 현황 바 -->
+            <div class="user-vote-section">
+                <div class="vote-title-row">
+                    <strong>실시간 팬 투표 현황</strong>
+                    <span id="voteCountText">총 0표 참여</span>
+                </div>
+                <div class="vote-gauge-container">
+                    <div class="vote-bar-away" id="userVoteAwayBar" style="width: 50%;">50%</div>
+                    <div class="vote-bar-home" id="userVoteHomeBar" style="width: 50%;">50%</div>
+                </div>
+                <!-- 나의 투표 결과 뱃지 -->
+                <div id="myVoteStatusBox" style="margin-top: 15px; font-size: 13px; text-align: center; color: #102d63; font-weight: 700;"></div>
+            </div>
+
+            <!-- 세이버메트릭스 핵심 지표 비교 표 -->
+            <div class="section-title" style="margin-top: 40px;">
+                <h2>팀 세이버메트릭스 지표 비교</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="player-stats-table">
+                    <thead>
+                        <tr>
+                            <th id="thAwayName" style="width: 35%;">원정팀</th>
+                            <th style="width: 30%;">분석 지표</th>
+                            <th id="thHomeName" style="width: 35%;">홈팀</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="tdAwayVelo" class="metric-num">-</td>
+                            <td>평균 타구속도 (Exit Velocity)</td>
+                            <td id="tdHomeVelo" class="metric-num">-</td>
+                        </tr>
+                        <tr>
+                            <td id="tdAwayBarrel" class="metric-num">-</td>
+                            <td>배럴 타구 비율 (Barrel %)</td>
+                            <td id="tdHomeBarrel" class="metric-num">-</td>
+                        </tr>
+                        <tr>
+                            <td id="tdAwayWar" class="metric-num">-</td>
+                            <td>팀 평균 bWAR</td>
+                            <td id="tdHomeWar" class="metric-num">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+    <!-- ==================================================
+        JavaScript
+    ================================================== -->
+    <!-- 1. 팀 공통 스크립트 (Header, Footer, 로그인/로그아웃 자동 처리) -->
+    <script src="../js/main.js"></script>
+    <script src="../js/prediction.js"></script>
+</body>
+</html>

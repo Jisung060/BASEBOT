@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, String, Integer, DateTime, Enum, ForeignKey, Text
+from sqlalchemy import BigInteger, String, Integer, DateTime, Enum, ForeignKey
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.orm import Base
@@ -51,7 +52,7 @@ class CommunityPost(Base):
     )
 
     content: Mapped[str] = mapped_column(
-        Text,
+        LONGTEXT,
         nullable=False
     )
 

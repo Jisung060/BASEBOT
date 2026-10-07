@@ -11,36 +11,39 @@ function showBasebotModal(
     message,
     callback = null
 ) {
-
     const modal =
-        document.getElementById(
-            "basebotModal"
-        );
+        document.getElementById("basebotModal");
 
     const titleElement =
-        document.getElementById(
-            "basebotModalTitle"
-        );
+        document.getElementById("basebotModalTitle");
 
     const messageElement =
-        document.getElementById(
-            "basebotModalMessage"
-        );
+        document.getElementById("basebotModalMessage");
 
     const button =
-        document.getElementById(
-            "basebotModalButton"
-        );
+        document.getElementById("basebotModalButton");
 
-    if (!modal) {
+    const cancelButton =
+        document.getElementById("basebotModalCancelButton");
+
+    if (
+        !modal ||
+        !titleElement ||
+        !messageElement ||
+        !button
+    ) {
         return;
     }
 
-    titleElement.textContent =
-        title;
+    titleElement.textContent = title;
+    messageElement.textContent = message;
 
-    messageElement.textContent =
-        message;
+    // 일반 알림 팝업에서는 취소 버튼 숨기기
+    if (cancelButton) {
+        cancelButton.style.display = "none";
+    }
+
+    button.textContent = "확인";
 
     modal.classList.add("show");
 
@@ -51,7 +54,73 @@ function showBasebotModal(
         if (callback) {
             callback();
         }
+    };
+}
 
+
+// =========================================
+// BASEBOT 확인 팝업
+// 삭제 확인 등에 사용
+// =========================================
+function showBasebotConfirm(
+    title,
+    message,
+    confirmCallback = null,
+    confirmText = "확인"
+) {
+    const modal =
+        document.getElementById("basebotModal");
+
+    const titleElement =
+        document.getElementById("basebotModalTitle");
+
+    const messageElement =
+        document.getElementById("basebotModalMessage");
+
+    const button =
+        document.getElementById("basebotModalButton");
+
+    const cancelButton =
+        document.getElementById("basebotModalCancelButton");
+
+    if (
+        !modal ||
+        !titleElement ||
+        !messageElement ||
+        !button ||
+        !cancelButton
+    ) {
+        return;
+    }
+
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+
+    // 확인 팝업에서는 취소 버튼 표시
+    cancelButton.style.display = "inline-flex";
+
+    cancelButton.textContent = "취소";
+    button.textContent = confirmText;
+
+    modal.classList.add("show");
+
+
+    // 취소 버튼
+    cancelButton.onclick = function () {
+
+        modal.classList.remove("show");
+
+    };
+
+
+    // 확인 버튼
+    button.onclick = function () {
+
+        modal.classList.remove("show");
+
+        if (confirmCallback) {
+            confirmCallback();
+        }
     };
 }
 
@@ -195,179 +264,591 @@ updateTeamSelect("leagueSelect", "divisionSelect", "teamSelect");
 updateTeamSelect("writeLeagueSelect", "writeDivisionSelect", "writeTeamSelect");
 
 
-function setupCommunityFilters() {
-    const leagueSelect = document.getElementById("leagueSelect");
-    const divisionSelect = document.getElementById("divisionSelect");
-    const teamSelect = document.getElementById("teamSelect");
-    const searchButton = document.getElementById("teamFilterSearchButton");
-    const selectedFilter = document.getElementById("selectedFilter");
-    const boardTotal = document.querySelector(".board-total");
-    const emptyMessage = document.getElementById("filterEmptyMessage");
-    const sortSelect = document.getElementById("sortSelect");
+// =========================================
+// 커뮤니티 필터 상태
+// =========================================
 
-    if (!leagueSelect || !divisionSelect || !teamSelect || !searchButton) {
-        return;
-    }
+// 상단 분류 검색 조건
+let appliedFilter = {
+    league: "",
+    division: "",
+    team: "",
+    category: ""
+};
 
-    const board = document.querySelector(".board");
-    const boardRows = [...document.querySelectorAll(".board-row[data-team]")];
-    const popularCards = [...document.querySelectorAll(".popular-card[data-team]")];
-    const categoryButtons = [...document.querySelectorAll(".category-toggle")];
+// 하단 게시글 검색 조건
+let appliedPostSearch = {
+    type: "",
+    keyword: ""
+};
 
-    // 현재 검색 버튼을 눌러 적용된 조건.
-    let appliedFilter = {
-        league: "",
-        division: "",
-        team: "",
-        category: ""
-    };
 
-    function selectedText(select, fallback) {
-        return select.selectedOptions[0]?.textContent || fallback;
-    }
+// =========================================
+// 게시글 필터링 + 정렬
+// 상단 분류 + 하단 게시글 검색을
+// 동시에 적용한다.
+// =========================================
+function updateCommunityBoard() {
 
-    function matches(element, filter) {
-        if (filter.league && element.dataset.league !== filter.league) return false;
-        if (filter.division && element.dataset.division !== filter.division) return false;
-        if (filter.team && element.dataset.team !== filter.team) return false;
-        if (filter.category && element.dataset.category !== filter.category) return false;
+    const board =
+        document.querySelector(".board");
+
+    const boardRows =
+        [...document.querySelectorAll(".board-row[data-team]")];
+
+    const popularCards =
+        [...document.querySelectorAll(".popular-card[data-team]")];
+
+    const selectedFilter =
+        document.getElementById("selectedFilter");
+
+    const boardTotal =
+        document.querySelector(".board-total");
+
+    const emptyMessage =
+        document.getElementById("filterEmptyMessage");
+
+    const sortSelect =
+        document.getElementById("sortSelect");
+
+
+    // -----------------------------------------
+    // 게시글 하나가 상단 분류 조건에 맞는지 확인
+    // -----------------------------------------
+    function matchesTopFilter(element) {
+
+        if (
+            appliedFilter.league &&
+            element.dataset.league !== appliedFilter.league
+        ) {
+            return false;
+        }
+
+        if (
+            appliedFilter.division &&
+            element.dataset.division !==
+            appliedFilter.division
+        ) {
+            return false;
+        }
+
+        if (
+            appliedFilter.team &&
+            element.dataset.team !==
+            appliedFilter.team
+        ) {
+            return false;
+        }
+
+        if (
+            appliedFilter.category &&
+            element.dataset.category !==
+            appliedFilter.category
+        ) {
+            return false;
+        }
+
         return true;
     }
 
-    function categoryName(code) {
-        const names = {
-            GENERAL: "자유",
-            ANALYSIS: "분석",
-            GAME_THREAD: "경기",
-            NEWS: "뉴스"
-        };
 
-        return names[code] || "";
+    // -----------------------------------------
+    // 게시글 하나가 하단 검색 조건에 맞는지 확인
+    // -----------------------------------------
+    function matchesPostSearch(element) {
+
+        const keyword =
+            appliedPostSearch.keyword;
+
+        // 검색어가 없으면 전부 통과
+        if (!keyword) {
+            return true;
+        }
+
+        const title =
+            (element.dataset.title || "")
+                .toLowerCase();
+
+        const content =
+            (element.dataset.content || "")
+                .toLowerCase();
+
+        const writer =
+            (element.dataset.writer || "")
+                .toLowerCase();
+
+
+        // 제목 검색
+        if (appliedPostSearch.type === "title") {
+
+            return title.includes(keyword);
+        }
+
+
+        // 작성자 검색
+        if (appliedPostSearch.type === "writer") {
+
+            return writer.includes(keyword);
+        }
+
+
+        // 제목 + 내용 검색
+        return (
+            title.includes(keyword) ||
+            content.includes(keyword)
+        );
     }
 
-    function getConditionText(filter) {
-        const parts = [];
 
-        if (filter.league) {
-            parts.push(selectedText(leagueSelect, "전체 리그"));
-        }
+    // -----------------------------------------
+    // 최종 조건
+    //
+    // 상단 조건 AND 하단 검색 조건
+    // -----------------------------------------
+    function matchesAll(element) {
 
-        if (filter.division) {
-            parts.push(selectedText(divisionSelect, "전체 지구"));
-        }
-
-        if (filter.team) {
-            parts.push(selectedText(teamSelect, "전체 팀"));
-        }
-
-        if (filter.category) {
-            parts.push(categoryName(filter.category));
-        }
-
-        return parts.length ? parts.join(" · ") : "전체 게시글";
+        return (
+            matchesTopFilter(element) &&
+            matchesPostSearch(element)
+        );
     }
 
+
+    // -----------------------------------------
+    // 정렬
+    // -----------------------------------------
     function sortRows(rows) {
-        const sortValue = sortSelect?.value || "latest";
+
+        const sortValue =
+            sortSelect?.value || "latest";
+
 
         return [...rows].sort((a, b) => {
+
             if (sortValue === "views") {
-                return Number(b.dataset.views) - Number(a.dataset.views);
+
+                return (
+                    Number(b.dataset.views) -
+                    Number(a.dataset.views)
+                );
             }
+
 
             if (sortValue === "likes") {
-                return Number(b.dataset.likes) - Number(a.dataset.likes);
+
+                return (
+                    Number(b.dataset.likes) -
+                    Number(a.dataset.likes)
+                );
             }
 
-            // 최신순: 날짜가 같으면 게시글 번호가 큰 글이 먼저.
-            const dateCompare = String(b.dataset.date).localeCompare(String(a.dataset.date));
+
+            // 최신순
+            const dateCompare =
+                String(b.dataset.date)
+                    .localeCompare(
+                        String(a.dataset.date)
+                    );
+
 
             if (dateCompare !== 0) {
                 return dateCompare;
             }
 
-            return Number(b.children[0].textContent) - Number(a.children[0].textContent);
+
+            // 날짜가 같으면 게시글 번호가 큰 것부터
+            return (
+                Number(b.children[0].textContent) -
+                Number(a.children[0].textContent)
+            );
         });
     }
 
-    function updateBoard(filter) {
-        const matchedRows = boardRows.filter(row => matches(row, filter));
 
-        // 먼저 모든 게시글을 숨기고, 검색 조건에 맞는 게시글만 표시.
-        boardRows.forEach(row => {
-            row.hidden = !matchedRows.includes(row);
-        });
+    // -----------------------------------------
+    // 실제 게시글 필터링
+    // -----------------------------------------
+    const matchedRows =
+        boardRows.filter(row => matchesAll(row));
 
-        // 정렬 선택에 따라 현재 필터 결과의 순서를 변경.
-        if (board) {
-            const sortedRows = sortRows(matchedRows);
 
-            sortedRows.forEach(row => {
-                board.appendChild(row);
-            });
-        }
+    // 모든 게시글 숨기기 / 조건에 맞는 글만 표시
+    boardRows.forEach(row => {
 
-        // 인기 게시글도 같은 조건으로 필터링.
-        popularCards.forEach(card => {
-            card.hidden = !matches(card, filter);
-        });
-
-        const conditionText = getConditionText(filter);
-
-        if (selectedFilter) {
-            selectedFilter.textContent = conditionText;
-        }
-
-        if (boardTotal) {
-            const sortName = {
-                latest: "최신순",
-                views: "조회순",
-                likes: "추천순"
-            }[sortSelect?.value || "latest"];
-
-            boardTotal.innerHTML =
-                `${conditionText} · ${sortName} <strong>${matchedRows.length}</strong>`;
-        }
-
-        if (emptyMessage) {
-            emptyMessage.hidden = matchedRows.length !== 0;
-        }
-    }
-
-    function applySearch() {
-        appliedFilter = {
-            league: leagueSelect.value,
-            division: divisionSelect.value,
-            team: teamSelect.value,
-            category: document.querySelector(".category-toggle.active")?.dataset.categoryFilter || ""
-        };
-
-        updateBoard(appliedFilter);
-    }
-
-    // 분류 토글은 검색 조건을 고르는 단계.
-    // 실제 필터링은 [검색] 버튼을 눌렀을 때 적용.
-    categoryButtons.forEach(button => {
-        button.addEventListener("click", () => {
-            categoryButtons.forEach(item => item.classList.remove("active"));
-            button.classList.add("active");
-        });
+        row.hidden =
+            !matchedRows.includes(row);
     });
 
-    searchButton.addEventListener("click", applySearch);
 
-    // 조회순 / 최신순 / 추천순은 현재 검색 결과를 바로 재정렬.
-    sortSelect?.addEventListener("change", () => {
-        updateBoard(appliedFilter);
+    // -----------------------------------------
+    // 정렬
+    // -----------------------------------------
+    if (board) {
+
+        const sortedRows =
+            sortRows(matchedRows);
+
+        sortedRows.forEach(row => {
+
+            board.appendChild(row);
+        });
+    }
+
+
+    // -----------------------------------------
+    // 인기 게시글도 상단 조건 적용
+    // -----------------------------------------
+    popularCards.forEach(card => {
+
+        card.hidden =
+            !matchesTopFilter(card);
     });
 
-    // 처음에는 전체 게시글을 최신순으로 보여줌.
-    updateBoard(appliedFilter);
+
+    // -----------------------------------------
+    // 상단 조건 표시
+    // -----------------------------------------
+    const leagueSelect =
+        document.getElementById("leagueSelect");
+
+    const divisionSelect =
+        document.getElementById("divisionSelect");
+
+    const teamSelect =
+        document.getElementById("teamSelect");
+
+
+    const parts = [];
+
+
+    if (appliedFilter.league) {
+
+        parts.push(
+            leagueSelect?.selectedOptions[0]?.textContent ||
+            "전체 리그"
+        );
+    }
+
+
+    if (appliedFilter.division) {
+
+        parts.push(
+            divisionSelect?.selectedOptions[0]?.textContent ||
+            "전체 지구"
+        );
+    }
+
+
+    if (appliedFilter.team) {
+
+        parts.push(
+            teamSelect?.selectedOptions[0]?.textContent ||
+            "전체 팀"
+        );
+    }
+
+
+    const categoryNames = {
+
+        GENERAL: "자유",
+
+        ANALYSIS: "분석",
+
+        GAME_THREAD: "경기",
+
+        NEWS: "뉴스"
+    };
+
+
+    if (appliedFilter.category) {
+
+        parts.push(
+            categoryNames[appliedFilter.category] ||
+            ""
+        );
+    }
+
+
+    const conditionText =
+        parts.length
+            ? parts.join(" · ")
+            : "전체 게시글";
+
+
+    if (selectedFilter) {
+
+        selectedFilter.textContent =
+            conditionText;
+    }
+
+
+    // -----------------------------------------
+    // 게시글 개수 + 정렬 표시
+    // -----------------------------------------
+    if (boardTotal) {
+
+        const sortName = {
+
+            latest: "최신순",
+
+            views: "조회순",
+
+            likes: "추천순"
+
+        }[sortSelect?.value || "latest"];
+
+
+        boardTotal.innerHTML =
+            `${conditionText} · ${sortName} <strong>${matchedRows.length}</strong>`;
+    }
+
+
+    // -----------------------------------------
+    // 검색 결과 없음
+    // -----------------------------------------
+    if (emptyMessage) {
+
+        emptyMessage.hidden =
+            matchedRows.length !== 0;
+    }
 }
 
 
+
+// =========================================
+// 상단 리그 / 지구 / 팀 / 카테고리 필터
+// =========================================
+function setupCommunityFilters() {
+
+    const leagueSelect =
+        document.getElementById("leagueSelect");
+
+    const divisionSelect =
+        document.getElementById("divisionSelect");
+
+    const teamSelect =
+        document.getElementById("teamSelect");
+
+    const searchButton =
+        document.getElementById(
+            "teamFilterSearchButton"
+        );
+
+    const categoryButtons =
+        [
+            ...document.querySelectorAll(
+                ".category-toggle"
+            )
+        ];
+
+    const sortSelect =
+        document.getElementById("sortSelect");
+
+
+    console.log(
+        "필터 요소 확인:",
+        {
+            leagueSelect,
+            divisionSelect,
+            teamSelect,
+            searchButton
+        }
+    );
+
+
+    if (
+        !leagueSelect ||
+        !divisionSelect ||
+        !teamSelect ||
+        !searchButton
+    ) {
+        return;
+    }
+
+
+    // -----------------------------------------
+    // 상단 검색 버튼
+    // -----------------------------------------
+    searchButton.onclick = function () {
+
+        console.log(
+            "검색 버튼 클릭됨!"
+        );
+
+
+        appliedFilter = {
+
+            league:
+                leagueSelect.value,
+
+            division:
+                divisionSelect.value,
+
+            team:
+                teamSelect.value,
+
+            category:
+                document.querySelector(
+                    ".category-toggle.active"
+                )?.dataset.categoryFilter || ""
+        };
+
+
+        // ⭐ 상단 조건 + 하단 검색 조건
+        // 둘 다 적용
+        updateCommunityBoard();
+    };
+
+
+    console.log(
+        "검색 이벤트 연결 완료:",
+        searchButton
+    );
+
+
+    // -----------------------------------------
+    // 카테고리 선택
+    // -----------------------------------------
+    categoryButtons.forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                categoryButtons.forEach(
+                    item => {
+
+                        item.classList.remove(
+                            "active"
+                        );
+                    }
+                );
+
+
+                button.classList.add(
+                    "active"
+                );
+            }
+        );
+    });
+
+
+    // -----------------------------------------
+    // 정렬 변경
+    // -----------------------------------------
+    sortSelect?.addEventListener(
+        "change",
+        () => {
+
+            updateCommunityBoard();
+        }
+    );
+
+
+    // -----------------------------------------
+    // 처음에는 전체 게시글 표시
+    // -----------------------------------------
+    updateCommunityBoard();
+}
+
+
+
+// =========================================
+// 하단 게시글 검색
+// 제목 / 제목+내용 / 작성자
+// =========================================
+function setupPostSearch() {
+
+    const searchButton =
+        document.getElementById(
+            "postSearchButton"
+        );
+
+    const searchType =
+        document.getElementById(
+            "searchType"
+        );
+
+    const searchInput =
+        document.getElementById(
+            "searchInput"
+        );
+
+
+    if (
+        !searchButton ||
+        !searchType ||
+        !searchInput
+    ) {
+        return;
+    }
+
+
+    searchButton.addEventListener(
+        "click",
+        function () {
+
+            const type =
+                searchType.value;
+
+
+            const keyword =
+                searchInput.value
+                    .trim()
+                    .toLowerCase();
+
+
+            console.log(
+                "게시글 검색 실행:",
+                {
+                    type: type,
+                    keyword: keyword
+                }
+            );
+
+
+            // 하단 검색 조건 저장
+            appliedPostSearch = {
+
+                type:
+                    keyword
+                        ? type
+                        : "",
+
+                keyword:
+                    keyword
+            };
+
+
+            // ⭐ 상단 필터와 하단 검색을
+            // 동시에 적용
+            updateCommunityBoard();
+        });
+
+    searchInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        searchButton.click();
+    }
+});
+}
+
 async function loadPosts() {
+
+    console.log("loadPosts 실행됨");
+
+    // 검색 조건 가져오기
+    const searchType =
+        document.getElementById("searchType")?.value || "";
+
+    const searchKeyword =
+        document.getElementById("searchInput")?.value.trim() || "";
+
+    console.log("검색 기준:", searchType);
+    console.log("검색어:", searchKeyword);
+
     try {
+
         const response = await fetch(
             `${API_BASE_URL}/community/posts`
         );
@@ -455,6 +936,13 @@ async function loadPosts() {
 
             row.dataset.likes = post.like_count || 0;
 
+            // 검색용 데이터
+            row.dataset.title = post.title || "";
+
+            row.dataset.content = post.content || "";
+
+            row.dataset.writer = post.nickname || "";
+
 
             /* =========================================
                팀 코드 → 한글 팀 이름
@@ -526,14 +1014,21 @@ async function loadPosts() {
 }
 
 
+
+
+
 /* =========================================
    커뮤니티 시작
    게시글을 먼저 불러온 후 필터 설정
 ========================================= */
 
 async function startCommunity() {
+
     await loadPosts();
+
     setupCommunityFilters();
+
+    setupPostSearch();
 }
 
 startCommunity();
@@ -544,19 +1039,19 @@ startCommunity();
    최신 게시글 데이터 다시 불러오기
 ========================================= */
 
-window.addEventListener("pageshow", async function () {
+window.addEventListener("pageshow", async function (event) {
+    const board = document.querySelector(".board");
 
-    const board =
-        document.querySelector(".board");
+    if (!board) return;
 
-    if (!board) {
-        return;
+    // 브라우저 뒤로가기/앞으로가기로 돌아온 경우에만 새로고침
+    if (event.persisted) {
+        await loadPosts();
+        setupCommunityFilters();
     }
-
-    await loadPosts();
-
-    setupCommunityFilters();
 });
+
+
 
 /* =========================================
    게시글 상세 조회
@@ -582,13 +1077,29 @@ async function loadPostDetail() {
 
     try {
 
+        // =================================
         // 조회수 증가
-        await fetch(
-            `${API_BASE_URL}/community/posts/${postId}/view`,
-            {
-                method: "POST"
-            }
-        );
+        // =================================
+
+        const viewResponse =
+            await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/view`,
+                {
+                    method: "POST"
+                }
+            );
+
+        if (!viewResponse.ok) {
+
+            throw new Error(
+                "조회수 증가에 실패했습니다."
+            );
+        }
+
+
+        // =================================
+        // 게시글 상세 조회
+        // =================================
 
         const response =
             await fetch(
@@ -849,9 +1360,9 @@ function setupWriteForm() {
                 ).value;
 
             const teamCode =
-                 writeForm.querySelector(
-                     '[name="related_team_id"]'
-                 ).value;
+                writeForm.querySelector(
+                    '[name="related_team_id"]'
+                ).value;
 
             console.log(
                 "선택한 teamCode:",
@@ -916,13 +1427,13 @@ function setupWriteForm() {
 
                 category: category,
 
-                 related_team_code:
-                 teamCode || null,
+                related_team_code:
+                    teamCode || null,
 
-                 title: title,
+                title: title,
 
-                 content: content
-                };
+                content: content
+            };
 
 
             console.log(
@@ -974,13 +1485,13 @@ function setupWriteForm() {
                 );
 
                 showBasebotModal(
-                "작성 완료",
-                "게시글이 작성되었습니다.",
-                function () {
-                    window.location.href =
-                        "community.html";
-                }
-             );
+                    "작성 완료",
+                    "게시글이 작성되었습니다.",
+                    function () {
+                        window.location.href =
+                            "community.html";
+                    }
+                );
 
 
             } catch (error) {
@@ -1050,53 +1561,6 @@ function setupEditor() {
         this.value = "";
     });
 
-    const imageInput =
-        document.getElementById("editorImage");
-
-    imageInput?.addEventListener("change", function () {
-
-        const file = this.files[0];
-
-        if (!file) return;
-
-        if (!file.type.startsWith("image/")) {
-
-            alert(
-                "이미지 파일만 선택할 수 있습니다."
-            );
-
-            this.value = "";
-
-            return;
-        }
-
-        const reader = new FileReader();
-
-        reader.onload = event => {
-
-            editor.focus();
-
-            const img =
-                document.createElement("img");
-
-            img.src = event.target.result;
-
-            img.alt = file.name;
-
-            img.className = "editor-image";
-
-            editor.appendChild(img);
-
-            const p =
-                document.createElement("p");
-
-            editor.appendChild(p);
-
-            this.value = "";
-        };
-
-        reader.readAsDataURL(file);
-    });
 
     const form = editor.closest("form");
 
@@ -1110,6 +1574,341 @@ function setupEditor() {
 }
 
 setupEditor();
+
+async function setupEditForm() {
+
+    const editForm =
+        document.getElementById("editForm");
+
+    if (!editForm) {
+        return;
+    }
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const postId =
+        params.get("postId");
+
+    if (!postId) {
+        alert("게시글 번호를 찾을 수 없습니다.");
+        return;
+    }
+
+    console.log(
+        "수정할 게시글 번호:",
+        postId
+    );
+
+    try {
+
+        // 기존 게시글 가져오기
+        const response =
+            await fetch(
+                `${API_BASE_URL}/community/posts/${postId}`
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "게시글 정보를 불러오지 못했습니다."
+            );
+        }
+
+        const post =
+            await response.json();
+
+        console.log(
+            "기존 게시글:",
+            post
+        );
+
+
+        // =========================
+        // 1. 분류
+        // =========================
+
+        const categorySelect =
+            editForm.querySelector(
+                '[name="category"]'
+            );
+
+        categorySelect.value =
+            post.category;
+
+
+        // =========================
+        // 2. 리그
+        // =========================
+
+        const leagueSelect =
+            document.getElementById(
+                "writeLeagueSelect"
+            );
+
+        const divisionSelect =
+            document.getElementById(
+                "writeDivisionSelect"
+            );
+
+        const teamSelect =
+            document.getElementById(
+                "writeTeamSelect"
+            );
+
+
+        // 팀 정보가 있다면
+        if (post.league) {
+
+            leagueSelect.value =
+                post.league;
+
+            // 리그 변경 이벤트 실행
+            leagueSelect.dispatchEvent(
+                new Event("change")
+            );
+        }
+
+
+        // =========================
+        // 3. 지구
+        // =========================
+
+        if (post.division) {
+
+            divisionSelect.value =
+                post.division.toUpperCase();
+
+            divisionSelect.dispatchEvent(
+                new Event("change")
+            );
+        }
+
+
+        // =========================
+        // 4. 구단
+        // =========================
+
+        if (post.team_code) {
+
+            teamSelect.value =
+                post.team_code;
+        }
+
+
+        // =========================
+        // 5. 제목
+        // =========================
+
+        const titleInput =
+            editForm.querySelector(
+                '[name="title"]'
+            );
+
+        titleInput.value =
+            post.title;
+
+
+        // =========================
+        // 6. 내용
+        // =========================
+
+        const editor =
+            document.getElementById(
+                "editor"
+            );
+
+        editor.innerHTML =
+            post.content;
+
+
+    } catch (error) {
+
+        console.error(
+            "게시글 불러오기 오류:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "게시글을 불러오는 중 오류가 발생했습니다."
+        );
+
+        return;
+    }
+
+
+    // =================================
+    // 수정완료 버튼
+    // =================================
+
+    editForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            const category =
+                editForm.querySelector(
+                    '[name="category"]'
+                ).value;
+
+            const teamSelect =
+                 document.getElementById(
+                     "writeTeamSelect"
+                );
+
+            const teamCode =
+                teamSelect.value;
+
+            const title =
+                editForm.querySelector(
+                    '[name="title"]'
+                ).value.trim();
+
+            const editor =
+                document.getElementById(
+                    "editor"
+                );
+
+            const content =
+                editor.innerHTML.trim();
+
+
+            // -------------------------
+            // 입력 확인
+            // -------------------------
+
+            if (!category) {
+
+                alert(
+                    "분류를 선택해주세요."
+                );
+
+                return;
+            }
+
+            if (!title) {
+
+                alert(
+                    "제목을 입력해주세요."
+                );
+
+                return;
+            }
+
+            if (
+                !content ||
+                content === "<p><br></p>"
+            ) {
+
+                alert(
+                    "내용을 입력해주세요."
+                );
+
+                return;
+            }
+
+
+            // -------------------------
+            // 수정 데이터
+            // -------------------------
+
+            const postData = {
+
+                category:
+                    category,
+
+                related_team_code:
+                    teamCode || null,
+
+                title:
+                    title,
+
+                content:
+                    content
+            };
+
+
+            console.log(
+                "게시글 수정 데이터:",
+                postData
+            );
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/community/posts/${postId}`,
+                        {
+                            method: "PUT",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    postData
+                                )
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response.json();
+
+                    throw new Error(
+                        errorData.detail ||
+                        "게시글 수정에 실패했습니다."
+                    );
+                }
+
+
+                const result =
+                    await response.json();
+
+
+                console.log(
+                    "게시글 수정 완료:",
+                    result
+                );
+
+
+                showBasebotModal(
+                    "수정 완료",
+                    "게시글이 수정되었습니다.",
+                    function () {
+                        window.location.href =
+                            `community-view.html?postId=${postId}`;
+                    }
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "게시글 수정 오류:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "게시글 수정 중 오류가 발생했습니다."
+                );
+            }
+        }
+    );
+}
+
+
+setupEditForm();
 
 
 /* =========================================
@@ -1497,343 +2296,9 @@ commentForm?.addEventListener("submit", event => {
     textarea.value = "";
 });
 
-
-async function setupEditForm() {
-
-    const editForm =
-        document.getElementById("editForm");
-
-    if (!editForm) {
-        return;
-    }
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const postId =
-        params.get("postId");
-
-    if (!postId) {
-        alert("게시글 번호를 찾을 수 없습니다.");
-        return;
-    }
-
-    console.log(
-        "수정할 게시글 번호:",
-        postId
-    );
-
-    try {
-
-        // 기존 게시글 가져오기
-        const response =
-            await fetch(
-                `${API_BASE_URL}/community/posts/${postId}`
-            );
-
-        if (!response.ok) {
-            throw new Error(
-                "게시글 정보를 불러오지 못했습니다."
-            );
-        }
-
-        const post =
-            await response.json();
-
-        console.log(
-            "기존 게시글:",
-            post
-        );
-
-
-        // =========================
-        // 1. 분류
-        // =========================
-
-        const categorySelect =
-            editForm.querySelector(
-                '[name="category"]'
-            );
-
-        categorySelect.value =
-            post.category;
-
-
-        // =========================
-        // 2. 리그
-        // =========================
-
-        const leagueSelect =
-            document.getElementById(
-                "writeLeagueSelect"
-            );
-
-        const divisionSelect =
-            document.getElementById(
-                "writeDivisionSelect"
-            );
-
-        const teamSelect =
-            document.getElementById(
-                "writeTeamSelect"
-            );
-
-
-        // 팀 정보가 있다면
-        if (post.league) {
-
-            leagueSelect.value =
-                post.league;
-
-            // 리그 변경 이벤트 실행
-            leagueSelect.dispatchEvent(
-                new Event("change")
-            );
-        }
-
-
-        // =========================
-        // 3. 지구
-        // =========================
-
-        if (post.division) {
-
-            divisionSelect.value =
-                post.division.toUpperCase();
-
-            divisionSelect.dispatchEvent(
-                new Event("change")
-            );
-        }
-
-
-        // =========================
-        // 4. 구단
-        // =========================
-
-        if (post.team_code) {
-
-            teamSelect.value =
-                post.team_code;
-        }
-
-
-        // =========================
-        // 5. 제목
-        // =========================
-
-        const titleInput =
-            editForm.querySelector(
-                '[name="title"]'
-            );
-
-        titleInput.value =
-            post.title;
-
-
-        // =========================
-        // 6. 내용
-        // =========================
-
-        const editor =
-            document.getElementById(
-                "editor"
-            );
-
-        editor.innerHTML =
-            post.content;
-
-
-    } catch (error) {
-
-        console.error(
-            "게시글 불러오기 오류:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "게시글을 불러오는 중 오류가 발생했습니다."
-        );
-
-        return;
-    }
-
-
-    // =================================
-    // 수정완료 버튼
-    // =================================
-
-    editForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-
-            const category =
-                editForm.querySelector(
-                    '[name="category"]'
-                ).value;
-
-            const teamSelect =
-                document.getElementById(
-                    "writeTeamSelect"
-                );
-
-            const teamCode =
-                teamSelect.value;
-
-            const title =
-                editForm.querySelector(
-                    '[name="title"]'
-                ).value.trim();
-
-            const editor =
-                document.getElementById(
-                    "editor"
-                );
-
-            const content =
-                editor.innerHTML.trim();
-
-
-            // -------------------------
-            // 입력 확인
-            // -------------------------
-
-            if (!category) {
-
-                alert(
-                    "분류를 선택해주세요."
-                );
-
-                return;
-            }
-
-            if (!title) {
-
-                alert(
-                    "제목을 입력해주세요."
-                );
-
-                return;
-            }
-
-            if (
-                !content ||
-                content === "<p><br></p>"
-            ) {
-
-                alert(
-                    "내용을 입력해주세요."
-                );
-
-                return;
-            }
-
-
-            // -------------------------
-            // 수정 데이터
-            // -------------------------
-
-            const postData = {
-
-                category:
-                    category,
-
-                related_team_code:
-                    teamCode || null,
-
-                title:
-                    title,
-
-                content:
-                    content
-            };
-
-
-            console.log(
-                "게시글 수정 데이터:",
-                postData
-            );
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `${API_BASE_URL}/community/posts/${postId}`,
-                        {
-                            method: "PUT",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify(
-                                    postData
-                                )
-                        }
-                    );
-
-
-                if (!response.ok) {
-
-                    const errorData =
-                        await response.json();
-
-                    throw new Error(
-                        errorData.detail ||
-                        "게시글 수정에 실패했습니다."
-                    );
-                }
-
-
-                const result =
-                    await response.json();
-
-
-                console.log(
-                    "게시글 수정 완료:",
-                    result
-                );
-
-
-               showBasebotModal(
-                "수정 완료",
-                "게시글이 수정되었습니다.",
-                function () {
-                    window.location.href =
-                        `community-view.html?postId=${postId}`;
-                }
-             );
-
-
-            } catch (error) {
-
-                console.error(
-                    "게시글 수정 오류:",
-                    error
-                );
-
-                alert(
-                    error.message ||
-                    "게시글 수정 중 오류가 발생했습니다."
-                );
-            }
-        }
-    );
-}
-
-
-setupEditForm();
-
-// 삭제 함수
+// =========================================
+// 게시글 삭제
+// =========================================
 async function deletePost() {
 
     const params =
@@ -1845,69 +2310,85 @@ async function deletePost() {
         params.get("postId");
 
     if (!postId) {
-        alert("게시글 번호를 찾을 수 없습니다.");
-        return;
-    }
-
-    const confirmed =
-        confirm("정말 이 게시글을 삭제하시겠습니까?");
-
-    if (!confirmed) {
-        return;
-    }
-
-    try {
-
-        const response =
-            await fetch(
-                `${API_BASE_URL}/community/posts/${postId}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-        if (!response.ok) {
-
-            const errorData =
-                await response.json();
-
-            throw new Error(
-                errorData.detail ||
-                "게시글 삭제에 실패했습니다."
-            );
-        }
-
-        const result =
-            await response.json();
-
-        console.log(
-            "게시글 삭제 완료:",
-            result
-        );
 
         showBasebotModal(
-            "삭제 완료",
-            "게시글이 삭제되었습니다.",
-            function () {
-                window.location.href =
-                    "community.html";
-            }
+            "오류",
+            "게시글 번호를 찾을 수 없습니다."
         );
 
-    } catch (error) {
-
-        console.error(
-            "게시글 삭제 오류:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "게시글 삭제 중 오류가 발생했습니다."
-        );
+        return;
     }
+
+    // 삭제 확인 팝업
+    showBasebotConfirm(
+        "게시글 삭제",
+        "정말 이 게시글을 삭제하시겠습니까?",
+
+        async function () {
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/community/posts/${postId}`,
+                        {
+                            method: "DELETE"
+                        }
+                    );
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response.json();
+
+                    throw new Error(
+                        errorData.detail ||
+                        "게시글 삭제에 실패했습니다."
+                    );
+                }
+
+                const result =
+                    await response.json();
+
+                console.log(
+                    "게시글 삭제 완료:",
+                    result
+                );
+
+                showBasebotModal(
+                    "삭제 완료",
+                    "게시글이 삭제되었습니다.",
+                    function () {
+
+                        window.location.href =
+                            "community.html";
+
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "게시글 삭제 오류:",
+                    error
+                );
+
+                showBasebotModal(
+                    "삭제 오류",
+                    error.message ||
+                    "게시글 삭제 중 오류가 발생했습니다."
+                );
+            }
+        },
+
+        "삭제"
+    );
 }
 
+
+// =========================================
+// 삭제 버튼 이벤트
+// =========================================
 const deletePostButton =
     document.getElementById(
         "deletePostButton"
@@ -1921,3 +2402,113 @@ if (deletePostButton) {
     );
 }
 
+
+function setupEditorImage() {
+
+    const imageInput =
+        document.getElementById("editorImage");
+
+    const editor =
+        document.getElementById("editor");
+
+    if (!imageInput || !editor) {
+        return;
+    }
+
+    imageInput.addEventListener(
+        "change",
+        function () {
+
+            const file =
+                imageInput.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            if (!file.type.startsWith("image/")) {
+                alert("이미지 파일만 첨부할 수 있습니다.");
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = function (event) {
+
+                const image =
+                    document.createElement("img");
+
+                image.src =
+                    event.target.result;
+
+                image.alt =
+                    "첨부 이미지";
+
+                image.style.maxWidth =
+                    "100%";
+
+                image.style.height =
+                    "auto";
+
+                image.style.display =
+                    "block";
+
+                image.style.margin =
+                    "10px 0";
+
+                // 현재 커서 위치에 이미지 삽입
+                const selection =
+                    window.getSelection();
+
+                if (
+                    selection.rangeCount > 0 &&
+                    editor.contains(
+                        selection.anchorNode
+                    )
+                ) {
+
+                    const range =
+                        selection.getRangeAt(0);
+
+                    range.deleteContents();
+
+                    range.insertNode(image);
+
+                    range.setStartAfter(image);
+                    range.collapse(true);
+
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                } else {
+
+                    // 커서가 에디터 밖에 있다면
+                    // 에디터 마지막에 이미지 추가
+                    editor.appendChild(image);
+
+                }
+
+                // 이미지 뒤에서 계속 글을 쓸 수 있도록 줄 추가
+                const paragraph =
+                    document.createElement("p");
+
+                paragraph.innerHTML =
+                    "<br>";
+
+                image.parentNode.insertBefore(
+                    paragraph,
+                    image.nextSibling
+                );
+
+                // 파일 선택 초기화
+                imageInput.value = "";
+
+            };
+
+            reader.readAsDataURL(file);
+        }
+    );
+}
+
+setupEditorImage();

@@ -1,9 +1,5 @@
 from pathlib import Path
 
-print(
-    Path("../front/components/header.html").resolve()
-)
-
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -14,10 +10,15 @@ from database.orm import Base
 
 from models.user import User
 from models.team import Team
-
+from routers.chat import router as chat_router
 from routers.auth import router as auth_router
+<<<<<<< HEAD
 from routers.community import router as community_router
 
+=======
+from routers import players, teams, games, predictions
+from routers.news import router as news_router # 뉴스추가
+>>>>>>> 085322491eb60997ddb5482ac153baa515d12101
 
 app = FastAPI(
     title="BASEBOT API"
@@ -47,7 +48,18 @@ app.add_middleware(
 
 # Router
 app.include_router(auth_router)
+<<<<<<< HEAD
 app.include_router(community_router)
+=======
+app.include_router(players.router)
+app.include_router(teams.router)
+app.include_router(games.router)
+app.include_router(predictions.router)
+app.include_router(chat_router)
+
+app.include_router(news_router) # 뉴스
+
+>>>>>>> 085322491eb60997ddb5482ac153baa515d12101
 
 # 정적 파일
 # CSS
