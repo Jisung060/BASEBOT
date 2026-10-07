@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     // 1. 공통 Header 및 Footer 로드 (팀원들 구현 방식 연동)
-    loadComponent("header", "/components/header.html");
-    loadComponent("footer", "/components/footer.html");
+    // loadComponent("header", "/components/header.html");
+    // loadComponent("footer", "/components/footer.html");
 
     // 2. URL에서 player_id 쿼리 파라미터 추출
     const urlParams = new URLSearchParams(window.location.search);

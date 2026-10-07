@@ -39,8 +39,8 @@ let currentGameData = null;
 // ==================================================
 document.addEventListener("DOMContentLoaded", async () => {
     // Header & Footer 비동기 로드
-    loadComponent("header", "../components/header.html");
-    loadComponent("footer", "../components/footer.html");
+    // loadComponent("header", "../components/header.html");
+    // loadComponent("footer", "../components/footer.html");
 
     // 경기 목록 로드
     await loadGameList();
