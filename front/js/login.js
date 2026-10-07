@@ -119,6 +119,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================== */
                 sessionStorage.setItem("access_token", data.access_token);
 
+                console.log("로그인 응답 data:", data);
+                console.log("저장하려는 token:", data.access_token);
+                console.log(
+                    "저장 직후 token:",
+                    sessionStorage.getItem("access_token")
+                );
                 /* ==================================================
                    로그인 사용자 정보 저장
                 ================================================== */
