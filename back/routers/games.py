@@ -54,8 +54,9 @@ def get_games(
         query_str += " AND g.status = :status"
         params["status"] = status
 
-    # 최신 날짜/시간 순으로 정렬
-    query_str += f" ORDER BY g.game_date {sort_dir} LIMIT :limit"
+    # 기존: query_str += " ORDER BY g.game_date ASC LIMIT :limit"
+    # 수정: 최신 날짜 및 시간순으로 정렬 (game_date와 game_time이 분리되어 있다면 둘 다 DESC)
+    query_str += " ORDER BY g.game_date DESC, g.game_time DESC LIMIT :limit"
 
     rows = db.execute(text(query_str), params).mappings().all()
     return rows
