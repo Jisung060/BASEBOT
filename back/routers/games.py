@@ -1,9 +1,14 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+import requests
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.db_connection import get_session
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+}
 
 router = APIRouter(prefix="/api/games", tags=["games"])
 
@@ -50,3 +55,46 @@ def get_games(
 
     rows = db.execute(text(query_str), params).mappings().all()
     return rows
+
+    @router.get("/{game_id}/boxscore")
+def get_game_boxscore(game_id: int):
+    """
+    특정 경기의 이닝별 라인스코어(Linescore) 및 팀별 R/H/E 박스스코어 조회
+    """
+    url = f"https://statsapi.mlb.com/api/v1/game/{game_id}/linescore"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        if resp.status_code == 404:
+            raise HTTPException(status_code=404, detail="해당 경기의 박스스코어 정보를 찾을 수 없습니다.")
+        resp.raise_for_status()
+        data = resp.json()
+
+        innings_data = []
+        for inn in data.get("innings", []):
+            innings_data.append({
+                "num": inn.get("num"),
+                "away_runs": inn.get("away", {}).get("runs", 0),
+                "home_runs": inn.get("home", {}).get("runs", 0)
+            })
+
+        teams_data = data.get("teams", {})
+        away_stats = teams_data.get("away", {})
+        home_stats = teams_data.get("home", {})
+
+        return {
+            "game_id": game_id,
+            "current_inning": data.get("currentInningOrdinal", "Final"),
+            "innings": innings_data,
+            "away_total": {
+                "runs": away_stats.get("runs", 0),
+                "hits": away_stats.get("hits", 0),
+                "errors": away_stats.get("errors", 0)
+            },
+            "home_total": {
+                "runs": home_stats.get("runs", 0),
+                "hits": home_stats.get("hits", 0),
+                "errors": home_stats.get("errors", 0)
+            }
+        }
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"MLB API 연동 오류: {str(e)}")
