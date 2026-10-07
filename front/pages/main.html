@@ -286,23 +286,11 @@
             <!-- ※ 만약 새 탭으로 띄우고 싶다면: <a href="/news" target="_blank">더보기 +</a> -->
             <!-- ※ /news 라우트를 아직 안 만드셨다면: <a href="/static/news.html">더보기 +</a> -->
         </div>
-        <ul class="news-list">
+       <!-- 최신 뉴스가 동적으로 들어갈 수 있도록 id 부여 -->
+        <ul class="news-list" id="main-news-list">
             <li>
-                <!-- 개별 기사 제목을 눌러도 뉴스 목록 전체 페이지로 이동하게 연결 -->
-                <a href="/mlb_news.html">
-                    오늘의 주요 야구 소식을 확인하세요.
-                </a>
-                <span>
-                    10.03
-                </span>
-            </li>
-            <li>
-              <a href="https://www.mlbkor.com/news/articleList.html?sc_section_code=S1N2&view_type=sm" target="_blank" rel="noopener noreferrer">
-                    오늘의 주요 야구 영상뉴스
-                </a>
-                <span>
-                    10.03
-                </span>
+                <span style="color: #777; font-size: 13px;">최신 뉴스를 불러오는 중입니다...</span>
+                <span>-</span>
             </li>
 
         </ul>
@@ -465,7 +453,67 @@
     ================================================== -->
 
     <script src="/js/main.js"></script>
+<script>
+        async function loadMainNews() {
+            const newsListEl = document.getElementById('main-news-list');
+            if (!newsListEl) return;
 
+            try {
+                const response = await fetch('/api/news/mlb?limit=4', { cache: "no-store" });
+                if (!response.ok) throw new Error("뉴스 로드 실패");
+
+                const result = await response.json();
+                if (result.status !== "success" || !result.data) throw new Error("데이터 오류");
+
+                const articles = result.data.slice(0, 4);
+
+                if (articles.length === 0) {
+                    newsListEl.innerHTML = '<li><span>등록된 뉴스가 없습니다.</span><span>-</span></li>';
+                    return;
+                }
+
+                newsListEl.innerHTML = '';
+
+                articles.forEach(news => {
+                    const li = document.createElement('li');
+
+                    let dateStr = "";
+                    if (news.date) {
+                        const d = new Date(news.date.replace(" ", "T"));
+                        if (!Number.isNaN(d.getTime())) {
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            dateStr = `${month}.${day}`;
+                        } else {
+                            dateStr = "최근";
+                        }
+                    }
+
+                    li.innerHTML = `
+                        <a href="${escapeHtml(news.url)}" target="_blank" rel="noopener noreferrer">
+                            ${escapeHtml(news.title)}
+                        </a>
+                        <span>${dateStr}</span>
+                    `;
+                    newsListEl.appendChild(li);
+                });
+            } catch (err) {
+                console.error("메인 뉴스 로드 에러:", err);
+                newsListEl.innerHTML = '<li><span>뉴스를 불러오지 못했습니다.</span><span>-</span></li>';
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        document.addEventListener("DOMContentLoaded", loadMainNews);
+    </script>
 
     </body>
 
