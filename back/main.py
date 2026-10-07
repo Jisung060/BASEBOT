@@ -10,7 +10,7 @@ from database.orm import Base
 
 from models.user import User
 from models.team import Team
-
+from routers.chat import router as chat_router
 from routers.auth import router as auth_router
 from routers import players, teams, games, predictions
 
@@ -47,6 +47,7 @@ app.include_router(players.router)
 app.include_router(teams.router)
 app.include_router(games.router)
 app.include_router(predictions.router)
+app.include_router(chat_router)
 
 # 정적 파일
 # CSS

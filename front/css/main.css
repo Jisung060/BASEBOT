@@ -1136,6 +1136,25 @@ input {
     background-color: #0a2b68;
 }
 
+/* ==================================================
+   사용자 메시지
+================================================== */
+
+.chatbot-message.user {
+    justify-content: flex-end;
+}
+
+
+.chatbot-message.user .message-content {
+
+    background-color: #123f91;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 14px 4px 14px 14px;
+}
 
 
 /* ==================================================
