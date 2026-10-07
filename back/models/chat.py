@@ -1,36 +1,35 @@
 from datetime import datetime
-from sqlite3.dbapi2 import Date
 
-from pyarrow.lib import DataType
 from sqlalchemy import BigInteger, String, Text, DateTime, Enum, ForeignKey
-
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.orm import Base
 
-class ChatSession(Base):
-    __tablename__ = "chat_session"
 
-    session_id: Mapped[int] = mapped_column(
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    session_id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True
     )
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("user.user_id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=True
     )
 
-    title: Mapped[Text] = mapped_column(
+    title: Mapped[str] = mapped_column(
         String(100),
         default="새로운 대화"
     )
 
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now
     )
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
@@ -41,18 +40,18 @@ class ChatMessage(Base):
         autoincrement=True
     )
 
-    session_id: Mapped[int] = mapped_column(
+    session_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("chat_sessions.session_id", ondelete="CASCADE"),
         nullable=False
     )
 
-    role: Mapped[Enum] = mapped_column(
+    role: Mapped[str] = mapped_column(
         Enum("USER", "ASSISTANT"),
         nullable=False
     )
 
-    content: Mapped[Text] = mapped_column(
+    content: Mapped[str] = mapped_column(
         Text,
         nullable=False
     )
@@ -62,7 +61,7 @@ class ChatMessage(Base):
         nullable=True
     )
 
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now
     )

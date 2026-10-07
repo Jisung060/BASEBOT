@@ -1,6 +1,5 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
 from sklearn.linear_model import LogisticRegression
 
 
@@ -9,10 +8,11 @@ def get_team_win_rate(
         db: Session,
         team_id: int
 ):
+
     sql = text(
         """
         SELECT 
-            COUNT(*) AS total_geams,
+            COUNT(*) AS total_games,
             SUM(
                 CASE 
                     WHEN winning_team_id = :team_id
@@ -21,13 +21,14 @@ def get_team_win_rate(
                 END
             ) AS wins
         FROM games
-        WHERE status = "FINAL"
+        WHERE status = 'FINAL'
             AND (
-                hone_team_id = :team_id
+                home_team_id = :team_id
                 OR away_team_id = :team_id
             )
         """
     )
+
     result = db.execute(
         sql,
         {
@@ -38,19 +39,20 @@ def get_team_win_rate(
     if not result:
         return 0.5
 
-    total_geams = result["total_geams"] or 0
+    total_games = result["total_games"] or 0
     wins = result["wins"] or 0
 
-    if total_geams == 0:
+    if total_games == 0:
         return 0.5
 
-    return wins / total_geams
+    return wins / total_games
 
 def predict_game(
-    db: Session,
-    home_team_id: int,
-    away_team_id: int,
+        db: Session,
+        home_team_id: int,
+        away_team_id: int,
 ):
+
     home_win_rate = get_team_win_rate(
         db,
         home_team_id
@@ -74,7 +76,11 @@ def predict_game(
     ]
 
     model = LogisticRegression()
-    model.fit(x, y)
+
+    model.fit(
+        x,
+        y
+    )
 
     probability = model.predict_proba(
         [[
@@ -92,11 +98,8 @@ def predict_game(
     )
 
     if home_probability >= away_probability:
-
         predicted_team_id = home_team_id
-
     else:
-
         predicted_team_id = away_team_id
 
     return {
