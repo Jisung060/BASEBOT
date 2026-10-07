@@ -21,7 +21,7 @@ async function loadComponent(elementId, filePath) {
 // ==================================================
 function getLoggedInUserId() {
     try {
-        const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+        const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
         if (userStr) {
             const u = JSON.parse(userStr);
             if (u && (u.user_id || u.id)) return u.user_id || u.id;
