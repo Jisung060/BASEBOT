@@ -345,7 +345,7 @@
                     // ▼ 헤더가 로드된 직후 로그인 상태를 체크하여 UI 업데이트
                     updateLoginUI();
                 }
-                if (footerRes.ok) {document.getElementById('footer').innerHTML = await footerRes.text();
+                if (footerRes.ok) document.getElementById('footer').innerHTML = await footerRes.text();
             } catch (err) {
                 console.error("컴포넌트 로드 실패:", err);
             }
@@ -623,7 +623,5 @@ async function toggleArticle(id, button, index) {
                 .replaceAll("'", "&#039;");
         }
     </script>
-
- <script src="../js/main.js"> </script>
 </body>
 </html>
