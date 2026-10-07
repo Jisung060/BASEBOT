@@ -24,16 +24,16 @@ router = APIRouter(prefix="/api/news", tags=["News"])
 #
 # 다른 위치에 HTML을 둘 경우 MLB_NEWS_HTML 환경변수로 경로를 지정하세요.
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_HTML_FILE = os.path.abspath(os.path.join(BACKEND_DIR, "..", "front", "mlb_news.html"))
+DEFAULT_HTML_FILE = os.path.abspath(os.path.join(BACKEND_DIR, "..", "front", "pages", "mlb_news.html"))
 HTML_FILE = os.path.abspath(os.getenv("MLB_NEWS_HTML", DEFAULT_HTML_FILE))
 
 # DB도 news.py가 있는 backend 폴더에 생성되도록 함.
 DB_PATH = os.path.abspath(
-    os.getenv("MLB_NEWS_DB", os.path.join(BACKEND_DIR, "mlb_news.db"))
+    os.getenv("MLB_NEWS_DB", os.path.join(BACKEND_DIR,"..", "database", "mlb_news.db"))
 )
 
 BASE_URL = "https://www.mlbkor.com"
-NEWS_LIST_URL = BASE_URL + "/news/articleList.html?sc_section_code=S1N1&view_type=sm"
+NEWS_LIST_URL = BASE_URL + "/news/articleList.html"
 
 CRAWL_INTERVAL = max(10, int(os.getenv("MLB_NEWS_INTERVAL", "30")))
 MAX_LIST_ITEMS = max(1, min(int(os.getenv("MLB_NEWS_MAX_ITEMS", "20")), 100))
@@ -129,7 +129,7 @@ def clean_body(value):
         lines.append(line)
         previous = line
 
-    return "\n\n".join(lines).strip()
+    return "\n".join(lines).strip()
 
 
 def absolute_url(href):
@@ -148,27 +148,30 @@ def parse_date(value):
     if not text:
         return ""
 
-    match = re.search(
-        r"(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})"
-        r"(?:\s+(\d{1,2}):(\d{2}))?",
-        text,
-    )
-    if not match:
-        return ""
+    # 1. 한국식 숫자 형태 (2026.10.07 14:30 또는 2026-10-07)
+    match1 = re.search(r"(20\d{2})[-.년/]\s*(\d{1,2})[-.월/]\s*(\d{1,2})(?:[^\d]*(\d{1,2})[:시]\s*(\d{1,2}))?", text)
+    if match1:
+        y, m, d, h, mn = match1.groups()
+        if h and mn:
+            return f"{y}-{int(m):02d}-{int(d):02d} {int(h):02d}:{int(mn):02d}"
+        return f"{y}-{int(m):02d}-{int(d):02d} 00:00"
 
-    year, month, day, hour, minute = match.groups()
-    try:
-        dt = datetime(
-            int(year),
-            int(month),
-            int(day),
-            int(hour or 0),
-            int(minute or 0),
-        )
-        return dt.isoformat(sep=" ")
-    except ValueError:
-        return ""
+    # 2. 영어식 날짜 형태 (Oct 5, 2026) - MLB 코리아 핵심!
+    match_eng = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),\s*(20\d{2})", text, re.IGNORECASE)
+    if match_eng:
+        month_str, d, y = match_eng.groups()
+        months = {"jan":1, "feb":2, "mar":3, "apr":4, "may":5, "jun":6, "jul":7, "aug":8, "sep":9, "oct":10, "nov":11, "dec":12}
+        m = months.get(month_str.lower()[:3], 1)
+        return f"{y}-{m:02d}-{int(d):02d} 00:00"
 
+    # 3. 연도 생략 형태 (10.07 14:30)
+    match2 = re.search(r"(\d{1,2})[-.월/]\s*(\d{1,2})[^\d]*(\d{1,2})[:시]\s*(\d{1,2})", text)
+    if match2:
+        m, d, h, mn = match2.groups()
+        y = datetime.now().year
+        return f"{y}-{int(m):02d}-{int(d):02d} {int(h):02d}:{int(mn):02d}"
+
+    return ""
 
 def first_text(soup, selectors):
     for selector in selectors:
@@ -189,66 +192,57 @@ def fetch_news_list():
 
     soup = BeautifulSoup(response.text, "html.parser")
 
-    blocks = (
-        soup.select(".list-block")
-        or soup.select("div.list-block, li.list-block, article.list-block")
-        or soup.select("article, .list-item, .article-list-item")
-    )
+    # 1. HTML 전체에서 기사 고유 번호(idxno)가 포함된 링크를 싹쓸이
+    links = soup.select("a[href*='idxno=']")
 
     result = []
     seen = set()
 
-    for block in blocks:
-        link = (
-            block.select_one(".list-title a")
-            or block.select_one(".list-titles a")
-            or block.select_one("a[href*='articleView']")
-        )
-
-        if not link:
-            continue
-
+    for link in links:
         title = clean(link.get_text(" ", strip=True))
+
+        # 텍스트가 비어있으면 이미지 alt 속성에서 제목 추출
+        if not title:
+            img = link.select_one("img")
+            if img and img.get("alt"):
+                title = clean(img.get("alt"))
+
         url = absolute_url(link.get("href", ""))
 
         if not title or "articleView" not in url:
             continue
 
-        source_id = get_idxno(url) or url
-        if source_id in seen:
+        source_id = get_idxno(url)
+        if not source_id or source_id in seen:
             continue
 
         seen.add(source_id)
 
-        date_text = first_text(
-            block,
-            [".list-dated", ".list-date", ".date", "time"],
-        )
-
-        image_node = block.select_one("img")
+        # 리스트 블록을 찾아 날짜와 이미지 추출
+        block = link.find_parent(["li", "div", "article", "tr"])
+        date_text = ""
         image_url = ""
-        if image_node:
-            image_url = absolute_url(
-                image_node.get("data-src")
-                or image_node.get("data-original")
-                or image_node.get("src")
-                or ""
-            )
+        if block:
+            date_text = block.get_text(" ", strip=True) if block else ""
+            img_node = block.select_one("img")
+            if img_node:
+                image_url = absolute_url(
+                    img_node.get("data-src") or img_node.get("src") or ""
+                )
 
-        result.append(
-            {
-                "source_id": source_id,
-                "title": title,
-                "url": url,
-                "published_at": parse_date(date_text),
-                "image_url": image_url,
-            }
-        )
+        result.append({
+            "source_id": source_id,
+            "title": title,
+            "url": url,
+            "published_at": parse_date(date_text),
+            "image_url": image_url,
+        })
 
-        if len(result) >= MAX_LIST_ITEMS:
-            break
+    # 2. 고유 기사 번호(idxno)가 클수록 최신 기사이므로, 확실하게 번호순 내림차순 정렬!
+    result.sort(key=lambda x: int(x["source_id"]) if x["source_id"].isdigit() else 0, reverse=True)
 
-    return result
+    # 3. 최대 개수(50개)까지만 잘라서 반환
+    return result[:MAX_LIST_ITEMS]
 
 
 # ============================================================
@@ -328,10 +322,8 @@ def fetch_article_detail(url):
         if meta:
             author = clean(meta.get("content", ""))
 
-    date_text = first_text(
-        soup,
-        [".article-info .date", ".article-date", ".info-text", "time"],
-    )
+    header = soup.select_one(".article-header, header, .article-head, .info-text, .byline")
+    date_text = header.get_text(" ", strip=True) if header else soup.get_text(" ", strip=True)
 
     image = soup.select_one("meta[property='og:image']")
     image_url = absolute_url(image.get("content", "")) if image else ""
@@ -424,7 +416,7 @@ def sync_news():
         new_count = 0
         updated_count = 0
 
-        for item in listed:
+        for item in reversed(listed):
             conn = get_db()
             try:
                 existing = conn.execute(

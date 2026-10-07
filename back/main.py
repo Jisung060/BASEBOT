@@ -13,7 +13,7 @@ from models.team import Team
 from routers.chat import router as chat_router
 from routers.auth import router as auth_router
 from routers import players, teams, games, predictions
-
+from routers.news import router as news_router # 뉴스추가
 
 app = FastAPI(
     title="BASEBOT API"
@@ -48,6 +48,9 @@ app.include_router(teams.router)
 app.include_router(games.router)
 app.include_router(predictions.router)
 app.include_router(chat_router)
+
+app.include_router(news_router) # 뉴스
+
 
 # 정적 파일
 # CSS
