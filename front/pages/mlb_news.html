@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB 종합뉴스 - BASEBOT</title>
-    <!-- 사이트 공통 CSS 링크 (필요시 경로 수정) -->
     <link rel="stylesheet" href="/css/main.css">
 
     <style>
-        /* 뉴스 게시판 전용 스타일 (기존 style 유지하되 body padding 등 조정) */
         .news-section {
             padding: 40px 20px 60px;
             min-height: 600px;
@@ -23,6 +21,10 @@
             align-items: flex-end;
             gap: 20px;
             margin-bottom: 18px;
+        }
+        .board-title-group {
+            display: flex;
+            flex-direction: column;
         }
         .board-title {
             display: flex;
@@ -54,20 +56,47 @@
         .status-dot.loading {
             background: #d99a00;
         }
-        .btn-external-link {
-            background: #f8f9fa;
-            border: 1px solid #dcdcdc;
-            color: #333;
-            padding: 8px 14px;
+
+        /* 검색 및 필터 영역 스타일 추가 */
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .team-select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             font-size: 13px;
-            font-weight: 700;
-            border-radius: 5px;
-            text-decoration: none;
+            outline: none;
+            background-color: #f8f9fa;
         }
-        .btn-external-link:hover {
-            background: #0f4c81;
-            color: #fff;
+        .team-select:focus {
+            border-color: #0f4c81;
         }
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 200px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: #0f4c81; }
+        .search-btn {
+            background-color: #0f4c81;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .search-btn:hover { background-color: #0a355c; }
+
         .table-wrap {
             overflow-x: auto;
             border-top: 2px solid #222;
@@ -116,10 +145,23 @@
             font-size: 10px;
             font-weight: 800;
         }
+        .team-badge {
+            display: inline-block;
+            margin-right: 5px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+            color: #495057;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid #dee2e6;
+        }
         .meta {
             margin-top: 4px;
             color: #999;
             font-size: 11px;
+            display: flex;
+            align-items: center;
         }
         .action-buttons {
             display: flex;
@@ -168,7 +210,7 @@
         .article-content {
             white-space: pre-line;
             font-size: 14px;
-            line-height: 1.6; /* 1.9에서 1.6으로 수정하여 가독성 개선 */
+            line-height: 1.6;
             color: #333;
         }
         .summary-box {
@@ -199,34 +241,77 @@
 
         @media(max-width:700px) {
             .news-section { padding: 20px 10px 40px; }
-            .board-header { align-items: flex-start; flex-direction: column; }
-            .board-title { font-size: 22px; }
+            .board-header { align-items: flex-start; flex-direction: column; gap: 15px; }
+            .filter-group { width: 100%; flex-wrap: wrap; }
+            .search-input { flex-grow: 1; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ==================================================
-         HEADER (공통 컴포넌트 로드)
-    ================================================== -->
     <div id="header"></div>
 
-
-    <!-- ==================================================
-         MAIN CONTENT AREA
-    ================================================== -->
     <main class="news-section">
         <div class="board-container">
             <div class="board-header">
-                <div>
+                <div class="board-title-group">
                     <h2 class="board-title">MLB 종합뉴스</h2>
                     <div class="status-line">
                         <span id="status-dot" class="status-dot"></span>
                         <span id="status-text">실시간 뉴스 연결 중...</span>
                     </div>
                 </div>
-                <a href="https://www.mlbkor.com/news/articleList.html"
-                   target="_blank" rel="noopener noreferrer" class="btn-external-link">MLB 코리아 원문 ↗</a>
+
+                <!-- 카테고리 필터 및 검색창 영역 -->
+                <div class="filter-group">
+                    <select id="team-select" class="team-select" onchange="applyFilters()">
+                        <option value="ALL">전체 구단</option>
+                        <optgroup label="AL 동부">
+                            <option value="양키스">뉴욕 양키스</option>
+                            <option value="오리올스">볼티모어 오리올스</option>
+                            <option value="레이스">탬파베이 레이스</option>
+                            <option value="블루제이스">토론토 블루제이스</option>
+                            <option value="레드삭스">보스턴 레드삭스</option>
+                        </optgroup>
+                        <optgroup label="AL 중부">
+                            <option value="트윈스">미네소타 트윈스</option>
+                            <option value="가디언스">클리블랜드 가디언스</option>
+                            <option value="타이거즈">디트로이트 타이거즈</option>
+                            <option value="화이트삭스">시카고 화이트삭스</option>
+                            <option value="로열스">캔자스시티 로열스</option>
+                        </optgroup>
+                        <optgroup label="AL 서부">
+                            <option value="애스트로스">휴스턴 애스트로스</option>
+                            <option value="레인저스">텍사스 레인저스</option>
+                            <option value="매리너스">시애틀 매리너스</option>
+                            <option value="에인절스">LA 에인절스</option>
+                            <option value="애슬레틱스">오클랜드 애슬레틱스</option>
+                        </optgroup>
+                        <optgroup label="NL 동부">
+                            <option value="브레이브스">애틀랜타 브레이브스</option>
+                            <option value="필리스">필라델피아 필리스</option>
+                            <option value="말린스">마이애미 말린스</option>
+                            <option value="메츠">뉴욕 메츠</option>
+                            <option value="내셔널스">워싱턴 내셔널스</option>
+                        </optgroup>
+                        <optgroup label="NL 중부">
+                            <option value="브루어스">밀워키 브루어스</option>
+                            <option value="컵스">시카고 컵스</option>
+                            <option value="레즈">신시내티 레즈</option>
+                            <option value="파이어리츠">피츠버그 파이어리츠</option>
+                            <option value="카디널스">세인트루이스 카디널스</option>
+                        </optgroup>
+                        <optgroup label="NL 서부">
+                            <option value="다저스">LA 다저스</option>
+                            <option value="다이아몬드백스">애리조나 다이아몬드백스</option>
+                            <option value="파드리스">샌디에이고 파드리스</option>
+                            <option value="자이언츠">샌프란시스코 자이언츠</option>
+                            <option value="로키스">콜로라도 로키스</option>
+                        </optgroup>
+                    </select>
+                    <input type="text" id="search-input" class="search-input" placeholder="뉴스 제목 검색..." onkeypress="handleSearch(event)">
+                    <button class="search-btn" onclick="applyFilters()">검색</button>
+                </div>
             </div>
 
             <div class="table-wrap">
@@ -247,18 +332,9 @@
         </div>
     </main>
 
-
-    <!-- ==================================================
-         FOOTER (공통 컴포넌트 로드)
-    ================================================== -->
     <div id="footer"></div>
 
-
-    <!-- ==================================================
-         SCRIPTS
-    ================================================== -->
     <script>
-        // 1. 헤더/푸터 컴포넌트 동적 로드 (main.py의 StaticFiles 경로 사용)
         async function loadComponents() {
             try {
                 const headerRes = await fetch('/components/header.html');
@@ -270,14 +346,12 @@
                 console.error("컴포넌트 로드 실패:", err);
             }
         }
-
         loadComponents();
 
-
-        // 2. 뉴스 게시판 로직
         const API_BASE = "";
         const REFRESH_MS = 30000;
 
+        let allNewsList = []; // 전체 뉴스 저장용
         let previousIds = new Set();
         let firstLoad = true;
 
@@ -295,20 +369,18 @@
             dot.classList.add("loading");
 
             try {
-                // limit을 50으로 요청
-                const response = await fetch(`${API_BASE}/api/news/mlb?limit=50`, {
-                    cache: "no-store"
-                });
-
+                const response = await fetch(`${API_BASE}/api/news/mlb?limit=50`, { cache: "no-store" });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const result = await response.json();
                 if (result.status !== "success") throw new Error("뉴스 API 응답 오류");
 
-                renderNewsBoard(result.data, tbody);
+                allNewsList = result.data; // 서버에서 받은 전체 데이터 저장
 
-                status.textContent =
-                    `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
+                // 뉴스 로드 직후, 현재 적용된 필터(카테고리/검색어) 상태를 유지하여 화면 렌더링
+                applyFilters();
+
+                status.textContent = `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
                 dot.classList.remove("loading");
             } catch (error) {
                 console.error(error);
@@ -316,36 +388,73 @@
                 dot.classList.add("loading");
 
                 if (firstLoad) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="4" class="error-message">
-                                뉴스 서버에 연결할 수 없습니다.<br>
-                                FastAPI 서버가 실행 중인지 확인해주세요.
-                            </td>
-                        </tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" class="error-message">뉴스 서버에 연결할 수 없습니다.<br>FastAPI 서버가 실행 중인지 확인해주세요.</td></tr>`;
                 }
             }
         }
 
+        // 카테고리 선택 및 검색어 입력을 통합 처리하는 필터 함수
+        function applyFilters() {
+            const teamFilter = document.getElementById('team-select').value;
+            const keyword = document.getElementById('search-input').value.trim().toLowerCase();
+            const tbody = document.getElementById('news-tbody');
+
+            let filteredList = allNewsList;
+
+            // 1. 구단 필터 적용 (제목에 구단명이 포함되어 있는지 검사)
+            if (teamFilter !== "ALL") {
+                filteredList = filteredList.filter(news => news.title.includes(teamFilter));
+            }
+
+            // 2. 검색어 필터 적용
+            if (keyword) {
+                filteredList = filteredList.filter(news => news.title.toLowerCase().includes(keyword));
+            }
+
+            // 3. 필터 결과 렌더링
+            if (filteredList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="loading-message">조건에 맞는 검색 결과가 없습니다.</td></tr>`;
+            } else {
+                renderNewsBoard(filteredList, tbody);
+            }
+        }
+
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                applyFilters();
+            }
+        }
+
+        function extractTeamName(title) {
+            const teams = ["양키스", "다저스", "파드리스", "에인절스", "레드삭스", "메츠", "브레이브스", "필리스", "오리올스", "애스트로스", "레인저스", "컵스"];
+            for (let team of teams) {
+                if (title.includes(team)) return team;
+            }
+            return null;
+        }
+
         function renderNewsBoard(list, tbody) {
             tbody.innerHTML = "";
-
             const currentIds = new Set(list.map(news => String(news.id)));
 
             list.forEach((news, index) => {
                 const row = document.createElement("tr");
                 const isNew = !firstLoad && !previousIds.has(String(news.id));
+                const teamBadge = extractTeamName(news.title);
 
                 if (isNew) row.classList.add("new-row");
 
                 row.innerHTML = `
-                    <td>${news.number}</td>
+                    <td>${news.number || index + 1}</td>
                     <td class="col-title">
                         <a href="${escapeHtml(news.url)}" class="title-link" target="_blank" rel="noopener noreferrer">
                             ${escapeHtml(news.title)}
                         </a>
                         ${isNew ? '<span class="new-badge">NEW</span>' : ''}
-                        <div class="meta">${escapeHtml(news.author || "MLB Korea")}</div>
+                        <div class="meta">
+                            ${teamBadge ? `<span class="team-badge">${teamBadge}</span>` : ''}
+                            ${escapeHtml(news.author || "MLB Korea")}
+                        </div>
                     </td>
                     <td>
                         <div class="action-buttons">
@@ -379,36 +488,39 @@
             });
 
             previousIds = currentIds;
-            firstLoad = false;
+            if(allNewsList.length > 0) firstLoad = false;
         }
 
-        async function toggleArticle(id, button, index) {
+async function toggleArticle(id, button, index) {
             const row = document.getElementById(`detail-row-${index}`);
             const content = document.getElementById(`article-content-${index}`);
+            const summaryBox = document.getElementById(`summary-box-${index}`);
+            const summaryBtn = row.querySelector('.btn-ai');
 
-            if (row.style.display === "table-row") {
+            // 본문이 이미 열려 있는 상태라면 -> 전부 닫기 및 초기화
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                summaryBox.style.display = "none";
                 row.style.display = "none";
                 button.textContent = "본문";
+                summaryBtn.textContent = "✨ 3줄 요약";
                 return;
             }
 
+            // 닫혀 있는 상태라면 -> 상세 행 열고 본문 표시 (요약은 닫힌 상태 유지)
             row.style.display = "table-row";
+            content.style.display = "block";
             button.textContent = "본문 닫기";
 
             if (content.dataset.loaded === "true") return;
 
-            content.style.display = "block";
             content.textContent = "기사 본문을 불러오는 중...";
 
             try {
-                const response = await fetch(`${API_BASE}/api/news/mlb/${id}`, {
-                    cache: "no-store"
-                });
+                const response = await fetch(`${API_BASE}/api/news/mlb/${id}`, { cache: "no-store" });
                 const result = await response.json();
 
-                if (!response.ok || result.status !== "success") {
-                    throw new Error(result.detail || "기사 본문 조회 실패");
-                }
+                if (!response.ok || result.status !== "success") throw new Error(result.detail || "기사 본문 조회 실패");
 
                 content.textContent = result.data.content || "기사 본문을 가져오지 못했습니다.";
                 content.dataset.loaded = "true";
@@ -420,17 +532,24 @@
 
         async function toggleSummary(id, button, index) {
             const row = document.getElementById(`detail-row-${index}`);
-            const box = document.getElementById(`summary-box-${index}`);
+            const content = document.getElementById(`article-content-${index}`);
+            const summaryBox = document.getElementById(`summary-box-${index}`);
+            const articleBtn = row.querySelector('.btn-body');
             const text = document.getElementById(`summary-text-${index}`);
 
-            if (box.style.display === "block") {
-                box.style.display = "none";
+            // 요약이 이미 열려 있는 상태라면 -> 전부 닫기 및 초기화
+            if (summaryBox.style.display === "block") {
+                summaryBox.style.display = "none";
+                content.style.display = "none";
+                row.style.display = "none";
                 button.textContent = "✨ 3줄 요약";
+                articleBtn.textContent = "본문";
                 return;
             }
 
+            // 닫혀 있는 상태라면 -> 상세 행 열고 요약 표시
             row.style.display = "table-row";
-            box.style.display = "block";
+            summaryBox.style.display = "block";
 
             if (text.dataset.loaded === "true") {
                 button.textContent = "요약 닫기";
@@ -442,14 +561,10 @@
             text.textContent = "AI가 실제 기사 본문을 분석하고 있습니다...";
 
             try {
-                const response = await fetch(`${API_BASE}/api/news/summary/${id}`, {
-                    cache: "no-store"
-                });
+                const response = await fetch(`${API_BASE}/api/news/summary/${id}`, { cache: "no-store" });
                 const result = await response.json();
 
-                if (!response.ok || result.status !== "success") {
-                    throw new Error(result.detail || "AI 요약 실패");
-                }
+                if (!response.ok || result.status !== "success") throw new Error(result.detail || "AI 요약 실패");
 
                 text.textContent = result.summary;
                 text.dataset.loaded = "true";
@@ -465,17 +580,9 @@
 
         function formatDate(value) {
             if (!value) return "최근";
-
             const date = new Date(value.replace(" ", "T"));
             if (Number.isNaN(date.getTime())) return value;
-
-            return date.toLocaleString("ko-KR", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit"
-            });
+            return date.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
         }
 
         function escapeHtml(value) {
