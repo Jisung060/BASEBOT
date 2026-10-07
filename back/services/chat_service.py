@@ -1,11 +1,12 @@
 import uuid
 
+from database.db_connection import engine
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-
-from ml.predictor import predict_game
+from services.prediction_service import predictor
 from services.rag_service import search_documents
 
 
@@ -536,7 +537,12 @@ def classify_question(
             "승률",
             "누가 이길",
             "누가 이겨",
-            "예측"
+            "승부",
+            "예측",
+            "승리 가능성",
+            "이길 가능성",
+            "경기 예상",
+            "경기 전망"
         ]
     ):
 
@@ -702,16 +708,186 @@ def chat_with_ai(
 
     elif question_type == "prediction":
 
-        # 실제 질문에서 팀을 자동 추출하는 부분은
-        # 이후 추가할 수 있다.
+        try:
 
-        context = """
-BASEBOT의 ML 승부예측 기능입니다.
+            # ==================================================
+            # 질문에서 두 팀 찾기
+            # ==================================================
 
-현재 경기의 두 팀 ID를 확보하면
-ml/predictor.py의 실제 모델을 호출하여
-승률을 계산합니다.
-"""
+            with engine.connect() as conn:
+                home_team, away_team = (
+                    predictor.find_teams_from_question(
+                        conn,
+                        question
+                    )
+                )
+            # ==================================================
+            # 두 팀을 찾지 못한 경우
+            # ==================================================
+
+            if home_team is None or away_team is None:
+
+                context = """
+
+    경기 예측을 요청받았지만
+
+    사용자 질문에서 예측할 두 팀을 찾지 못했습니다.
+
+
+    사용자에게 예측을 원하는 두 팀의 이름을
+
+    입력해 달라고 안내하세요.
+
+    예:
+
+    "양키스와 레드삭스 중 누가 이길까?"
+
+    "다저스와 파드리스 승부예측 해줘"
+
+    """
+
+            else:
+                # ==================================================
+                # 머신러닝 경기 예측
+                # ==================================================
+                prediction = predictor.predict_matchup(
+                    home_team_id=home_team["team_id"],
+                    away_team_id=away_team["team_id"]
+                )
+                # ==================================================
+                # Gemini에게 전달할 결과
+                # ==================================================
+                context = f"""
+
+    [경기 예측 머신러닝 결과]
+
+    홈팀:
+
+    {prediction["home_team_name"]}
+
+    원정팀:
+
+    {prediction["away_team_name"]}
+
+    홈팀 승리 확률:
+
+    {prediction["home_win_prob"]}%
+
+    원정팀 승리 확률:
+
+    {prediction["away_win_prob"]}%
+
+    모델 예측 승리팀:
+
+    {prediction["predicted_winner_name"]}
+
+    [상대전적]
+
+    {prediction["head_to_head_summary"]}
+
+    총 맞대결:
+
+    {prediction["head_to_head"]["total_games"]}경기
+
+    홈팀 승리:
+
+    {prediction["head_to_head"]["team_a_wins"]}승
+
+    원정팀 승리:
+
+    {prediction["head_to_head"]["team_b_wins"]}승
+
+    [주요 팀 지표]
+
+
+    홈팀 평균 타구속도:
+
+    {prediction["metrics_comparison"]["home_avg_exit_velo"]}
+
+    원정팀 평균 타구속도:
+
+    {prediction["metrics_comparison"]["away_avg_exit_velo"]}
+
+    홈팀 배럴 타구 비율:
+
+    {prediction["metrics_comparison"]["home_barrel_pct"]}%
+
+    원정팀 배럴 타구 비율:
+
+    {prediction["metrics_comparison"]["away_barrel_pct"]}%
+
+    홈팀 평균 bWAR:
+
+    {prediction["metrics_comparison"]["home_avg_bwar"]}
+
+    원정팀 평균 bWAR:
+
+    {prediction["metrics_comparison"]["away_avg_bwar"]}
+
+    홈팀 타율:
+
+    {prediction["metrics_comparison"]["home_batting_avg"]}
+
+    원정팀 타율:
+
+    {prediction["metrics_comparison"]["away_batting_avg"]}
+
+    위 경기 예측 결과는 BASEBOT의 RandomForest 머신러닝 모델이
+
+    계산한 결과이다.
+
+
+    사용자에게 답변할 때 모델의 승리 확률이나
+
+    예측 승리팀을 임의로 변경하지 않는다.
+
+
+    실제 경기 결과를 알고 있는 것처럼 말하지 않는다.
+
+
+    예측 결과는 머신러닝 모델에 따른 참고용 결과임을
+
+    간단하게 안내할 수 있다.
+
+    """
+
+        except FileNotFoundError as e:
+
+            context = f"""
+
+    경기 예측 모델을 사용할 수 없습니다.
+
+
+    오류:
+
+    {str(e)}
+
+
+    사용자에게 현재 경기 예측 모델을 사용할 수 없다고
+
+    간단하게 안내하세요.
+
+    """
+
+
+        except Exception as e:
+
+            print(
+
+                f"[경기 예측 오류] {e}"
+
+            )
+
+            context = """
+
+    경기 예측을 처리하는 과정에서 오류가 발생했습니다.
+
+
+    사용자에게 현재 경기 예측을 처리할 수 없다고
+
+    간단하게 안내하세요.
+
+    """
 
         # 현재는 실제 경기 선택 로직을 추가하기 전 단계
 

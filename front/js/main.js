@@ -144,11 +144,12 @@ if(chatbotButton && chatbotWindow) {
    세션 ID
 ================================================== */
 
-let chatbotSessionId =
-    localStorage.getItem(
-        "basebot_chat_session_id"
-    );
+// let chatbotSessionId =
+//     localStorage.getItem(
+//         "basebot_chat_session_id"
+//     );
 
+let chatbotSessionId = null;
 
 /* ==================================================
    사용자 메시지
@@ -308,9 +309,7 @@ function scrollChatToBottom() {
 ================================================== */
 
 async function sendChatMessage() {
-
-    const message =
-        chatbotInput.value.trim();
+    const message = chatbotInput.value.trim();
 
     if (!message) {
         return;
@@ -322,17 +321,13 @@ async function sendChatMessage() {
         message
     );
 
-
     /* 입력창 초기화 */
     chatbotInput.value = "";
-
 
     /* 로딩 */
     addLoadingMessage();
 
-
     try {
-
         const response =
             await fetch(
                 "/chat",
@@ -346,48 +341,36 @@ async function sendChatMessage() {
 
                     body: JSON.stringify({
                         message: message,
-
                         session_id:
                             chatbotSessionId,
-
                         user_id: null
                     })
                 }
             );
 
-
         if (!response.ok) {
-
             throw new Error(
                 "챗봇 API 요청 실패"
             );
-
         }
 
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         /* 세션 ID 저장 */
         chatbotSessionId =
             data.session_id;
 
-
-        localStorage.setItem(
-            "basebot_chat_session_id",
-            chatbotSessionId
-        );
-
+        // localStorage.setItem(
+        //     "basebot_chat_session_id",
+        //     chatbotSessionId
+        // );
 
         removeLoadingMessage();
-
 
         /* AI 답변 */
         addBotMessage(
             data.answer
         );
-
 
     } catch (error) {
 
