@@ -15,14 +15,17 @@ router = APIRouter(prefix="/api/games", tags=["games"])
 @router.get("")
 def get_games(
     date: Optional[str] = Query(None, description="조회할 날짜 (YYYY-MM-DD 형식)"),
-    status: Optional[str] = Query(None, description="경기 상태 (Final, Scheduled 등)"),
-    limit: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None, description="경기 상태 (FINAL, SCHEDULED 등)"),
+    order: str = Query("desc", description="정렬 순서 (desc: 최신순, asc: 과거순)"),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_session)
 ):
     """
-    날짜별 경기 일정 및 결과 조회 API
+    날짜별 경기 일정 및 결과 조회 API (최신순 정렬 지원)
     """
-    query_str = """
+    sort_dir = "DESC" if order.lower() == "desc" else "ASC"
+
+    query_str = f"""
         SELECT 
             g.game_id,
             g.game_date,
@@ -51,7 +54,8 @@ def get_games(
         query_str += " AND g.status = :status"
         params["status"] = status
 
-    query_str += " ORDER BY g.game_date ASC LIMIT :limit"
+    # 최신 날짜/시간 순으로 정렬
+    query_str += f" ORDER BY g.game_date {sort_dir} LIMIT :limit"
 
     rows = db.execute(text(query_str), params).mappings().all()
     return rows
