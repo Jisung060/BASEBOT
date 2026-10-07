@@ -56,7 +56,7 @@ def get_games(
     rows = db.execute(text(query_str), params).mappings().all()
     return rows
 
-    @router.get("/{game_id}/boxscore")
+@router.get("/{game_id}/boxscore")
 def get_game_boxscore(game_id: int):
     """
     특정 경기의 이닝별 라인스코어(Linescore) 및 팀별 R/H/E 박스스코어 조회
