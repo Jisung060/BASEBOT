@@ -234,3 +234,21 @@ def settle_game_votes(game_id: int, db: Session = Depends(get_session)):
 
     db.commit()
     return {"message": f"{settled_count}건의 투표가 정산 완료되었습니다.", "winning_team_id": winning_team_id}
+
+    # 내 포인트 조회 엔드포인트 추가
+@router.get("/users/{user_id}/points")
+def get_user_points(user_id: int, db: Session = Depends(get_session)):
+    """로그인한 유저의 현재 보유 포인트 조회"""
+    user_row = db.execute(
+        text("SELECT user_id, username, point FROM users WHERE user_id = :uid"),
+        {"uid": user_id}
+    ).mappings().first()
+
+    if not user_row:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+
+    return {
+        "user_id": user_row["user_id"],
+        "username": user_row.get("username", "회원"),
+        "point": user_row.get("point", 0)
+    }

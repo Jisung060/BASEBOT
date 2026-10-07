@@ -101,44 +101,44 @@ const chatbotBody =
 /* ==================================================
    챗봇 열기 / 닫기
 ================================================== */
+if(chatbotButton && chatbotWindow) { // 챗봇 창이 존재할 때(창이 없는 곳에서의 오류 방지)
+    chatbotButton.addEventListener(
+        "click",
+        function () {
 
-chatbotButton.addEventListener(
-    "click",
-    function () {
-
-        chatbotWindow.classList.toggle(
-            "active"
-        );
-
-        if (
-            chatbotWindow.classList.contains(
+            chatbotWindow.classList.toggle(
                 "active"
-            )
-        ) {
+            );
 
-            chatbotInput.focus();
+            if (
+                chatbotWindow.classList.contains(
+                    "active"
+                )
+            ) {
+
+                chatbotInput.focus();
+
+            }
 
         }
-
-    }
-);
-
+    );
+}
 
 /* ==================================================
    챗봇 닫기
 ================================================== */
+if(chatbotButton && chatbotWindow) {
+    chatbotClose.addEventListener(
+        "click",
+        function () {
 
-chatbotClose.addEventListener(
-    "click",
-    function () {
+            chatbotWindow.classList.remove(
+                "active"
+            );
 
-        chatbotWindow.classList.remove(
-            "active"
-        );
-
-    }
-);
-
+        }
+    );
+}
 
 /* ==================================================
    세션 ID
@@ -408,34 +408,34 @@ async function sendChatMessage() {
 /* ==================================================
    전송 버튼
 ================================================== */
-
-chatbotSend.addEventListener(
-    "click",
-    sendChatMessage
-);
-
+if(chatbotSend) {
+    chatbotSend.addEventListener(
+        "click",
+        sendChatMessage
+    );
+}
 
 /* ==================================================
    Enter
 ================================================== */
+if(chatbotInput) {
+    chatbotInput.addEventListener(
+        "keydown",
+        function (event) {
 
-chatbotInput.addEventListener(
-    "keydown",
-    function (event) {
+            if (
+                event.key === "Enter"
+            ) {
 
-        if (
-            event.key === "Enter"
-        ) {
+                event.preventDefault();
 
-            event.preventDefault();
+                sendChatMessage();
 
-            sendChatMessage();
+            }
 
         }
-
-    }
-);
-
+    );
+}
 
 /* ==================================================
    경기 결과 불러오기

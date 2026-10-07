@@ -1,23 +1,11 @@
 // ==================================================
-// 1. 공통 컴포넌트 로더 (상대 경로 안전 로드)
+// 전역 변수 관리
 // ==================================================
-async function loadComponent(elementId, filePath) {
-    try {
-        const response = await fetch(filePath);
-        if (response.ok) {
-            const html = await response.text();
-            const targetEl = document.getElementById(elementId);
-            if (targetEl) targetEl.innerHTML = html;
-        } else {
-            console.warn(`컴포넌트 로드 실패 (${filePath}): HTTP ${response.status}`);
-        }
-    } catch (error) {
-        console.warn(`컴포넌트 로드 에러 (${filePath}):`, error);
-    }
-}
+let currentGameData = null;
+let currentUserPoints = 0;
 
 // ==================================================
-// 2. 로그인 유저 식별 (안전 검사)
+// 로그인 유저 식별 (sessionStorage / localStorage 안전 검사)
 // ==================================================
 function getLoggedInUserId() {
     try {
@@ -32,20 +20,49 @@ function getLoggedInUserId() {
     return localStorage.getItem("test_user_id") || null;
 }
 
-let currentGameData = null;
+// ==================================================
+// 1. 유저 보유 포인트 조회 함수
+// ==================================================
+async function fetchUserPoints() {
+    const userId = getLoggedInUserId();
+    const pointDisplay = document.getElementById("userPointDisplay");
+    if (!pointDisplay) return;
+
+    if (!userId) {
+        pointDisplay.textContent = "로그인 필요";
+        pointDisplay.style.color = "#888";
+        currentUserPoints = 0;
+        return;
+    }
+
+    try {
+        const res = await fetch(`http://127.0.0.1:8000/api/predictions/users/${userId}/points`);
+        if (res.ok) {
+            const data = await res.json();
+            currentUserPoints = data.point;
+            pointDisplay.textContent = `${currentUserPoints.toLocaleString()} P`;
+            pointDisplay.style.color = "#102d63";
+        } else {
+            pointDisplay.textContent = "0 P";
+            currentUserPoints = 0;
+        }
+    } catch (e) {
+        console.error("포인트 조회 실패:", e);
+        pointDisplay.textContent = "조회 실패";
+    }
+}
 
 // ==================================================
-// 3. 페이지 초기화
+// 2. 초기화 리스너 등록
 // ==================================================
 document.addEventListener("DOMContentLoaded", async () => {
-    // Header & Footer 비동기 로드
-    // loadComponent("header", "../components/header.html");
-    // loadComponent("footer", "../components/footer.html");
-
     // 경기 목록 로드
     await loadGameList();
 
-    // 이벤트 리스너 등록
+    // 내 보유 포인트 조회
+    await fetchUserPoints();
+
+    // 경기 선택 버튼 이벤트
     const btnLoad = document.getElementById("btnLoadGame");
     if (btnLoad) {
         btnLoad.addEventListener("click", () => {
@@ -56,6 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    // 투표 버튼 이벤트 바인딩
     const btnVoteAway = document.getElementById("btnVoteAway");
     if (btnVoteAway) {
         btnVoteAway.addEventListener("click", () => handleVote("away"));
@@ -68,7 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ==================================================
-// 4. 경기 목록 불러오기
+// 3. 경기 목록 불러오기 (최신순)
 // ==================================================
 async function loadGameList() {
     const select = document.getElementById("gameSelect");
@@ -93,7 +111,7 @@ async function loadGameList() {
             select.add(opt);
         });
 
-        // 최신 경기 자동 선택 및 분석 실행
+        // 최신 경기 자동 선택 및 로드
         if (games.length > 0) {
             select.value = games[0].game_id;
             loadSelectedGame(games[0].game_id);
@@ -105,7 +123,7 @@ async function loadGameList() {
 }
 
 // ==================================================
-// 5. 선택 경기 AI 분석 및 투표 현황 로드
+// 4. 선택 경기 AI 분석 및 투표 현황 로드
 // ==================================================
 async function loadSelectedGame(gameId) {
     const userId = getLoggedInUserId();
@@ -139,7 +157,7 @@ async function loadSelectedGame(gameId) {
 }
 
 // ==================================================
-// 6. UI 렌더링 및 3중 버튼 비활성화 제어
+// 5. UI 렌더링 및 버튼 제어 (포인트 부족/종료/투표완료)
 // ==================================================
 function renderPredictionUI(pred, voteStatus) {
     const safeSetText = (id, text) => {
@@ -219,6 +237,7 @@ function renderPredictionUI(pred, voteStatus) {
         btn.style.color = "#102d63";
     };
 
+    // 조건 1: 경기 종료
     if (isGameFinal) {
         disableBtn(btnAway, "투표 마감 (경기 종료)");
         disableBtn(btnHome, "투표 마감 (경기 종료)");
@@ -226,6 +245,7 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
+    // 조건 2: 이미 투표 완료
     if (myVote) {
         if (myVote.selected_team_id === currentGameData.away_team_id) {
             disableBtn(btnAway, "✔ 투표 완료 (원정팀)");
@@ -249,6 +269,7 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
+    // 조건 3: 비로그인 상태
     if (!userId) {
         enableBtn(btnAway, "로그인 후 투표 (원정)");
         enableBtn(btnHome, "로그인 후 투표 (홈)");
@@ -256,13 +277,22 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
+    // 조건 4-1: 포인트 부족 상태 방어 (100P 미만)
+    if (currentUserPoints < 100) {
+        disableBtn(btnAway, "포인트 부족 (100P 필요)");
+        disableBtn(btnHome, "포인트 부족 (100P 필요)");
+        if (myVoteBox) myVoteBox.innerHTML = `<span style="color: #d32f2f; font-weight: 700;">보유 포인트가 부족하여 투표할 수 없습니다. (현재: ${currentUserPoints} P / 필요: 100 P)</span>`;
+        return;
+    }
+
+    // 조건 4-2: 정상 투표 가능 상태
     enableBtn(btnAway, "원정팀 승리 투표 (100P)");
     enableBtn(btnHome, "홈팀 승리 투표 (100P)");
     if (myVoteBox) myVoteBox.innerHTML = "원하는 팀을 선택하여 승부예측 투표(100P)에 참여해 보세요!";
 }
 
 // ==================================================
-// 7. 투표 실행
+// 6. 투표 실행
 // ==================================================
 async function handleVote(side) {
     if (currentGameData && currentGameData.status === "FINAL") {
@@ -275,6 +305,11 @@ async function handleVote(side) {
         if (confirm("로그인이 필요한 서비스입니다.\n로그인 페이지로 이동하시겠습니까?")) {
             location.href = "login.html";
         }
+        return;
+    }
+
+    if (currentUserPoints < 100) {
+        alert(`보유 포인트가 부족합니다.\n현재 보유 포인트: ${currentUserPoints} P (필요 포인트: 100 P)`);
         return;
     }
 
@@ -301,6 +336,11 @@ async function handleVote(side) {
         }
 
         alert("100 포인트 베팅 및 투표가 완료되었습니다!");
+
+        // 투표 후 보유 포인트 즉시 갱신
+        await fetchUserPoints();
+
+        // 경기 상세 현황 다시 로드 (버튼 비활성화)
         loadSelectedGame(currentGameData.game_id);
     } catch (e) {
         console.error("투표 요청 오류:", e);

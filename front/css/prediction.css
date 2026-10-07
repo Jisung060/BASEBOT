@@ -217,3 +217,50 @@
     font-weight: 800;
     color: #102d63;
 }
+
+/* ==================================================
+   내 보유 포인트 카드
+================================================== */
+.user-point-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #f8faff 0%, #edf2f9 100%);
+    border: 1px solid #d0dbe9;
+    border-radius: 8px;
+    padding: 14px 22px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 6px rgba(16, 45, 99, 0.04);
+}
+
+.point-info-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    color: #333;
+}
+
+.point-icon {
+    font-size: 20px;
+}
+
+.point-label {
+    font-weight: 600;
+}
+
+.point-amount {
+    font-size: 20px;
+    font-weight: 800;
+    color: #102d63;
+    letter-spacing: 0.5px;
+}
+
+.point-info-right {
+    font-size: 13px;
+    color: #666;
+    background: #fff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #e1e7f0;
+}
