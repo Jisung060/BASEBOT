@@ -1,188 +1,54 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BASEBOT - MLB 경기 일정 및 결과</title>
-    <!-- CSS -->
-    <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/game.css">
+    <title>경기 일정·결과 - BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/game.css?v=29">
 </head>
 <body>
-
     <div id="header"></div>
 
-    <main class="main">
+    <main class="main game-page">
+        <nav class="breadcrumb" aria-label="현재 위치"><a href="../main.html">홈</a><span>›</span><strong>경기 일정·결과</strong></nav>
+        <header class="page-heading">
+            <p class="eyebrow">MLB REGULAR SEASON</p>
+            <h1>경기 일정 · 결과</h1>
+            <p>MLB 경기 일정과 결과를 월별로 확인하세요.</p>
+        </header>
 
-        <!-- PAGE TITLE -->
-        <section class="page-header">
-            <h1>MLB Schedule &amp; Results</h1>
-            <p>MLB 경기 일정, 실시간 스코어 및 세이버메트릭스 기록을 확인하세요.</p>
-        </section>
-
-        <!-- MLB SEARCH & FILTER BAR -->
-        <section class="mlb-search-filter">
-            <div class="filter-group">
-                <!-- Season Year -->
-                <select id="select-year" class="mlb-select">
-                    <!-- JS로 동적 생성 -->
-                </select>
-
-                <!-- Month -->
-                <select id="select-month" class="mlb-select">
-                    <!-- JS로 동적 생성 -->
-                </select>
-
-                <!-- League / Division Filter -->
-                <select id="select-league" class="mlb-select">
-                    <option value="ALL" selected>All Leagues</option>
-                    <option value="AL">American League</option>
-                    <option value="NL">National League</option>
-                </select>
-
-                <!-- Team Select -->
-                <select id="select-team" class="mlb-select">
-                    <option value="ALL" selected>All Teams</option>
-                    <!-- JS로 MLB 30개 팀 동적 생성 -->
-                </select>
+        <section class="schedule-tools" aria-label="경기 검색 조건">
+            <div class="schedule-date-picker">
+                <div class="date-picker-heading">
+                    <button type="button" class="recent-button" id="btn-today">최근</button>
+                    <button type="button" class="month-arrow" id="btn-prev-year" aria-label="이전 연도">‹</button>
+                    <strong id="year-display"></strong>
+                    <button type="button" class="month-arrow" id="btn-next-year" aria-label="다음 연도">›</button>
+                    <button type="button" class="calendar-button" id="btn-calendar" aria-label="날짜 선택">▦⌄</button>
+                    <input type="date" id="game-date-picker" aria-label="경기 날짜">
+                </div>
+                <div class="month-strip-wrap">
+                    <div class="month-strip" id="month-strip" aria-label="월 선택"></div>
+                </div>
+                <div class="day-strip" id="day-strip" role="group" aria-label="날짜 선택"></div>
             </div>
-
-            <!-- Date Navigation -->
-            <div class="date-nav">
-                <button type="button" id="btn-prev-date" class="btn-nav">&lt;</button>
-                <input type="date" id="game-date-picker">
-                <span id="date-display-text"></span>
-                <button type="button" id="btn-next-date" class="btn-nav">&gt;</button>
-                <button type="button" id="btn-today" class="btn-today">Today</button>
+            <div class="team-filter">
+                <div class="team-picker" id="team-picker">
+                    <div class="team-rail" id="team-rail" role="group" aria-label="구단 선택"></div>
+                    <select id="select-team" aria-label="팀" tabindex="-1" aria-hidden="true"><option value="ALL">전체 구단</option></select>
+                </div>
             </div>
         </section>
 
-        <!-- SCHEDULE TABLE -->
-        <section class="mlb-table-container">
-            <table class="mlb-schedule-table">
-                <thead>
-                    <tr>
-                        <th class="col-time">Date / Time</th>
-                        <th class="col-matchup">Matchup (Away vs Home)</th>
-                        <th class="col-venue">Venue</th>
-                        <th class="col-status">Status</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
-                </thead>
-                <!-- JS에서 API 데이터를 받아 <tr> 요소를 동적으로 추가하는 영역 -->
-                <tbody id="game-schedule-tbody">
-
-                    <!-- 1. 경기 종료 (Finished) 템플릿 예시 구조 -->
-                    <tr class="game-row status-finished" data-game-id="">
-                        <td class="time-cell">
-                            <span class="game-time"></span>
-                        </td>
-                        <td class="match-cell">
-                            <div class="team-match">
-                                <div class="team-info away">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                </div>
-                                <div class="score-box">
-                                    <span class="score away-score"></span>
-                                    <span class="score-divider">-</span>
-                                    <span class="score home-score"></span>
-                                </div>
-                                <div class="team-info home">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="venue-cell"></td>
-                        <td class="status-cell">
-                            <span class="badge badge-finished">Final</span>
-                        </td>
-                        <td class="action-cell">
-                            <a href="" class="btn-action btn-boxscore">Boxscore</a>
-                            <a href="" class="btn-action btn-ai-analysis">AI Analysis</a>
-                        </td>
-                    </tr>
-
-                    <!-- 2. 경기 예정 (Upcoming) 템플릿 예시 구조 -->
-                    <tr class="game-row status-upcoming" data-game-id="">
-                        <td class="time-cell">
-                            <span class="game-time"></span>
-                        </td>
-                        <td class="match-cell">
-                            <div class="team-match">
-                                <div class="team-info away">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                    <span class="probable-pitcher"></span>
-                                </div>
-                                <div class="match-vs">VS</div>
-                                <div class="team-info home">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                    <span class="probable-pitcher"></span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="venue-cell"></td>
-                        <td class="status-cell">
-                            <span class="badge badge-upcoming">Scheduled</span>
-                        </td>
-                        <td class="action-cell">
-                            <a href="" class="btn-action btn-preview">Preview</a>
-                            <a href="" class="btn-action btn-ai-predict">AI Predict</a>
-                        </td>
-                    </tr>
-
-                    <!-- 3. 경기 진행 중 (Live) 템플릿 예시 구조 -->
-                    <tr class="game-row status-live" data-game-id="">
-                        <td class="time-cell">
-                            <span class="game-time"></span>
-                        </td>
-                        <td class="match-cell">
-                            <div class="team-match">
-                                <div class="team-info away">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                </div>
-                                <div class="score-box">
-                                    <span class="score away-score"></span>
-                                    <span class="live-inning"></span>
-                                    <span class="score home-score"></span>
-                                </div>
-                                <div class="team-info home">
-                                    <img src="" alt="" class="team-logo">
-                                    <span class="team-name"></span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="venue-cell"></td>
-                        <td class="status-cell">
-                            <span class="badge badge-live">LIVE</span>
-                        </td>
-                        <td class="action-cell">
-                            <a href="" class="btn-action btn-live-tracker">Live Tracker</a>
-                        </td>
-                    </tr>
-
-                </tbody>
-            </table>
-
-            <!-- 데이터가 없을 경우 표시되는 영역 -->
-            <div id="no-game-message" class="no-data-box" style="display: none;">
-                <p>No games scheduled for the selected date.</p>
-            </div>
-        </section>
-
+        <div class="selected-date"><h2 id="date-display-text"></h2></div>
+        <section id="game-list" class="game-list" aria-live="polite" aria-label="경기 목록"></section>
+        <p id="no-game-message" class="empty-state" hidden>선택한 날짜에 등록된 경기가 없습니다.</p>
     </main>
 
-    <!-- FOOTER (JavaScript로 동적 로드) -->
     <div id="footer"></div>
-
-    <!-- JavaScript -->
+    <button type="button" class="scroll-to-top" id="scroll-to-top" aria-label="맨 위로 올라가기" title="맨 위로" hidden>↑</button>
     <script src="../js/main.js"></script>
-    <script src="../js/game.js"></script>
+    <script src="../js/game.js?v=27"></script>
 </body>
-
 </html>
