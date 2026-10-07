@@ -21,7 +21,7 @@ async function loadComponent(elementId, filePath) {
 // ==================================================
 function getLoggedInUserId() {
     try {
-        const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+        const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
         if (userStr) {
             const u = JSON.parse(userStr);
             if (u && (u.user_id || u.id)) return u.user_id || u.id;
@@ -39,8 +39,8 @@ let currentGameData = null;
 // ==================================================
 document.addEventListener("DOMContentLoaded", async () => {
     // Header & Footer 비동기 로드
-    loadComponent("header", "../components/header.html");
-    loadComponent("footer", "../components/footer.html");
+    // loadComponent("header", "../components/header.html");
+    // loadComponent("footer", "../components/footer.html");
 
     // 경기 목록 로드
     await loadGameList();
