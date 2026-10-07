@@ -40,3 +40,13 @@ git을 만들고 폴더를 만들었다면, 원격저장소인 GitHub에 저장�
 		
 	- git push -u origin main -> 원격저장소와 연결한 repository에 올라가게 된다
 		-> -u는 처음에 하게 되면 나중에 git push만 해도 올라가게 해줌
+
+---------------------------------------------------------
+
+테스트 시 데이터 수집
+
+/back/scripts의 database.py를 제외하고 seed_teams(30개 팀), collector_games(경기 정보), collector_players(선수 정보) 스크립트를 실행하여 데이터를 가져와서 테스트
+
+테스트용 데이터는 2024.04 한 달 간의 데이터로, 추후 변경될 수 있음
+
+/ml 내부의 train_prediction_model을 실행하면 승부 예측 모델을 훈련하며, game_prediction_model.pkl로 저장.(경기 정보 데이터 변경 시 실행 필요, 굳이 할 필요 없음)

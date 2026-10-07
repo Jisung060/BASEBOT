@@ -12,7 +12,7 @@ from models.user import User
 from models.team import Team
 
 from routers.auth import router as auth_router
-from routers import players, teams, games
+from routers import players, teams, games, predictions
 
 
 app = FastAPI(
@@ -46,6 +46,7 @@ app.include_router(auth_router)
 app.include_router(players.router)
 app.include_router(teams.router)
 app.include_router(games.router)
+app.include_router(predictions.router)
 
 # 정적 파일
 # CSS
