@@ -3,6 +3,7 @@
 // ==================================================
 let currentGameData = null;
 let currentUserPoints = 0;
+let currentUserFavoriteTeamId = null; // ★ 선호 구단 ID 전역 관리
 
 // ==================================================
 // 로그인 유저 식별 (sessionStorage / localStorage 안전 검사)
@@ -21,17 +22,19 @@ function getLoggedInUserId() {
 }
 
 // ==================================================
-// 1. 유저 보유 포인트 조회 함수
+// 1. 유저 보유 포인트 및 선호 구단 조회 함수
 // ==================================================
 async function fetchUserPoints() {
     const userId = getLoggedInUserId();
     const pointDisplay = document.getElementById("userPointDisplay");
-    if (!pointDisplay) return;
 
     if (!userId) {
-        pointDisplay.textContent = "로그인 필요";
-        pointDisplay.style.color = "#888";
+        if (pointDisplay) {
+            pointDisplay.textContent = "로그인 필요";
+            pointDisplay.style.color = "#888";
+        }
         currentUserPoints = 0;
+        currentUserFavoriteTeamId = null;
         return;
     }
 
@@ -39,16 +42,17 @@ async function fetchUserPoints() {
         const res = await fetch(`http://127.0.0.1:8000/api/predictions/users/${userId}/points`);
         if (res.ok) {
             const data = await res.json();
-            currentUserPoints = data.point;
-            pointDisplay.textContent = `${currentUserPoints.toLocaleString()} P`;
-            pointDisplay.style.color = "#102d63";
-        } else {
-            pointDisplay.textContent = "0 P";
-            currentUserPoints = 0;
+            currentUserPoints = data.point || 0;
+            // ★ 백엔드가 주는 favorite_team_id를 전역 변수에 저장!
+            currentUserFavoriteTeamId = data.favorite_team_id ? Number(data.favorite_team_id) : null;
+
+            if (pointDisplay) {
+                pointDisplay.textContent = `${currentUserPoints.toLocaleString()} P`;
+                pointDisplay.style.color = "#102d63";
+            }
         }
     } catch (e) {
-        console.error("포인트 조회 실패:", e);
-        pointDisplay.textContent = "조회 실패";
+        console.error("포인트 및 선호 구단 조회 실패:", e);
     }
 }
 
@@ -56,11 +60,11 @@ async function fetchUserPoints() {
 // 2. 초기화 리스너 등록
 // ==================================================
 document.addEventListener("DOMContentLoaded", async () => {
-    // 경기 목록 로드
-    await loadGameList();
-
-    // 내 보유 포인트 조회
+    // 1. 유저 포인트 & 선호 구단 먼저 조회
     await fetchUserPoints();
+
+    // 2. 경기 목록 로드 (로드 완료 후 첫 경기 자동 렌더링)
+    await loadGameList();
 
     // 경기 선택 버튼 이벤트
     const btnLoad = document.getElementById("btnLoadGame");
@@ -111,7 +115,6 @@ async function loadGameList() {
             select.add(opt);
         });
 
-        // 최신 경기 자동 선택 및 로드
         if (games.length > 0) {
             select.value = games[0].game_id;
             loadSelectedGame(games[0].game_id);
@@ -129,7 +132,6 @@ async function loadSelectedGame(gameId) {
     const userId = getLoggedInUserId();
 
     try {
-        // 투표 현황 조회
         const voteUrl = userId 
             ? `http://127.0.0.1:8000/api/predictions/votes/status?game_id=${gameId}&user_id=${userId}`
             : `http://127.0.0.1:8000/api/predictions/votes/status?game_id=${gameId}`;
@@ -137,7 +139,6 @@ async function loadSelectedGame(gameId) {
         const voteRes = await fetch(voteUrl);
         const voteStatus = voteRes.ok ? await voteRes.json() : { total_votes: 0, home_vote_pct: 50, away_vote_pct: 50, my_vote: null };
 
-        // 경기 정보 조회
         const gamesRes = await fetch(`http://127.0.0.1:8000/api/games?limit=100`);
         const games = await gamesRes.json();
         const thisGame = games.find(g => g.game_id == gameId);
@@ -145,7 +146,6 @@ async function loadSelectedGame(gameId) {
         if (!thisGame) return;
         currentGameData = thisGame;
 
-        // AI 예측 데이터 조회
         const predRes = await fetch(`http://127.0.0.1:8000/api/predictions/matchup?home_team_id=${thisGame.home_team_id}&away_team_id=${thisGame.away_team_id}`);
         if (!predRes.ok) throw new Error("예측 API 호출 실패");
         const pred = await predRes.json();
@@ -157,7 +157,7 @@ async function loadSelectedGame(gameId) {
 }
 
 // ==================================================
-// 5. UI 렌더링 및 버튼 제어 (포인트 부족/종료/투표완료)
+// 5. UI 렌더링 및 선호 구단 강조 / 버튼 제어
 // ==================================================
 function renderPredictionUI(pred, voteStatus) {
     const safeSetText = (id, text) => {
@@ -194,7 +194,6 @@ function renderPredictionUI(pred, voteStatus) {
     safeSetText("tdAwayWar", (pred.metrics_comparison?.away_avg_bwar || 0).toFixed(2));
     safeSetText("tdHomeWar", (pred.metrics_comparison?.home_avg_bwar || 0).toFixed(2));
 
-    // 투표 바 렌더링
     safeSetText("voteCountText", `총 ${voteStatus.total_votes || 0}표 참여`);
     const awayBar = document.getElementById("userVoteAwayBar");
     const homeBar = document.getElementById("userVoteHomeBar");
@@ -205,6 +204,41 @@ function renderPredictionUI(pred, voteStatus) {
     if (homeBar) {
         homeBar.style.width = `${voteStatus.home_vote_pct}%`;
         homeBar.textContent = `${voteStatus.home_vote_pct}%`;
+    }
+
+    // ==================================================
+    // ★ 선호 구단(MY 구단) 뱃지 & 테두리 렌더링
+    // ==================================================
+    const awaySideEl = document.querySelector(".away-side");
+    const homeSideEl = document.querySelector(".home-side");
+
+    // 이전 뱃지 및 하이라이트 클래스 초기화
+    document.querySelectorAll(".fav-side-badge").forEach(b => b.remove());
+    if (awaySideEl) awaySideEl.classList.remove("is-my-team");
+    if (homeSideEl) homeSideEl.classList.remove("is-my-team");
+
+    const homeId = Number(pred.home_team_id);
+    const awayId = Number(pred.away_team_id);
+    const favId = currentUserFavoriteTeamId;
+
+    if (favId) {
+        if (awayId === favId && awaySideEl) {
+            awaySideEl.classList.add("is-my-team");
+            const badge = document.createElement("div");
+            badge.className = "fav-side-badge";
+            badge.textContent = "★ MY 구단";
+            if (awayLogo) awaySideEl.insertBefore(badge, awayLogo);
+            else awaySideEl.prepend(badge);
+        }
+
+        if (homeId === favId && homeSideEl) {
+            homeSideEl.classList.add("is-my-team");
+            const badge = document.createElement("div");
+            badge.className = "fav-side-badge";
+            badge.textContent = "★ MY 구단";
+            if (homeLogo) homeSideEl.insertBefore(badge, homeLogo);
+            else homeSideEl.prepend(badge);
+        }
     }
 
     // 버튼 제어
@@ -237,7 +271,6 @@ function renderPredictionUI(pred, voteStatus) {
         btn.style.color = "#102d63";
     };
 
-    // 조건 1: 경기 종료
     if (isGameFinal) {
         disableBtn(btnAway, "투표 마감 (경기 종료)");
         disableBtn(btnHome, "투표 마감 (경기 종료)");
@@ -245,7 +278,6 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
-    // 조건 2: 이미 투표 완료
     if (myVote) {
         if (myVote.selected_team_id === currentGameData.away_team_id) {
             disableBtn(btnAway, "✔ 투표 완료 (원정팀)");
@@ -269,7 +301,6 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
-    // 조건 3: 비로그인 상태
     if (!userId) {
         enableBtn(btnAway, "로그인 후 투표 (원정)");
         enableBtn(btnHome, "로그인 후 투표 (홈)");
@@ -277,7 +308,6 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
-    // 조건 4-1: 포인트 부족 상태 방어 (100P 미만)
     if (currentUserPoints < 100) {
         disableBtn(btnAway, "포인트 부족 (100P 필요)");
         disableBtn(btnHome, "포인트 부족 (100P 필요)");
@@ -285,7 +315,6 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
-    // 조건 4-2: 정상 투표 가능 상태
     enableBtn(btnAway, "원정팀 승리 투표 (100P)");
     enableBtn(btnHome, "홈팀 승리 투표 (100P)");
     if (myVoteBox) myVoteBox.innerHTML = "원하는 팀을 선택하여 승부예측 투표(100P)에 참여해 보세요!";
@@ -336,11 +365,7 @@ async function handleVote(side) {
         }
 
         alert("100 포인트 베팅 및 투표가 완료되었습니다!");
-
-        // 투표 후 보유 포인트 즉시 갱신
         await fetchUserPoints();
-
-        // 경기 상세 현황 다시 로드 (버튼 비활성화)
         loadSelectedGame(currentGameData.game_id);
     } catch (e) {
         console.error("투표 요청 오류:", e);
