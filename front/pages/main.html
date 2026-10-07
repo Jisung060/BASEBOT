@@ -272,56 +272,56 @@
 
 
 
-        <!-- ==============================
-            뉴스 / 커뮤니티
-        =============================== -->
-        <section class="content-grid">
-            <!-- 야구 뉴스 -->
-            <div class="content-box">
-                <div class="section-title">
-                    <h2>
-                        야구 뉴스
-                    </h2>
-                    <a href="#">
-                        더보기 +
-                    </a>
-                </div>
-                <ul class="news-list">
-                    <li>
-                        <a href="#">
-                            오늘의 주요 야구 소식을 확인하세요.
-                        </a>
-                        <span>
-                            10.03
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            이번 경기 주요 선수들의 기록
-                        </a>
-                        <span>
-                            10.03
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            이번 주 경기 일정 안내
-                        </a>
-                        <span>
-                            10.02
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            팀별 최신 경기 정보
-                        </a>
-                        <span>
-                            10.02
-                        </span>
-                    </li>
-                </ul>
-            </div>
-
+        <<section class="content-grid">
+    <!-- 야구 뉴스 -->
+    <div class="content-box">
+        <div class="section-title">
+            <h2>
+                야구 뉴스
+            </h2>
+            <!-- ▼ [더보기 +] 클릭 시 내가 만든 뉴스 페이지로 이동 -->
+            <a href="/news.html">
+                더보기 +
+            </a>
+            <!-- ※ 만약 새 탭으로 띄우고 싶다면: <a href="/news" target="_blank">더보기 +</a> -->
+            <!-- ※ /news 라우트를 아직 안 만드셨다면: <a href="/static/news.html">더보기 +</a> -->
+        </div>
+        <ul class="news-list">
+            <li>
+                <!-- 개별 기사 제목을 눌러도 뉴스 목록 전체 페이지로 이동하게 연결 -->
+                <a href="/news.html">
+                    오늘의 주요 야구 소식을 확인하세요.
+                </a>
+                <span>
+                    10.03
+                </span>
+            </li>
+            <li>
+                <a href="/news.html">
+                    이번 경기 주요 선수들의 기록
+                </a>
+                <span>
+                    10.03
+                </span>
+            </li>
+            <li>
+                <a href="/news.html">
+                    이번 주 경기 일정 안내
+                </a>
+                <span>
+                    10.02
+                </span>
+            </li>
+            <li>
+                <a href="/news.html">
+                    팀별 최신 경기 정보
+                </a>
+                <span>
+                    10.02
+                </span>
+            </li>
+        </ul>
+    </div>
             <!-- 커뮤니티 -->
             <div class="content-box">
                 <div class="section-title">

@@ -16,7 +16,7 @@ from models.user import User
 from models.team import Team
 
 from routers.auth import router as auth_router
-
+from routers.news import router as news_router # 뉴스추가
 
 app = FastAPI(
     title="BASEBOT API"
@@ -46,7 +46,7 @@ app.add_middleware(
 
 # Router
 app.include_router(auth_router)
-
+app.include_router(news_router) # 뉴스
 
 # 정적 파일
 # CSS
