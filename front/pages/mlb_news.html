@@ -340,12 +340,41 @@
                 const headerRes = await fetch('/components/header.html');
                 const footerRes = await fetch('/components/footer.html');
 
-                if (headerRes.ok) document.getElementById('header').innerHTML = await headerRes.text();
-                if (footerRes.ok) document.getElementById('footer').innerHTML = await footerRes.text();
+                if (headerRes.ok) {
+                    document.getElementById('header').innerHTML = await headerRes.text();
+                    // ▼ 헤더가 로드된 직후 로그인 상태를 체크하여 UI 업데이트
+                    updateLoginUI();
+                }
+                if (footerRes.ok) {document.getElementById('footer').innerHTML = await footerRes.text();
             } catch (err) {
                 console.error("컴포넌트 로드 실패:", err);
             }
         }
+
+ // 로그인 상태에 따라 헤더 UI를 변경하는 함수
+function checkLoginStatus() {
+    const userJson = localStorage.getItem("user");
+
+    // HTML 헤더 내부의 로그인 버튼과 유저 정보 영역의 선택자(ID 또는 클래스)를 확인 후 적용하세요.
+    const loginButtonArea = document.getElementById("login-btn-area"); // 예: 로그인 버튼이 있는 요소
+    const userArea = document.getElementById("user-info-area");         // 예: 닉네임이나 마이페이지가 있는 요소
+
+    if (userJson) {
+        // 로그인된 상태
+        const user = JSON.parse(userJson);
+        if (loginButtonArea) loginButtonArea.style.display = "none";
+        if (userArea) {
+            userArea.style.display = "block";
+            // 필요시 닉네임 표시
+            // document.getElementById("user-nickname").textContent = user.nickname;
+        }
+    } else {
+        // 로그아웃된 상태
+        if (loginButtonArea) loginButtonArea.style.display = "block";
+        if (userArea) userArea.style.display = "none";
+    }
+}
+
         loadComponents();
 
         const API_BASE = "";
@@ -594,5 +623,7 @@ async function toggleArticle(id, button, index) {
                 .replaceAll("'", "&#039;");
         }
     </script>
+
+ <script src="../js/main.js"> </script>
 </body>
 </html>
