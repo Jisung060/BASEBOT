@@ -278,13 +278,27 @@
                 </div>
 
                 <form class="search-area" onsubmit="return false;">
+
                     <select id="searchType">
                         <option value="title_content">제목+내용</option>
                         <option value="title">제목</option>
                         <option value="writer">작성자</option>
                     </select>
-                    <input id="searchInput" type="search" placeholder="검색어를 입력하세요">
-                    <button type="submit" class="community-btn">검색</button>
+
+                    <input
+                        id="searchInput"
+                        type="search"
+                        placeholder="검색어를 입력하세요"
+                    >
+
+                    <button
+                        type="button"
+                        id="postSearchButton"
+                        class="community-btn"
+                    >
+                        검색
+                    </button>
+
                 </form>
             </section>
         </section>

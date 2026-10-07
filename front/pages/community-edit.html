@@ -19,8 +19,7 @@
                 <p>작성한 게시글을 수정합니다.</p>
             </div>
 
-            <form class="write-form" action="#" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="postId" value="127">
+            <form class="write-form" id="editForm">
                 <div class="write-table">
 
                     <div class="write-row">
@@ -62,7 +61,7 @@
                     <div class="write-row">
                         <div class="write-label">관련 구단</div>
                         <div class="write-input-area">
-                            <select id="writeTeamSelect" name="related_team_id">
+                            <select id="writeTeamSelect" name="related_team_code">
                                 <option value="">선택 안 함</option>
                             </select>
                             <p class="input-guide">특정 구단과 관련된 글이면 선택하세요. (선택 사항)</p>
@@ -119,7 +118,7 @@
                 </div>
 
                 <div class="write-button-area">
-                    <a href="community-view.html?postId=127" class="community-btn">취소</a>
+                    <a href="community.html" class="community-btn">취소</a>
                     <button type="submit" class="community-btn primary">수정완료</button>
                 </div>
             </form>
@@ -128,6 +127,25 @@
 </main>
 
 <div id="footer"></div>
+
+<!-- BASEBOT 공통 팝업 -->
+<div id="basebotModal" class="basebot-modal">
+    <div class="basebot-modal-box">
+
+        <h3 id="basebotModalTitle"></h3>
+
+        <p id="basebotModalMessage"></p>
+
+        <button
+            type="button"
+            id="basebotModalButton"
+            class="community-btn primary">
+            확인
+        </button>
+
+    </div>
+</div>
+
 <script src="../js/main.js"></script>
 <script src="../js/community.js"></script>
 </body>

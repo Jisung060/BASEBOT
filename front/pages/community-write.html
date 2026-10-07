@@ -19,7 +19,7 @@
                 <p>BASEBOT 커뮤니티에 새 글을 작성합니다.</p>
             </div>
 
-            <form class="write-form" action="#" method="post" enctype="multipart/form-data">
+            <form class="write-form" id="writeForm">
                 <div class="write-table">
 
                     <div class="write-row">
@@ -36,7 +36,7 @@
                     </div>
 
                     <div class="write-row">
-                        <div class="write-label">관련 리그</div>
+                        <div class="write-label"> 리그</div>
                         <div class="write-input-area">
                             <select id="writeLeagueSelect" name="league">
                                 <option value="">선택 안 함</option>
@@ -47,7 +47,7 @@
                     </div>
 
                     <div class="write-row">
-                        <div class="write-label">관련 지구</div>
+                        <div class="write-label"> 지구</div>
                         <div class="write-input-area">
                             <select id="writeDivisionSelect" name="division">
                                 <option value="">선택 안 함</option>
@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="write-row">
-                        <div class="write-label">관련 구단</div>
+                        <div class="write-label"> 팀 </div>
                         <div class="write-input-area">
                             <select id="writeTeamSelect" name="related_team_id">
                                 <option value="">선택 안 함</option>
@@ -103,8 +103,9 @@
                                     </label>
                                 </div>
 
-                                <div id="editor" class="editor-content" contenteditable="true">
-                                    <p>여기에 글을 작성하세요.</p>
+                                <div id="editor"
+                                     class="editor-content"
+                                     contenteditable="true">
                                 </div>
                             </div>
 
@@ -127,6 +128,41 @@
 </main>
 
 <div id="footer"></div>
+
+<!-- BASEBOT 공통 팝업 -->
+<div id="basebotModal" class="basebot-modal">
+
+    <div class="basebot-modal-box">
+
+        <h3 id="basebotModalTitle"></h3>
+
+        <p id="basebotModalMessage"></p>
+
+        <div class="basebot-modal-button-area">
+
+            <button
+                type="button"
+                id="basebotModalCancelButton"
+                class="community-btn"
+                style="display: none;"
+            >
+                취소
+            </button>
+
+            <button
+                type="button"
+                id="basebotModalButton"
+                class="community-btn primary"
+            >
+                확인
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
 <script src="../js/main.js"></script>
 <script src="../js/community.js"></script>
 </body>

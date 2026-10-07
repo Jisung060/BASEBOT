@@ -33,3 +33,8 @@ uploads/
 *.db
 *.sqlite
 *.sqlite3
+
+# AI
+.env
+chroma_db/
+__pycache__/

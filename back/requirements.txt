@@ -9,3 +9,13 @@ pandas
 scikit-learn
 google-generativeai
 python-multipart
+# 10-07 추가
+langchain
+langchain-google-genai
+langchain-chroma
+chromadb
+# 
+pybaseball
+curl_cffi
+lightgbm
+joblib

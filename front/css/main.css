@@ -810,32 +810,22 @@ input {
 ================================================== */
 
 .chatbot-window {
+   position: absolute;
+   right: 0;
+   bottom: 70px;
 
-    position: absolute;
+   width: 420px;
+   height: 600px;
 
-    right: 0;
+   display: none;
+   flex-direction: column;
+   overflow: hidden;
 
-    bottom: 70px;
-
-    width: 360px;
-
-    height: 500px;
-
-    display: none;
-
-    flex-direction: column;
-
-    overflow: hidden;
-
-    background-color: white;
-
-    border: 1px solid #e1e7f0;
-
-    border-radius: 18px;
-
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.18);
+   background-color: white;
+   border: 1px solid #e1e7f0;
+   border-radius: 18px;
+   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.18);
 }
-
 
 /* 챗봇 열렸을 때 */
 
@@ -1028,23 +1018,15 @@ input {
 
 
 .message-content {
-
-    max-width: 250px;
-
+    max-width: 330px;
     padding: 12px 14px;
-
     background-color: white;
-
     border: 1px solid #e5e9f0;
-
     border-radius: 4px 14px 14px 14px;
-
     color: #333;
-
     font-size: 13px;
-
     line-height: 1.6;
-
+    white-space: pre-wrap;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
@@ -1136,6 +1118,25 @@ input {
     background-color: #0a2b68;
 }
 
+/* ==================================================
+   사용자 메시지
+================================================== */
+
+.chatbot-message.user {
+    justify-content: flex-end;
+}
+
+
+.chatbot-message.user .message-content {
+
+    background-color: #123f91;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 14px 4px 14px 14px;
+}
 
 
 /* ==================================================

@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB 구단 정보 - BASEBOT</title>
-    <!-- css 폴더 상대 경로 참조 -->
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/player-detail.css">
+    <link rel="stylesheet" href="../css/teams.css">
     <style>
         .league-title {
             font-size: 22px;
@@ -40,6 +40,7 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
+            position: relative; /* 뱃지 띄우기용 */
         }
         .team-card:hover {
             border-color: #102d63;
@@ -79,7 +80,6 @@
 
         <!-- 우측 본문 -->
         <section class="sub-content">
-            <!-- 브레드크럼 -->
             <div class="breadcrumb">
                 <a href="../main.html">홈</a> &gt; <span>팀 정보</span>
             </div>
@@ -99,33 +99,40 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // pages 폴더 기준 상대 경로로 컴포넌트 로드
-            loadComponent("header", "../components/header.html");
-            loadComponent("footer", "../components/footer.html");
             fetchTeams();
         });
 
-        async function loadComponent(id, path) {
+        // 선호 구단 ID 조회 헬퍼
+        async function getMyFavoriteTeamIdAsync() {
             try {
-                const res = await fetch(path);
-                if (res.ok) {
-                    document.getElementById(id).innerHTML = await res.text();
-                } else {
-                    console.warn(`컴포넌트 로드 실패 (${path}): HTTP ${res.status}`);
+                const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+                if (userStr) {
+                    const u = JSON.parse(userStr);
+                    const uid = u.user_id || u.id;
+                    if (uid) {
+                        // DB에서 최신 선호 구단 ID 조회
+                        const res = await fetch(`http://127.0.0.1:8000/api/predictions/users/${uid}/points`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.favorite_team_id) return Number(data.favorite_team_id);
+                        }
+                    }
+                    if (u.favorite_team_id || u.team_id) return Number(u.favorite_team_id || u.team_id);
                 }
-            } catch(e) {
-                console.warn(`컴포넌트 로드 에러 (${path}):`, e);
-            }
+            } catch (e) {}
+            return null;
         }
 
         async function fetchTeams() {
             try {
-                const res = await fetch("http://127.0.0.1:8000/api/teams");
-                if (!res.ok) {
-                    throw new Error(`API 호출 실패 (HTTP ${res.status})`);
-                }
-                const teams = await res.json();
-                renderTeams(teams);
+                const [teamsRes, myFavTeamId] = await Promise.all([
+                    fetch("http://127.0.0.1:8000/api/teams"),
+                    getMyFavoriteTeamIdAsync()
+                ]);
+
+                if (!teamsRes.ok) throw new Error("API 호출 실패");
+                const teams = await teamsRes.json();
+                renderTeams(teams, myFavTeamId);
             } catch (err) {
                 console.error("구단 데이터 로딩 에러:", err);
                 document.getElementById("teamsContainer").innerHTML =
@@ -133,7 +140,8 @@
             }
         }
 
-        function renderTeams(teams) {
+        // 기존의 지구별 그리드 렌더링 유지 + 선호 구단 강조 클래스 및 뱃지 삽입
+        function renderTeams(teams, myFavTeamId) {
             const structure = {
                 "AL": { "East": [], "Central": [], "West": [] },
                 "NL": { "East": [], "Central": [], "West": [] }
@@ -154,9 +162,10 @@
                 for (const [div, teamList] of Object.entries(divs)) {
                     html += `<div class="division-title">${league} ${div} Division</div><div class="team-grid">`;
                     teamList.forEach(t => {
-                        // 같은 폴더이므로 pages/ 없이 파일명으로 바로 이동
+                        const isMyTeam = (myFavTeamId && Number(t.team_id) === Number(myFavTeamId));
                         html += `
-                            <div class="team-card" onclick="location.href='team-detail.html?id=${t.team_id}'">
+                            <div class="team-card ${isMyTeam ? 'my-favorite-team' : ''}" onclick="location.href='team-detail.html?id=${t.team_id}'">
+                                ${isMyTeam ? '<span class="fav-team-badge">★ MY 구단</span>' : ''}
                                 <img src="${t.logo_url}" class="team-logo-img" alt="${t.team_name}">
                                 <div class="team-card-name">${t.team_name}</div>
                                 <div class="team-card-city">${t.city || ''}</div>
@@ -169,5 +178,8 @@
             document.getElementById("teamsContainer").innerHTML = html;
         }
     </script>
+
+    <!-- 공통 스크립트 연결 (teams.js는 제거) -->
+    <script src="../js/main.js"></script>
 </body>
 </html>
