@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from google import genai
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -695,66 +696,57 @@ def get_article(news_id: int):
         db.close()
 
 # ============================================================
-# OpenAI 3줄 요약
+# Gemini 3줄 요약
 # ============================================================
 def ai_summary(title, content):
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
     if not api_key:
         raise HTTPException(
             503,
-            "OPENAI_API_KEY가 설정되지 않았습니다. 환경변수를 먼저 설정하세요.",
+            "GEMINI_API_KEY가 설정되지 않았습니다. 환경변수를 먼저 설정하세요.",
         )
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.6-mini")
-
-    payload = {
-        "model": model,
-        "input": [
-            {
-                "role": "system",
-                "content": (
-                    "너는 한국어 MLB 뉴스 편집자다. "
-                    "제공된 기사 본문만 근거로 추측하지 말고 핵심 내용을 정확히 요약한다. "
-                    "결과는 정확히 3개의 번호 문장으로 작성한다. "
-                    "각 문장은 짧고 명확하게 가독성 편하게 작성한다."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"기사 제목:\n{title}\n\n"
-                    f"기사 본문:\n{content[:30000]}\n\n"
-                    "정확히 3줄로 요약해줘."
-                ),
-            },
-        ],
-        "max_output_tokens": 500,
-    }
-
-    response = requests.post(
-        "https://api.openai.com/v1/responses",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=60,
+    model = os.getenv(
+        "GEMINI_MODEL",
+        "gemini-3.5-flash-lite"
     )
-    response.raise_for_status()
 
-    data = response.json()
-    result = data.get("output_text", "").strip()
+    client = genai.Client(
+        api_key=api_key
+    )
+
+    prompt = f"""
+너는 한국어 MLB 뉴스 편집자다.
+
+아래 기사 본문만 근거로 핵심 내용을 정확하게 요약해라.
+추측하거나 기사에 없는 내용을 추가하지 마라.
+
+반드시 정확히 3개의 번호 문장으로 작성해라.
+
+각 문장은 짧고 명확하게 작성하고,
+읽기 편하게 한 줄씩 출력해라.
+
+기사 제목:
+{title}
+
+기사 본문:
+{content[:30000]}
+
+정확히 3줄로 요약해줘.
+"""
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+    )
+
+    result = (response.text or "").strip()
 
     if not result:
-        chunks = []
-        for item in data.get("output", []):
-            for content_item in item.get("content", []):
-                if content_item.get("type") == "output_text":
-                    chunks.append(content_item.get("text", ""))
-        result = "\n".join(chunks).strip()
-
-    if not result:
-        raise RuntimeError("AI가 요약을 반환하지 않았습니다.")
+        raise RuntimeError(
+            "Gemini가 요약을 반환하지 않았습니다."
+        )
 
     return result
 
