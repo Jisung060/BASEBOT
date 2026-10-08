@@ -1,0 +1,372 @@
+[33mcommit 369397ff2863c504706e903f721ea4378d64149e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/feature/game-page[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mfeature/game-page[m[33m)[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Thu Oct 8 11:40:12 2026 +0900
+
+    로그인/회원가입 -> 로그인시 마이페이지 보이게하기
+
+[33mcommit ecd9fe9601912de2e37fc10024f87d3e0e6d0daf[m
+Merge: b351ef8 47ada79
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 10:49:51 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit b351ef87c45e31dae1ccbe7e9e60878cdf13a488[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 10:49:15 2026 +0900
+
+    뉴스 페이지추가작업
+
+[33mcommit 47ada79679e189a7db8827004ce6df2a7540782b[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Thu Oct 8 10:48:55 2026 +0900
+
+    Update game results sidebar filters
+
+[33mcommit 0939b78771753dd7f93d33391fe5d16b09697a58[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 17:30:01 2026 +0900
+
+    removed faulty strings in file
+    
+    커밋 전 확인 필수
+
+[33mcommit 031b835a83fe7f973933a34cf49a4507f5cee56d[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 17:28:03 2026 +0900
+
+    predictor.py 삭제
+
+[33mcommit 34691ffd63ff6102edf71b91714ff974d8fef721[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 17:17:53 2026 +0900
+
+    main.py 머지
+
+[33mcommit 67f12b01ca987983a4e205c4fce3c796337d29b2[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 17:15:19 2026 +0900
+
+    AI챗봇 경기 예측, DB조회/ 통계 비교*선수 데이터*데이터 분석*선수 통계, 사용자 개인화, 사용자 정보로 success
+
+[33mcommit b6e4f81e3c301115c80d0623558d4d77d88bff17[m
+Merge: 9ca06ce 52c7c41
+Author: 홍제성 <hongjaesung97@gmail.com>
+Date:   Wed Oct 7 16:58:11 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit 9ca06ce8c1559053c1a332cc7d84a922f13915b6[m
+Author: 홍제성 <hongjaesung97@gmail.com>
+Date:   Wed Oct 7 16:57:46 2026 +0900
+
+    game, game-detail 페이지 작업
+
+[33mcommit 52c7c411d3562d6c47c1200b5a2d09961a7130d3[m
+Merge: 56d0c31 cad6f2e
+Author: Sita <imsj713@gamil.com>
+Date:   Wed Oct 7 16:52:00 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit cad6f2ea2cc5876371e2d1aab5083f64f5353ab7[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 16:50:52 2026 +0900
+
+    뉴스파트 수정
+
+[33mcommit 56d0c31e2e0360b5df166020c5a6f41882c1d69a[m
+Merge: bde29cd 0853224
+Author: Sita <imsj713@gamil.com>
+Date:   Wed Oct 7 16:50:44 2026 +0900
+
+    Resolve merge conflicts and update project files
+
+[33mcommit 085322491eb60997ddb5482ac153baa515d12101[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 16:43:26 2026 +0900
+
+    뉴스 로그인파트 수정
+
+[33mcommit ad6008c9638cd5ef4d7d3bf39393a9605d42dc26[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 15:23:13 2026 +0900
+
+    승부 예측 및 구단 정보 페이지에 선호 구단 표시 기능 추가 및 requirements.txt 정리
+
+[33mcommit 9b23acf34d7754cb1b129b539ebcd5aa134a7b3c[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 14:58:39 2026 +0900
+
+    AI챗봇 프롬프트 추가 및 답변 깔끔하게 하기
+
+[33mcommit 5495a5c643d48d78dff8851161b02740cbb267d5[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 14:53:48 2026 +0900
+
+    메인 페이지 최신뉴스 4개 업로드
+
+[33mcommit 722f51db06c2d743f9024356ac04b4d1b36a6eff[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 14:49:48 2026 +0900
+
+    경기 예측 페이지에 현재 포인트 확인 카드 추가 및 ai 챗봇이 없는 페이지 관련 방어 코드 적용(오류 방지)
+
+[33mcommit 08af8516c5121e3db6e5d6f90ecc389fa244e7c6[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 14:38:43 2026 +0900
+
+    뉴스 추가
+
+[33mcommit c372ec18272323b308a8d8dc5ad040bf2c8cbfbe[m
+Merge: 2fabcd8 6afca25
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 14:35:45 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit 6afca253b6c7db6128749257ffe60cc9fe9ec746[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 14:15:08 2026 +0900
+
+    Update prediction.js
+    
+    공통 규격에 맞도록 체크 순서 변경
+
+[33mcommit 52de10a35e0039a70efb8c3f242e133a86cd80ed[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 14:12:19 2026 +0900
+
+    각 페이지에서 로그인 정보에 맞게 header가 바뀌지 않았던 문제 수정
+    
+    js의 loadComponent 방식에서 공통으로 main.js를 사용하도록 변경
+
+[33mcommit 2fabcd8be2b6ff94507aff4d7bff610aa1532f4f[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 13:51:05 2026 +0900
+
+    뉴스 파트 추가youngbin
+
+[33mcommit 0a58c61160589b0f8cd1afb7911ac1ac7ae9d98c[m
+Merge: 36d13ec 8b397e6
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 13:28:29 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit 8b397e62efce665485368fd0deaa0b34d6336e70[m
+Merge: c6937be 1577b99
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 13:27:37 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit c6937be1e31ffab4fc1e3e4843b7b4c9086fc0b3[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 13:27:10 2026 +0900
+
+    로그인 확인
+
+[33mcommit 1577b998022827c8377b215ea2bbbbf5716e7750[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 13:25:44 2026 +0900
+
+    경기 예측 페이지가 제대로 로드되지 않는 오류 수정
+
+[33mcommit 36d13ecbd9d6a987b3cc9223b03ac1c82177cebd[m
+Merge: e91390b f5fbbcc
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 12:23:08 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+    
+    # Conflicts:
+    #       back/main.py
+
+[33mcommit f5fbbcc6283a94a8fd245b44b03855f978ebe3a4[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 12:15:22 2026 +0900
+
+    로그인/회원가입 상태 및 main.py, main.js 다시 올림
+
+[33mcommit c1d0003e0feccc7c7476abb13a62f16eca625b6b[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Wed Oct 7 12:11:20 2026 +0900
+
+    로그인/회원가입 상태 변경 및 main.js, main.py marge
+
+[33mcommit 8fb1089819f63d459ca649fa3fe559e220efcf9e[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 11:58:08 2026 +0900
+
+    AI 경기 예측 및 투표, 사이드바 링크 수정
+    
+    로그인 기능 수정 되면 투표 기능 테스트해보고 진행
+
+[33mcommit 0d5b93143b10ba10e8479a09f6c448277f9a74e2[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 11:08:09 2026 +0900
+
+    Update games.py
+    
+    Fixed Indentation error
+
+[33mcommit c8b038908e087e4d773f541a933c451c4421cfb9[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 11:04:12 2026 +0900
+
+    Update games.py
+    
+    박스스코어 가져오기 추가
+    GET /api/games/{game_id}/boxscore를 호출하면 1~9회(연장 포함) 각 이닝 득점과 총 R(득점), H(안타), E(실책)를 그대로 이닝 테이블에 바인딩할 수 있습니다.
+
+[33mcommit 8c2d4fd6a053a8f6c7a411d15de0e62b9f799759[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 10:54:26 2026 +0900
+
+    머신 러닝 기반 승부예측 모델 및 훈련 스크립트
+    
+    /ml 내부의 train_prediction_model을 실행하면 승부 예측 모델을 훈련하며, game_prediction_model.pkl로 저장.(경기 정보 데이터 변경 시 실행 필요, 굳이 할 필요 없음)
+    현재 아래의 지표를 바탕으로 승부 예측
+    팀별 타격 생산성 지표: 팀 소속 선수들의 평균 타구 속도(Exit Velocity), 배럴 비율(Barrel %), 팀 OPS / bWAR 합계
+    최근 모멘텀 (최근 5경기 득실점 마진): 경기 시점 기준 홈/원정 팀의 최근 득점력과 실점 추이
+    홈 어드밴티지: 홈/원정 구분
+    모델 알고리즘: 스포츠 승부예측에서 가장 안정적이고 해석력이 뛰어난 LightGBM / Random Forest / Logistic Regression 기반의 이진 분류(홈팀 승리 확률 P{Home Win} 예측)
+
+[33mcommit e91390bd8d2f9773508cb02aa56efedbc3036288[m
+Author: youngbin <ybinchoi1130@gmail.com>
+Date:   Wed Oct 7 10:20:49 2026 +0900
+
+    black/routers/news.py , front/pages/mlb_news.py
+
+[33mcommit fa9e44da43838a8aa68b76c44be439400bd6089f[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Wed Oct 7 09:37:51 2026 +0900
+
+    경기 결과 가져오기
+    
+    collector_games.py 실행 필수.
+
+[33mcommit bde29cd000c9ca6e3d1b10a4b245bcd4aa8d199a[m
+Author: Sita <imsj713@gamil.com>
+Date:   Tue Oct 6 17:45:22 2026 +0900
+
+     커뮤니티 수정중
+
+[33mcommit 1e80ff0df9eb60c8e0b30544885ca54feeee8db5[m
+Author: 홍제성 <hongjaesung97@gmail.com>
+Date:   Tue Oct 6 17:43:36 2026 +0900
+
+    game, game-detail 작업
+
+[33mcommit c442e9d41d9a60ef4758a01dfa3f541b8eeffaba[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Tue Oct 6 17:23:02 2026 +0900
+
+    팀 정보(팀 목록) 및 선수, 상세 페이지 + 헤더 링크 추가
+
+[33mcommit 5a042ae8031cc521a240f611823091bfd989a9e3[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Tue Oct 6 17:19:54 2026 +0900
+
+    AI 챗봇 위치 변경
+
+[33mcommit a1f4ce1c3bc695fe89ca6812f342bfed13e40716[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Tue Oct 6 16:03:07 2026 +0900
+
+    Scripts for collecting data(teams, player stats)
+    
+    - Baseball Reference 및 FanGraphs의 외부 호출 차단으로 MLB(statsapi.mlb.com) 및 Baseball Savant(https://baseballsavant.mlb.com/leaderboard/custom?csv=true) 데이터 활용, 추후 방법 모색
+    - 팀 데이터는 고정 데이터 사용
+
+[33mcommit 8e5e6ef38e678c8a30ffe15593bef04c5dd3f488[m
+Merge: 5e4dcc1 9530a3e
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Tue Oct 6 14:52:35 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit 5e4dcc1187a61097df2c73085ca61950c288bab2[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Tue Oct 6 14:51:51 2026 +0900
+
+    아이디 찾기, 비밀번호 변경 완료
+
+[33mcommit 9530a3edbe085440e4a6dcb39f86772be73d7b17[m
+Author: 홍제성 <hongjaesung97@gmail.com>
+Date:   Tue Oct 6 13:58:15 2026 +0900
+
+    game.htlm, game-detail.html 페이지 생성
+
+[33mcommit 7cb64dd58ec7a885c3c8b566d3074fc41e980798[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Tue Oct 6 12:52:16 2026 +0900
+
+    login success
+
+[33mcommit e47b78e20526c808211a40303d06f3454accd236[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Tue Oct 6 11:20:13 2026 +0900
+
+    sginup success
+
+[33mcommit c51069c07c827f76fe2766cf2e893597d0e671e3[m
+Author: Sita <imsj713@gamil.com>
+Date:   Tue Oct 6 10:45:19 2026 +0900
+
+    커뮤니티 html, css, js
+
+[33mcommit 4051079bc9369edc9bb90afe61206ad3fcf8adae[m
+Author: Sita <imsj713@gamil.com>
+Date:   Tue Oct 6 10:37:12 2026 +0900
+
+    커뮤니티 html, css, js
+
+[33mcommit 3c5481353df71b11d95877dd97c4f2ff352482c0[m[33m ([m[1;31morigin/feature/community[m[33m)[m
+Author: Sita <imsj713@gamil.com>
+Date:   Tue Oct 6 09:56:23 2026 +0900
+
+     커뮤니티 css, html, js
+
+[33mcommit 1accb85d4556bace25e0ca9cf166ce8e51da5541[m
+Author: Sita <imsj713@gamil.com>
+Date:   Tue Oct 6 09:31:35 2026 +0900
+
+    커뮤니티 화면
+
+[33mcommit 91e57e03b6f5e888796f19cbbcd60a15f95e05a3[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Tue Oct 6 00:00:57 2026 +0900
+
+    front - pages 폴더 안에 'game.html', 'game-detail.html' 파일 생성
+
+[33mcommit 2893c47e56374834e1477ffaf1ac61ddce35f1dc[m
+Author: JiSung <jisung0628jisung@gmail.com>
+Date:   Mon Oct 5 21:13:39 2026 +0900
+
+    privacy, terms, find-password and id, siderbar connection, header connection
+
+[33mcommit 83863599648883f1c0727f7d231f16ba6a54c582[m
+Author: JiSung <jisung0628jisung@gmail.com>
+Date:   Mon Oct 5 00:09:50 2026 +0900
+
+    10-05 : main, header, footer, signup, login -> Create a page
+
+[33mcommit ddf676cc9dcc8b92d9b4770077a1459e5e8a7e1b[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Fri Oct 2 15:11:56 2026 +0900
+
+    간단한 back과 fornt를 만들어 DB와 연결되었는지 검토 (성공)
+
+[33mcommit 1274bc1825939e8474c59ed7fab51bd271e06ce0[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Fri Oct 2 12:33:35 2026 +0900
+
+    새 택스트 문서.txt 수정
+
+[33mcommit 6bf107c05607f1f14f7d32dec36697368166a843[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Fri Oct 2 12:26:44 2026 +0900
+
+    Initial commit
