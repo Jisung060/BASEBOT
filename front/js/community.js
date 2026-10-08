@@ -1635,6 +1635,7 @@ async function loadComments(postId) {
 }
 
 
+
 function createCommentElement(
     comment,
     depth = 0
