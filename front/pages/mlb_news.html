@@ -478,7 +478,7 @@
     // ============================================================
 
     const API_BASE = "";
-    const REFRESH_MS = 30000;
+
 
     let allNewsList = [];
     let filteredNewsList = [];
@@ -500,10 +500,7 @@
     window.addEventListener("DOMContentLoaded", () => {
     loadNews();
 
-    // 30초마다 최신 뉴스 확인
-    newsRefreshTimer = setInterval(() => {
-        loadNews(true);
-    }, REFRESH_MS);
+
 });
 
 
@@ -574,7 +571,7 @@ async function loadNews(isRefresh = false) {
         }
 
         status.textContent =
-            `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
+             `뉴스 업데이트 완료 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")}`;
 
         dot.classList.remove("loading");
 
