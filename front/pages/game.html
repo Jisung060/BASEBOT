@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경기 일정·결과 - BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/game.css?v=32">
+    <link rel="stylesheet" href="../css/game.css?v=37">
 </head>
 <body>
     <div id="header"></div>
@@ -19,6 +19,10 @@
         </header>
 
         <section class="schedule-tools" aria-label="경기 검색 조건">
+            <div class="league-tabs" role="tablist" aria-label="리그 선택">
+                <button type="button" class="league-tab selected" data-league-filter="ALL" role="tab" aria-selected="true">전체</button>
+                <button type="button" class="league-tab" data-league-filter="TEAM" role="tab" aria-selected="false">MLB</button>
+            </div>
             <div class="schedule-date-picker">
                 <div class="date-picker-heading">
                     <button type="button" class="recent-button" id="btn-today">최근</button>
@@ -31,9 +35,8 @@
                 <div class="month-strip-wrap">
                     <div class="month-strip" id="month-strip" aria-label="월 선택"></div>
                 </div>
-                <div class="day-strip" id="day-strip" role="group" aria-label="날짜 선택"></div>
             </div>
-            <div class="team-filter">
+            <div class="team-filter" id="team-filter" hidden>
                 <div class="team-picker" id="team-picker">
                     <div class="team-rail" id="team-rail" role="group" aria-label="구단 선택"></div>
                     <select id="select-team" aria-label="팀" tabindex="-1" aria-hidden="true"><option value="ALL">전체 구단</option></select>
@@ -41,43 +44,15 @@
             </div>
         </section>
 
-        <div class="game-results-layout">
-            <aside id="game-sidebar" class="game-sidebar" aria-label="경기 메뉴">
-                <h2 class="game-sidebar-title">🏟 경기 결과</h2>
-                <section class="game-sidebar-section">
-                    <h3>📅 날짜별 경기</h3>
-                    <button type="button" class="game-sidebar-item" data-date-shortcut="today">오늘의 경기</button>
-                    <button type="button" class="game-sidebar-item" data-date-shortcut="yesterday">어제의 경기</button>
-                    <button type="button" class="game-sidebar-item" data-date-shortcut="previous">이전 경기</button>
-                </section>
-                <section class="game-sidebar-section">
-                    <h3>🌎 디비전별</h3>
-                    <div id="division-filter-list" class="division-filter-list"></div>
-                </section>
-                <section class="game-sidebar-section">
-                    <h3>🏆 팀별</h3>
-                    <button type="button" id="all-teams-filter" class="game-sidebar-item active">전체 팀</button>
-                    <button type="button" id="selected-team-filter" class="game-sidebar-item">내가 선택한 팀</button>
-                    <small id="selected-team-hint" class="sidebar-hint" hidden></small>
-                </section>
-                <section class="game-sidebar-section">
-                    <h3>📊 경기 정보</h3>
-                    <a class="game-sidebar-item active" href="game.html" aria-current="page">경기 결과</a>
-                    <button type="button" class="game-sidebar-item unavailable" disabled title="순위 페이지는 준비 중입니다.">순위</button>
-                </section>
-            </aside>
-            <div class="game-results-main">
-                <div class="selected-date"><h2 id="date-display-text"></h2></div>
-                <section id="game-list" class="game-list" aria-live="polite" aria-label="경기 목록"></section>
-                <p id="no-game-message" class="empty-state" hidden>선택한 날짜에 등록된 경기가 없습니다.</p>
-                <nav id="game-pagination" class="game-pagination" aria-label="경기 결과 페이지" hidden></nav>
-            </div>
+        <div class="game-results-main">
+            <section id="game-list" class="game-list" aria-live="polite" aria-label="경기 목록"></section>
+            <p id="no-game-message" class="empty-state" hidden>선택한 날짜에 등록된 경기가 없습니다.</p>
         </div>
     </main>
 
     <div id="footer"></div>
     <button type="button" class="scroll-to-top" id="scroll-to-top" aria-label="맨 위로 올라가기" title="맨 위로" hidden>↑</button>
     <script src="../js/main.js"></script>
-    <script src="../js/game.js?v=30"></script>
+    <script src="../js/game.js?v=35"></script>
 </body>
 </html>

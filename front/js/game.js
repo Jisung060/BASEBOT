@@ -2,80 +2,35 @@ const API_BASE = "";
 const DEFAULT_DATE = "2024-04-01";
 const dateInput = document.getElementById("game-date-picker");
 const teamSelect = document.getElementById("select-team");
-const GAME_PAGE_SIZE = 30;
-const MLB_DIVISIONS = [
-    { key: "AL_EAST", league: "AL", division: "East", label: "아메리칸 리그 동부 지구" },
-    { key: "AL_CENTRAL", league: "AL", division: "Central", label: "아메리칸 리그 중부 지구" },
-    { key: "AL_WEST", league: "AL", division: "West", label: "아메리칸 리그 서부 지구" },
-    { key: "NL_EAST", league: "NL", division: "East", label: "내셔널 리그 동부 지구" },
-    { key: "NL_CENTRAL", league: "NL", division: "Central", label: "내셔널 리그 중부 지구" },
-    { key: "NL_WEST", league: "NL", division: "West", label: "내셔널 리그 서부 지구" }
-];
 let teamFilterReady = false;
-let teamById = new Map();
-let selectedDivisionFilter = "ALL";
-let previousGamesOnly = false;
-let activeDateShortcut = "";
+let selectedLeagueFilter = "ALL";
+let myFavoriteTeamId = null;
 let filteredGames = [];
-let currentGamePage = 1;
 const gameDataCache = new Map();
 const scheduleInfoCache = new Map();
 const inningScoreCache = new Map();
-let highlightedGameDates = new Set();
 let selectedScheduleDay = null;
-let draggingDayStrip = false;
-let dayStripDragMoved = false;
-let dayStripDragStartX = 0;
-let dayStripScrollStart = 0;
-let suppressDayStripClick = false;
 
 function setupDateControls() {
     dateInput.value = DEFAULT_DATE;
     dateInput.addEventListener("change", () => setSelectedDate(dateInput.value));
-    teamSelect.addEventListener("change", () => {
-        selectedDivisionFilter = "ALL";
-        updateDivisionFilterState();
-        updateTeamSidebarState();
-        loadGames();
-    });
-    document.querySelectorAll("[data-date-shortcut]").forEach(button => button.addEventListener("click", () => {
-        const shortcut = button.dataset.dateShortcut;
-        if (shortcut === "previous") {
-            previousGamesOnly = true;
-            activeDateShortcut = "previous";
-            selectedScheduleDay = null;
-            renderMonthStrip();
-            renderDayStrip();
-            updateDateShortcutState();
-            loadGames();
-            return;
+    teamSelect.addEventListener("change", loadGames);
+    document.querySelectorAll("[data-league-filter]").forEach(button => button.addEventListener("click", () => {
+        selectedLeagueFilter = button.dataset.leagueFilter;
+        document.querySelectorAll("[data-league-filter]").forEach(tab => {
+            const selected = tab.dataset.leagueFilter === selectedLeagueFilter;
+            tab.classList.toggle("selected", selected);
+            tab.setAttribute("aria-selected", String(selected));
+        });
+        document.getElementById("game-list").dataset.leagueFilter = selectedLeagueFilter;
+        document.getElementById("team-filter").hidden = selectedLeagueFilter !== "TEAM";
+        if (selectedLeagueFilter === "ALL") {
+            teamSelect.value = "ALL";
+            document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "false");
+            updateTeamRailSelection();
         }
-        previousGamesOnly = false;
-        setSelectedDate(getKoreaDateOffset(shortcut === "yesterday" ? -1 : 0));
-        activeDateShortcut = shortcut;
-        updateDateShortcutState();
+        loadGames();
     }));
-    document.getElementById("all-teams-filter").addEventListener("click", () => {
-        selectedDivisionFilter = "ALL";
-        teamSelect.value = "ALL";
-        updateDivisionFilterState();
-        updateTeamSidebarState();
-        loadGames();
-    });
-    document.getElementById("selected-team-filter").addEventListener("click", () => {
-        const hint = document.getElementById("selected-team-hint");
-        if (teamSelect.value === "ALL") {
-            hint.textContent = "위 구단 선택에서 팀을 먼저 골라 주세요.";
-            hint.hidden = false;
-            document.getElementById("team-picker").scrollIntoView({ behavior: "smooth", block: "center" });
-            return;
-        }
-        hint.hidden = true;
-        selectedDivisionFilter = "ALL";
-        updateDivisionFilterState();
-        updateTeamSidebarState();
-        loadGames();
-    });
     document.getElementById("btn-prev-year").addEventListener("click", () => moveYear(-1));
     document.getElementById("btn-next-year").addEventListener("click", () => moveYear(1));
     const topButton = document.getElementById("scroll-to-top");
@@ -84,13 +39,9 @@ function setupDateControls() {
     }, { passive: true });
     topButton.addEventListener("click", scrollToTopQuickly);
     document.getElementById("btn-today").addEventListener("click", () => {
-        previousGamesOnly = false;
-        activeDateShortcut = "";
         dateInput.value = DEFAULT_DATE;
         selectedScheduleDay = null;
-        updateDateShortcutState();
         renderMonthStrip();
-        renderDayStrip();
         loadGames();
     });
     document.getElementById("btn-calendar").addEventListener("click", () => {
@@ -98,9 +49,7 @@ function setupDateControls() {
         else dateInput.click();
     });
     setupTeamPicker();
-    setupDayStripDragging();
     renderMonthStrip();
-    renderDayStrip();
 }
 
 function scrollToTopQuickly() {
@@ -117,45 +66,34 @@ function scrollToTopQuickly() {
     requestAnimationFrame(animate);
 }
 
-function setupDayStripDragging() {
-    const strip = document.getElementById("day-strip");
-    strip.addEventListener("pointerdown", event => {
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        draggingDayStrip = true;
-        dayStripDragMoved = false;
-        dayStripDragStartX = event.clientX;
-        dayStripScrollStart = strip.scrollLeft;
-        strip.classList.add("dragging");
-    });
-    window.addEventListener("pointermove", event => {
-        if (!draggingDayStrip) return;
-        const distance = event.clientX - dayStripDragStartX;
-        if (Math.abs(distance) > 4) dayStripDragMoved = true;
-        if (dayStripDragMoved) {
-            event.preventDefault();
-            strip.scrollLeft = dayStripScrollStart - distance;
-        }
-    });
-    const stopDragging = () => {
-        if (!draggingDayStrip) return;
-        draggingDayStrip = false;
-        strip.classList.remove("dragging");
-        if (dayStripDragMoved) {
-            suppressDayStripClick = true;
-            window.setTimeout(() => { suppressDayStripClick = false; }, 0);
-        }
-    };
-    window.addEventListener("pointerup", stopDragging);
-    window.addEventListener("pointercancel", stopDragging);
-    strip.addEventListener("click", event => {
-        if (!suppressDayStripClick) return;
-        event.preventDefault();
-        event.stopPropagation();
-    }, true);
-}
-
 function setupTeamPicker() {
     addTeamPickerOption("ALL", "전체 구단", "", "MLB");
+    const favoriteButton = document.createElement("button");
+    favoriteButton.type = "button";
+    favoriteButton.className = "favorite-filter-button";
+    favoriteButton.id = "favorite-team-filter";
+    favoriteButton.textContent = "★";
+    favoriteButton.setAttribute("aria-label", "MY 구단");
+    favoriteButton.setAttribute("aria-pressed", "false");
+    favoriteButton.title = "로그인 후 선호 구단을 설정해 주세요.";
+    favoriteButton.disabled = true;
+    favoriteButton.addEventListener("click", showFavoriteTeamGames);
+    document.getElementById("team-rail").append(favoriteButton);
+}
+
+function showFavoriteTeamGames() {
+    if (!myFavoriteTeamId) return;
+    selectedLeagueFilter = "TEAM";
+    teamSelect.value = String(myFavoriteTeamId);
+    document.getElementById("team-filter").hidden = false;
+    document.querySelectorAll("[data-league-filter]").forEach(tab => {
+        const selected = tab.dataset.leagueFilter === selectedLeagueFilter;
+        tab.classList.toggle("selected", selected);
+        tab.setAttribute("aria-selected", String(selected));
+    });
+    document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "true");
+    updateTeamRailSelection();
+    loadGames();
 }
 
 function addTeamPickerOption(value, name, logoUrl, code) {
@@ -169,12 +107,27 @@ function addTeamPickerOption(value, name, logoUrl, code) {
     nameLabel.className = "team-rail-name";
     nameLabel.textContent = name;
     option.append(nameLabel);
+    if (myFavoriteTeamId && String(value) === String(myFavoriteTeamId)) {
+        option.classList.add("is-favorite-team");
+        option.title = `${name} · MY 구단`;
+        const badge = document.createElement("span");
+        badge.className = "team-favorite-badge";
+        badge.textContent = "★ MY";
+        option.append(badge);
+    }
     option.addEventListener("click", () => {
         teamSelect.value = value;
+        document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "false");
+        updateTeamRailSelection();
         teamSelect.dispatchEvent(new Event("change", { bubbles: true }));
-        document.querySelectorAll(".team-rail-option").forEach(item => item.setAttribute("aria-pressed", String(item === option)));
     });
     document.getElementById("team-rail").append(option);
+}
+
+function updateTeamRailSelection() {
+    document.querySelectorAll(".team-rail-option").forEach(option => {
+        option.setAttribute("aria-pressed", String(option.dataset.teamId === String(teamSelect.value)));
+    });
 }
 
 function createTeamLogo(logoUrl, code, className) {
@@ -199,48 +152,17 @@ function createTeamLogo(logoUrl, code, className) {
 
 function setSelectedDate(value) {
     if (!value) return;
-    previousGamesOnly = false;
-    activeDateShortcut = "";
     dateInput.value = value;
     selectedScheduleDay = Number(value.slice(-2));
     renderMonthStrip();
-    renderDayStrip();
-    updateDateShortcutState();
     loadGames();
 }
 
-function getKoreaDateOffset(dayOffset) {
-    const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit"
-    }).formatToParts(new Date());
-    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-    const date = new Date(Number(values.year), Number(values.month) - 1, Number(values.day) + dayOffset);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function updateDateShortcutState() {
-    document.querySelectorAll("[data-date-shortcut]").forEach(button => {
-        const active = button.dataset.dateShortcut === activeDateShortcut;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-    });
-}
-
-function updateTeamSidebarState() {
-    const hasSelectedTeam = teamSelect.value !== "ALL";
-    document.getElementById("all-teams-filter").classList.toggle("active", !hasSelectedTeam && selectedDivisionFilter === "ALL");
-    document.getElementById("selected-team-filter").classList.toggle("active", hasSelectedTeam);
-}
-
 function moveYear(delta) {
-    previousGamesOnly = false;
-    activeDateShortcut = "";
-    updateDateShortcutState();
     const [year, month] = dateInput.value.split("-").map(Number);
     dateInput.value = `${year + delta}-${String(month).padStart(2, "0")}-01`;
     selectedScheduleDay = null;
     renderMonthStrip();
-    renderDayStrip();
     loadGames();
 }
 
@@ -262,82 +184,39 @@ function renderMonthStrip() {
         button.setAttribute("aria-pressed", String(selected));
         if (selected) button.classList.add("selected");
         button.addEventListener("click", () => {
-            previousGamesOnly = false;
-            activeDateShortcut = "";
-            updateDateShortcutState();
             dateInput.value = `${monthYear}-${String(month).padStart(2, "0")}-01`;
             selectedScheduleDay = null;
-            renderMonthStrip();
-            renderDayStrip();
+            document.getElementById("year-display").textContent = monthYear;
+            strip.querySelectorAll(".month-option").forEach(monthButton => {
+                const isSelected = monthButton === button;
+                monthButton.classList.toggle("selected", isSelected);
+                monthButton.setAttribute("aria-pressed", String(isSelected));
+            });
             loadGames();
         });
         fragment.append(button);
     }
     strip.replaceChildren(fragment);
-}
-
-function renderDayStrip() {
-    const strip = document.getElementById("day-strip");
-    const [year, month] = dateInput.value.split("-").map(Number);
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const weekdayLabels = ["일", "월", "화", "수", "목", "금", "토"];
-    const fragment = document.createDocumentFragment();
-    const allButton = document.createElement("button");
-    allButton.type = "button";
-    allButton.className = `day-option day-option-all${selectedScheduleDay === null ? " selected" : ""}`;
-    allButton.textContent = "전체";
-    allButton.setAttribute("aria-pressed", String(selectedScheduleDay === null));
-    allButton.addEventListener("click", () => {
-        if (suppressDayStripClick) return;
-        previousGamesOnly = false;
-        activeDateShortcut = "";
-        updateDateShortcutState();
-        selectedScheduleDay = null;
-        dateInput.value = `${year}-${String(month).padStart(2, "0")}-01`;
-        renderDayStrip();
-        loadGames();
-    });
-    fragment.append(allButton);
-    for (let day = 1; day <= daysInMonth; day += 1) {
-        const button = document.createElement("button");
-        button.type = "button";
-        const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        button.className = `day-option${selectedScheduleDay === day ? " selected" : ""}${highlightedGameDates.has(dateKey) ? " has-games" : ""}`;
-        const weekday = document.createElement("span");
-        weekday.textContent = weekdayLabels[new Date(year, month - 1, day).getDay()];
-        const number = document.createElement("strong");
-        number.textContent = day;
-        button.append(weekday, number);
-        button.setAttribute("aria-label", `${year}년 ${month}월 ${day}일 ${weekday.textContent}요일`);
-        button.setAttribute("aria-pressed", String(selectedScheduleDay === day));
-        button.addEventListener("click", () => {
-            if (suppressDayStripClick) return;
-            previousGamesOnly = false;
-            activeDateShortcut = "";
-            updateDateShortcutState();
-            selectedScheduleDay = day;
-            dateInput.value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            renderDayStrip();
-            loadGames();
-        });
-        fragment.append(button);
-    }
-    strip.replaceChildren(fragment);
-    strip.querySelector(".day-option.selected")?.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 async function loadTeams() {
     try {
-        const response = await fetch(`${API_BASE}/api/teams`);
+        const [response, favoriteTeamId] = await Promise.all([
+            fetch(`${API_BASE}/api/teams`),
+            getMyFavoriteTeamIdAsync()
+        ]);
         if (!response.ok) throw new Error(`구단 API 오류 (${response.status})`);
         const teams = await response.json();
-        teamById = new Map(teams.map(team => [String(team.team_id), team]));
+        myFavoriteTeamId = favoriteTeamId;
         teams.sort((a, b) => a.team_name.localeCompare(b.team_name));
         teams.forEach(team => {
             teamSelect.add(new Option(`${team.team_name} (${team.team_code})`, team.team_id));
             addTeamPickerOption(team.team_id, team.team_name, team.logo_url, team.team_code);
         });
-        renderDivisionFilters(teams);
+        const favoriteButton = document.getElementById("favorite-team-filter");
+        favoriteButton.disabled = !myFavoriteTeamId;
+        favoriteButton.title = myFavoriteTeamId ? "MY 구단 경기만 보기" : "로그인 후 선호 구단을 설정해 주세요.";
+        updateTeamRailSelection();
         teamFilterReady = true;
         renderMonthStrip();
     } catch (error) {
@@ -346,55 +225,35 @@ async function loadTeams() {
     }
 }
 
-function renderDivisionFilters(teams) {
-    const list = document.getElementById("division-filter-list");
-    const fragment = document.createDocumentFragment();
-    MLB_DIVISIONS.forEach(division => {
-        const hasTeams = teams.some(team =>
-            String(team.league).toUpperCase() === division.league &&
-            String(team.division).toLowerCase() === division.division.toLowerCase()
-        );
-        if (!hasTeams) return;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "game-sidebar-item division-filter-button";
-        button.dataset.divisionFilter = division.key;
-        button.textContent = `▸ ${division.label}`;
-        button.setAttribute("aria-pressed", String(division.key === selectedDivisionFilter));
-        button.addEventListener("click", () => {
-            selectedDivisionFilter = division.key;
-            teamSelect.value = "ALL";
-            currentGamePage = 1;
-            updateDivisionFilterState();
-            updateTeamSidebarState();
-            loadGames();
-        });
-        fragment.append(button);
-    });
-    list.replaceChildren(fragment);
-    updateDivisionFilterState();
-}
-
-function updateDivisionFilterState() {
-    document.querySelectorAll("[data-division-filter]").forEach(button => {
-        const active = button.dataset.divisionFilter === selectedDivisionFilter;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-    });
+async function getMyFavoriteTeamIdAsync() {
+    let user = null;
+    try {
+        user = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "null");
+    } catch (error) {
+        console.warn("사용자 정보를 읽지 못했습니다.", error);
+    }
+    if (!user) return null;
+    const cachedFavoriteId = user.favorite_team_id || user.team_id || null;
+    const userId = user.user_id || user.id;
+    if (userId) {
+        try {
+            const response = await fetch(`${API_BASE}/api/predictions/users/${encodeURIComponent(userId)}/points`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.favorite_team_id) return Number(data.favorite_team_id);
+            }
+        } catch (error) {
+            console.warn("최신 선호 구단을 가져오지 못했습니다.", error);
+        }
+    }
+    return cachedFavoriteId ? Number(cachedFavoriteId) : null;
 }
 
 async function loadGames() {
-    currentGamePage = 1;
     const date = dateInput.value;
     const list = document.getElementById("game-list");
     const empty = document.getElementById("no-game-message");
     filteredGames = [];
-    document.getElementById("game-pagination").hidden = true;
-    const dateLabel = document.getElementById("date-display-text");
-    const dateObject = new Date(`${date}T12:00:00`);
-    dateLabel.textContent = selectedScheduleDay === null
-        ? `${dateObject.toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 일정`
-        : dateObject.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
     empty.hidden = true;
     list.replaceChildren();
 
@@ -403,17 +262,6 @@ async function loadGames() {
         if (teamFilterReady && teamSelect.value !== "ALL") {
             games = games.filter(game => String(game.home_team_id) === teamSelect.value || String(game.away_team_id) === teamSelect.value);
         }
-        if (selectedDivisionFilter !== "ALL") {
-            const division = MLB_DIVISIONS.find(item => item.key === selectedDivisionFilter);
-            games = games.filter(game => [game.home_team_id, game.away_team_id].some(teamId => {
-                const team = teamById.get(String(teamId));
-                return String(team?.league || "").toUpperCase() === division?.league &&
-                    String(team?.division || "").toLowerCase() === division?.division.toLowerCase();
-            }));
-        }
-        if (previousGamesOnly) games = games.filter(game => String(game.status).toUpperCase() === "FINAL");
-        highlightedGameDates = new Set(games.map(game => String(game.game_date).slice(0, 10)));
-        renderDayStrip();
         if (selectedScheduleDay !== null) {
             const selectedDate = dateInput.value.slice(0, 7) + `-${String(selectedScheduleDay).padStart(2, "0")}`;
             games = games.filter(game => String(game.game_date).slice(0, 10) === selectedDate);
@@ -431,7 +279,6 @@ async function loadGames() {
     } catch (error) {
         console.error(error);
         filteredGames = [];
-        document.getElementById("game-pagination").hidden = true;
         empty.textContent = "MLB 경기 데이터를 불러오지 못했습니다. FastAPI 서버와 /api/games 연결을 확인해 주세요.";
         empty.hidden = false;
     }
@@ -439,50 +286,7 @@ async function loadGames() {
 
 function renderGamePage() {
     const list = document.getElementById("game-list");
-    const totalPages = Math.ceil(filteredGames.length / GAME_PAGE_SIZE);
-    const start = (currentGamePage - 1) * GAME_PAGE_SIZE;
-    const pageGames = filteredGames.slice(start, start + GAME_PAGE_SIZE);
-    list.replaceChildren(...createMonthlyGroups(pageGames));
-    renderGamePagination(totalPages);
-}
-
-function renderGamePagination(totalPages) {
-    const pagination = document.getElementById("game-pagination");
-    pagination.replaceChildren();
-    pagination.hidden = totalPages <= 1;
-    if (pagination.hidden) return;
-
-    const addPageLink = (label, page, { active = false, disabled = false, ariaLabel = label } = {}) => {
-        const link = document.createElement("a");
-        link.href = "#game-list";
-        link.textContent = label;
-        link.setAttribute("aria-label", ariaLabel);
-        if (active) {
-            link.classList.add("active");
-            link.setAttribute("aria-current", "page");
-        }
-        if (disabled) {
-            link.classList.add("disabled");
-            link.setAttribute("aria-disabled", "true");
-        } else {
-            link.addEventListener("click", event => {
-                event.preventDefault();
-                currentGamePage = page;
-                renderGamePage();
-                document.getElementById("date-display-text").scrollIntoView({ behavior: "smooth", block: "start" });
-            });
-        }
-        pagination.append(link);
-    };
-
-    addPageLink("‹", currentGamePage - 1, { disabled: currentGamePage === 1, ariaLabel: "이전 페이지" });
-    const windowSize = Math.min(5, totalPages);
-    let firstPage = Math.max(1, currentGamePage - Math.floor(windowSize / 2));
-    firstPage = Math.min(firstPage, totalPages - windowSize + 1);
-    for (let page = firstPage; page < firstPage + windowSize; page += 1) {
-        addPageLink(String(page), page, { active: page === currentGamePage, ariaLabel: `${page}페이지` });
-    }
-    addPageLink("›", currentGamePage + 1, { disabled: currentGamePage === totalPages, ariaLabel: "다음 페이지" });
+    list.replaceChildren(...createMonthlyGroups(filteredGames));
 }
 
 async function fetchAndEnrichMonthGames(date) {
@@ -620,7 +424,6 @@ function createGameCard(game) {
         scoreNode.append(highlightsLink);
         const previewArrow = document.createElement("span");
         previewArrow.className = "inning-preview-arrow";
-        previewArrow.textContent = "⌄";
         previewArrow.setAttribute("aria-hidden", "true");
         scoreNode.append(previewArrow);
     }
