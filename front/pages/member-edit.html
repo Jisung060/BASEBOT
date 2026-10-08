@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>회원정보 수정 | BASEBOT</title>
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="/css/main.css">
+
+    <!-- 인증 페이지 공통 CSS -->
+    <link rel="stylesheet" href="/css/auth.css">
+
+    <!-- 마이페이지 공통 CSS -->
+    <link rel="stylesheet" href="/css/mypage.css">
+</head>
+
+<body data-page="member-edit">
+
+    <!-- Header -->
+    <div id="header"></div>
+
+    <!-- Main -->
+    <main class="auth-main">
+
+        <div class="auth-layout">
+
+            <!-- Sidebar -->
+            <div id="mypage-sidebar"></div>
+
+
+<section class="mypage-content">
+
+    <div class="mypage-title">
+        <h1>회원정보 수정</h1>
+        <p>회원님의 기본 정보와 관심 팀을 수정할 수 있습니다.</p>
+    </div>
+
+    <div class="mypage-box">
+
+        <div class="mypage-box-title">
+            회원정보
+        </div>
+
+        <div class="mypage-box-body">
+
+            <form class="mypage-form" id="memberEditForm">
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="editUsername">
+                        아이디
+                    </label>
+
+                    <input
+                        type="text"
+                        id="editUsername"
+                        readonly
+                    >
+                </div>
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="editNickname">
+                        닉네임
+                    </label>
+
+                    <input
+                        type="text"
+                        id="editNickname"
+                        placeholder="닉네임"
+                    >
+                </div>
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="editEmail">
+                        이메일
+                    </label>
+
+                    <input
+                        type="email"
+                        id="editEmail"
+                        placeholder="이메일"
+                    >
+                </div>
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="editFavoriteTeam">
+                        관심 팀
+                    </label>
+
+                    <select id="editFavoriteTeam">
+                        <option value="">선택하지 않음</option>
+                        <option value="147">New York Yankees</option>
+                        <option value="119">Los Angeles Dodgers</option>
+                        <option value="111">Boston Red Sox</option>
+                        <option value="117">Houston Astros</option>
+                    </select>
+                </div>
+
+                <div class="mypage-form-actions">
+                    <a
+                        href="mypage.html"
+                        class="mypage-button mypage-button-outline"
+                    >
+                        취소
+                    </a>
+
+                    <button
+                        type="submit"
+                        class="mypage-button"
+                    >
+                        저장
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <div class="mypage-box">
+
+        <div class="mypage-box-title">
+            비밀번호 변경
+        </div>
+
+        <div class="mypage-box-body">
+
+            <form class="mypage-form" id="passwordForm">
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="currentPassword">
+                        현재 비밀번호
+                    </label>
+
+                    <input
+                        type="password"
+                        id="currentPassword"
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="newPassword">
+                        새 비밀번호
+                    </label>
+
+                    <input
+                        type="password"
+                        id="newPassword"
+                        autocomplete="new-password"
+                    >
+                </div>
+
+                <div class="mypage-form-row">
+                    <label class="mypage-form-label" for="newPasswordConfirm">
+                        새 비밀번호 확인
+                    </label>
+
+                    <input
+                        type="password"
+                        id="newPasswordConfirm"
+                        autocomplete="new-password"
+                    >
+                </div>
+
+                <div class="mypage-form-actions">
+                    <button
+                        type="submit"
+                        class="mypage-button"
+                    >
+                        비밀번호 변경
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</section>
+
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <!-- 공통 JS -->
+    <script src="/js/main.js"></script>
+
+    <!-- 마이페이지 공통 JS -->
+    <script src="/js/mypage.js"></script>
+
+
+
+    <script src="/js/member-edit.js"></script>
+
+</body>
+</html>

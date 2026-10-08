@@ -35,27 +35,63 @@ function updateHeader() {
 
     const accessToken = sessionStorage.getItem("access_token");
 
+    console.log("accessToken:", accessToken);
+
     const loginLink = document.getElementById("loginLink");
     const signupArea = document.getElementById("signupArea");
+    const mypageArea = document.getElementById("mypageArea");
+
+
+    /* ==================================================
+       로그인하지 않은 상태
+    ================================================== */
 
     if (!accessToken) {
+
+        /* 로그인 */
+        if (loginLink) {
+            loginLink.textContent = "로그인";
+            loginLink.href = "login.html";
+            loginLink.onclick = null;
+        }
+
+        /* 회원가입 표시 */
+        if (signupArea) {
+            signupArea.style.display = "inline";
+        }
+
+        /* 마이페이지 숨김 */
+        if (mypageArea) {
+            mypageArea.style.display = "none";
+        }
+
         return;
     }
+
+
+    /* ==================================================
+       로그인한 상태
+    ================================================== */
 
     /* 로그인 → 로그아웃 */
     if (loginLink) {
         loginLink.textContent = "로그아웃";
         loginLink.href = "#";
 
-        loginLink.addEventListener("click", function (event) {
+        loginLink.onclick = function (event) {
             event.preventDefault();
             logout();
-        });
+        };
     }
 
-    /* 회원가입 숨기기 */
+    /* 회원가입 숨김 */
     if (signupArea) {
         signupArea.style.display = "none";
+    }
+
+    /* 마이페이지 표시 */
+    if (mypageArea) {
+        mypageArea.style.display = "inline";
     }
 }
 

@@ -1,0 +1,470 @@
+/* ========================================
+   BASEBOT 마이페이지 공통
+======================================== */
+
+.mypage-content {
+    min-width: 0;
+}
+
+/* ========================================
+   페이지 제목
+======================================== */
+
+.mypage-title {
+    padding-bottom: 25px;
+    border-bottom: 2px solid #222;
+}
+
+.mypage-title h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+}
+
+.mypage-title p {
+    margin: 0;
+    font-size: 14px;
+    color: #777;
+}
+
+/* ========================================
+   공통 박스
+======================================== */
+
+.mypage-box {
+    width: 100%;
+    margin-top: 30px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.mypage-box-title {
+    padding: 18px 20px;
+    border-bottom: 1px solid #ddd;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.mypage-box-body {
+    padding: 25px;
+}
+
+/* ========================================
+   마이페이지 사이드바
+======================================== */
+
+.mypage-sidebar-menu a {
+    display: block;
+}
+
+.mypage-sidebar-divider {
+    height: 1px;
+    margin: 14px 0;
+    background: #e5e5e5;
+}
+
+/* ========================================
+   내 정보
+======================================== */
+
+.profile-summary {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 28px;
+    margin-top: 30px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.profile-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #123f91;
+    color: #fff;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.profile-info {
+    min-width: 0;
+}
+
+.profile-nickname {
+    margin: 0 0 7px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.profile-sub {
+    margin: 0;
+    color: #777;
+    font-size: 13px;
+}
+
+/* ========================================
+   통계 카드
+======================================== */
+
+.mypage-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.mypage-stat-card {
+    padding: 22px 15px;
+    border: 1px solid #ddd;
+    background: #fff;
+    text-align: center;
+}
+
+.mypage-stat-label {
+    margin-bottom: 10px;
+    color: #777;
+    font-size: 13px;
+}
+
+.mypage-stat-value {
+    color: #123f91;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* ========================================
+   정보 테이블
+======================================== */
+
+.mypage-info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mypage-info-table th,
+.mypage-info-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    text-align: left;
+}
+
+.mypage-info-table th {
+    width: 180px;
+    background: #f7f8fa;
+    font-weight: 600;
+}
+
+.mypage-info-table tr:last-child th,
+.mypage-info-table tr:last-child td {
+    border-bottom: 0;
+}
+
+/* ========================================
+   등급
+======================================== */
+
+.grade-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 15px;
+    background: #123f91;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.grade-progress {
+    margin-top: 20px;
+}
+
+.grade-progress-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 9px;
+    font-size: 13px;
+}
+
+.grade-progress-bar {
+    width: 100%;
+    height: 10px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: #e9edf3;
+}
+
+.grade-progress-value {
+    width: 60%;
+    height: 100%;
+    background: #123f91;
+}
+
+/* ========================================
+   표
+======================================== */
+
+.mypage-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.mypage-table th,
+.mypage-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    text-align: center;
+}
+
+.mypage-table th {
+    background: #f7f8fa;
+    font-weight: 600;
+}
+
+.mypage-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.mypage-table .left {
+    text-align: left;
+}
+
+.result-win {
+    color: #123f91;
+    font-weight: 700;
+}
+
+.result-lose {
+    color: #d44;
+    font-weight: 700;
+}
+
+/* ========================================
+   관심 팀
+======================================== */
+
+.favorite-team-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.favorite-team-info h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+}
+
+.favorite-team-info p {
+    margin: 0;
+    color: #777;
+    font-size: 13px;
+}
+
+.favorite-team-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.favorite-team-stat {
+    text-align: center;
+}
+
+.favorite-team-stat strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 20px;
+}
+
+.favorite-team-stat span {
+    color: #777;
+    font-size: 12px;
+}
+
+/* ========================================
+   글 / 댓글 목록
+======================================== */
+
+.activity-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.activity-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-list li:last-child {
+    border-bottom: 0;
+}
+
+.activity-title {
+    min-width: 0;
+    overflow: hidden;
+    color: #333;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-date {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 12px;
+}
+
+/* ========================================
+   버튼
+======================================== */
+
+.mypage-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    height: 40px;
+    padding: 0 18px;
+    border: 1px solid #123f91;
+    background: #123f91;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mypage-button:hover {
+    background: #0d3275;
+}
+
+.mypage-button-outline {
+    background: #fff;
+    color: #123f91;
+}
+
+.mypage-button-outline:hover {
+    background: #123f91;
+    color: #fff;
+}
+
+/* ========================================
+   폼
+======================================== */
+
+.mypage-form {
+    max-width: 650px;
+}
+
+.mypage-form-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    align-items: center;
+    min-height: 58px;
+    border-bottom: 1px solid #eee;
+}
+
+.mypage-form-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.mypage-form-row input,
+.mypage-form-row select {
+    width: 100%;
+    height: 40px;
+    padding: 0 11px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.mypage-form-row input:focus,
+.mypage-form-row select:focus {
+    border-color: #123f91;
+}
+
+.mypage-form-row input[readonly] {
+    background: #f7f7f7;
+    color: #777;
+}
+
+.mypage-form-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 25px;
+}
+
+/* ========================================
+   안내 / 빈 상태
+======================================== */
+
+.mypage-empty {
+    padding: 55px 20px;
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* ========================================
+   반응형
+======================================== */
+
+@media (max-width: 900px) {
+
+    .mypage-stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .favorite-team-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .profile-summary {
+        padding: 20px;
+    }
+
+    .mypage-box-body {
+        padding: 18px;
+        overflow-x: auto;
+    }
+
+    .mypage-info-table {
+        min-width: 500px;
+    }
+
+    .mypage-table {
+        min-width: 650px;
+    }
+
+    .mypage-form {
+        min-width: 500px;
+    }
+
+    .mypage-form-row {
+        grid-template-columns: 120px 1fr;
+    }
+
+    .mypage-stat-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
