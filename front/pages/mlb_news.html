@@ -239,6 +239,54 @@
         .new-row { animation: newArticle .8s ease; }
         @keyframes newArticle { 0% { background: #eef7ff; } 100% { background: #fff; } }
 
+
+        /* 페이지네이션 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #d0d5d9;
+            background: #fff;
+            color: #444;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: #0f4c81;
+            color: #0f4c81;
+        }
+
+        .pagination button.active {
+            background: #0f4c81;
+            border-color: #0f4c81;
+            color: #fff;
+        }
+
+        .pagination button:disabled {
+            color: #bbb;
+            background: #f7f7f7;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            margin-left: 8px;
+            color: #777;
+            font-size: 12px;
+        }
+
         @media(max-width:700px) {
             .news-section { padding: 20px 10px 40px; }
             .board-header { align-items: flex-start; flex-direction: column; gap: 15px; }
@@ -329,6 +377,8 @@
                     </tbody>
                 </table>
             </div>
+
+            <div id="pagination" class="pagination"></div>
         </div>
     </main>
 
@@ -381,8 +431,12 @@ function checkLoginStatus() {
         const REFRESH_MS = 30000;
 
         let allNewsList = []; // 전체 뉴스 저장용
-        let previousIds = new Set();
-        let firstLoad = true;
+        let filteredNewsList = []; // 현재 필터/검색 결과
+        let currentPage = 1;
+        const ITEMS_PER_PAGE = 10;
+        // 실제 최신 기사에만 NEW 표시
+        // 기사 등록일 기준 최근 24시간 이내인 기사만 NEW
+        const NEW_WINDOW_HOURS = 24;
 
         window.addEventListener("DOMContentLoaded", () => {
             loadNews();
@@ -423,29 +477,143 @@ function checkLoginStatus() {
         }
 
         // 카테고리 선택 및 검색어 입력을 통합 처리하는 필터 함수
-        function applyFilters() {
+        function applyFilters(resetPage = true) {
             const teamFilter = document.getElementById('team-select').value;
             const keyword = document.getElementById('search-input').value.trim().toLowerCase();
-            const tbody = document.getElementById('news-tbody');
 
             let filteredList = allNewsList;
 
-            // 1. 구단 필터 적용 (제목에 구단명이 포함되어 있는지 검사)
             if (teamFilter !== "ALL") {
-                filteredList = filteredList.filter(news => news.title.includes(teamFilter));
+                filteredList = filteredList.filter(news =>
+                    news.title.includes(teamFilter)
+                );
             }
 
-            // 2. 검색어 필터 적용
             if (keyword) {
-                filteredList = filteredList.filter(news => news.title.toLowerCase().includes(keyword));
+                filteredList = filteredList.filter(news =>
+                    news.title.toLowerCase().includes(keyword)
+                );
             }
 
-            // 3. 필터 결과 렌더링
-            if (filteredList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="loading-message">조건에 맞는 검색 결과가 없습니다.</td></tr>`;
-            } else {
-                renderNewsBoard(filteredList, tbody);
+            filteredNewsList = filteredList;
+
+            if (resetPage) {
+                currentPage = 1;
             }
+
+            const totalPages = Math.max(
+                1,
+                Math.ceil(filteredNewsList.length / ITEMS_PER_PAGE)
+            );
+
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
+            const tbody = document.getElementById('news-tbody');
+
+            if (filteredNewsList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="loading-message">
+                            조건에 맞는 검색 결과가 없습니다.
+                        </td>
+                    </tr>
+                `;
+
+                renderPagination();
+                return;
+            }
+
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+            const pageList = filteredNewsList.slice(
+                startIndex,
+                startIndex + ITEMS_PER_PAGE
+            );
+
+            renderNewsBoard(pageList, tbody, startIndex);
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(
+                filteredNewsList.length / ITEMS_PER_PAGE
+            );
+
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) {
+                return;
+            }
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '‹';
+            prevButton.title = '이전 페이지';
+            prevButton.disabled = currentPage === 1;
+            prevButton.onclick = () => goToPage(currentPage - 1);
+            pagination.appendChild(prevButton);
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (currentPage <= 3) {
+                endPage = Math.min(totalPages, 5);
+            }
+
+            if (currentPage >= totalPages - 2) {
+                startPage = Math.max(1, totalPages - 4);
+            }
+
+            for (let page = startPage; page <= endPage; page++) {
+                const button = document.createElement('button');
+
+                button.textContent = page;
+
+                if (page === currentPage) {
+                    button.classList.add('active');
+                }
+
+                button.onclick = () => goToPage(page);
+                pagination.appendChild(button);
+            }
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = '›';
+            nextButton.title = '다음 페이지';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.onclick = () => goToPage(currentPage + 1);
+            pagination.appendChild(nextButton);
+
+            const info = document.createElement('span');
+            info.className = 'page-info';
+            info.textContent =
+                `${currentPage} / ${totalPages} 페이지 · 총 ${filteredNewsList.length}개`;
+
+            pagination.appendChild(info);
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(
+                filteredNewsList.length / ITEMS_PER_PAGE
+            );
+
+            if (page < 1 || page > totalPages) {
+                return;
+            }
+
+            currentPage = page;
+            renderCurrentPage();
+
+            document.querySelector('.table-wrap').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
 
         function handleSearch(event) {
@@ -462,19 +630,21 @@ function checkLoginStatus() {
             return null;
         }
 
-        function renderNewsBoard(list, tbody) {
+        function renderNewsBoard(list, tbody, startIndex = 0) {
             tbody.innerHTML = "";
-            const currentIds = new Set(list.map(news => String(news.id)));
-
             list.forEach((news, index) => {
                 const row = document.createElement("tr");
-                const isNew = !firstLoad && !previousIds.has(String(news.id));
+                const globalIndex = startIndex + index;
+
+                // 실제 기사 등록일이 최근 24시간 이내일 때만 NEW
+                const isNew = isLatestNews(news, allNewsList);
+
                 const teamBadge = extractTeamName(news.title);
 
                 if (isNew) row.classList.add("new-row");
 
                 row.innerHTML = `
-                    <td>${news.number || index + 1}</td>
+                    <td>${news.number || globalIndex + 1}</td>
                     <td class="col-title">
                         <a href="${escapeHtml(news.url)}" class="title-link" target="_blank" rel="noopener noreferrer">
                             ${escapeHtml(news.title)}
@@ -516,8 +686,9 @@ function checkLoginStatus() {
                 tbody.appendChild(detailRow);
             });
 
-            previousIds = currentIds;
-            if(allNewsList.length > 0) firstLoad = false;
+            if (allNewsList.length > 0) {
+                firstLoad = false;
+            }
         }
 
 async function toggleArticle(id, button, index) {
@@ -605,6 +776,51 @@ async function toggleArticle(id, button, index) {
             } finally {
                 button.disabled = false;
             }
+        }
+
+        // ============================================================
+        // NEW 판정
+        // API가 반환한 뉴스 중 "실제 등록일이 가장 최신"인 기사만 NEW 표시
+        // 시간 차이(24시간/60분)를 사용하지 않음
+        // ============================================================
+        function parseNewsDate(value) {
+            if (!value) return null;
+
+            const raw = String(value).trim();
+            if (!raw) return null;
+
+            // ISO / MySQL DATETIME 모두 대응
+            let date = new Date(raw);
+
+            if (Number.isNaN(date.getTime())) {
+                date = new Date(raw.replace(' ', 'T'));
+            }
+
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function getNewsDate(news) {
+            // 백엔드에서 date를 사용하지만, 혹시 필드명이 다른 경우도 대응
+            return news?.date ?? news?.published_at ?? news?.publishedAt ?? news?.created_at ?? news?.createdAt ?? null;
+        }
+
+        function isLatestNews(news, newsList) {
+            if (!news || !Array.isArray(newsList) || newsList.length === 0) {
+                return false;
+            }
+
+            const articleDate = parseNewsDate(getNewsDate(news));
+            if (!articleDate) return false;
+
+            const latestTime = newsList
+                .map(item => parseNewsDate(getNewsDate(item)))
+                .filter(date => date !== null)
+                .reduce((max, date) => Math.max(max, date.getTime()), -Infinity);
+
+            if (latestTime === -Infinity) return false;
+
+            // 최신 등록일과 정확히 같은 기사만 NEW
+            return articleDate.getTime() === latestTime;
         }
 
         function formatDate(value) {

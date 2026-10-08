@@ -12,7 +12,6 @@ from models.user import User
 from models.team import Team
 from routers.chat import router as chat_router
 from routers.auth import router as auth_router
-
 from routers.community import router as community_router
 
 from routers import players, teams, games, predictions
