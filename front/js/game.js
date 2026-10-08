@@ -3,7 +3,6 @@ const DEFAULT_DATE = "2024-04-01";
 const dateInput = document.getElementById("game-date-picker");
 const teamSelect = document.getElementById("select-team");
 let teamFilterReady = false;
-let selectedLeagueFilter = "ALL";
 let myFavoriteTeamId = null;
 let filteredGames = [];
 const gameDataCache = new Map();
@@ -15,22 +14,6 @@ function setupDateControls() {
     dateInput.value = DEFAULT_DATE;
     dateInput.addEventListener("change", () => setSelectedDate(dateInput.value));
     teamSelect.addEventListener("change", loadGames);
-    document.querySelectorAll("[data-league-filter]").forEach(button => button.addEventListener("click", () => {
-        selectedLeagueFilter = button.dataset.leagueFilter;
-        document.querySelectorAll("[data-league-filter]").forEach(tab => {
-            const selected = tab.dataset.leagueFilter === selectedLeagueFilter;
-            tab.classList.toggle("selected", selected);
-            tab.setAttribute("aria-selected", String(selected));
-        });
-        document.getElementById("game-list").dataset.leagueFilter = selectedLeagueFilter;
-        document.getElementById("team-filter").hidden = selectedLeagueFilter !== "TEAM";
-        if (selectedLeagueFilter === "ALL") {
-            teamSelect.value = "ALL";
-            document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "false");
-            updateTeamRailSelection();
-        }
-        loadGames();
-    }));
     document.getElementById("btn-prev-year").addEventListener("click", () => moveYear(-1));
     document.getElementById("btn-next-year").addEventListener("click", () => moveYear(1));
     const topButton = document.getElementById("scroll-to-top");
@@ -83,14 +66,7 @@ function setupTeamPicker() {
 
 function showFavoriteTeamGames() {
     if (!myFavoriteTeamId) return;
-    selectedLeagueFilter = "TEAM";
     teamSelect.value = String(myFavoriteTeamId);
-    document.getElementById("team-filter").hidden = false;
-    document.querySelectorAll("[data-league-filter]").forEach(tab => {
-        const selected = tab.dataset.leagueFilter === selectedLeagueFilter;
-        tab.classList.toggle("selected", selected);
-        tab.setAttribute("aria-selected", String(selected));
-    });
     document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "true");
     updateTeamRailSelection();
     loadGames();
@@ -422,10 +398,6 @@ function createGameCard(game) {
         highlightsLink.target = "_blank";
         highlightsLink.rel = "noopener noreferrer";
         scoreNode.append(highlightsLink);
-        const previewArrow = document.createElement("span");
-        previewArrow.className = "inning-preview-arrow";
-        previewArrow.setAttribute("aria-hidden", "true");
-        scoreNode.append(previewArrow);
     }
     matchup.append(
         createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher),
@@ -445,43 +417,6 @@ function createGameCard(game) {
         venue.append(link);
     }
     card.append(timeCell, matchup, venue);
-    if (isFinal) {
-        const quickDetail = document.createElement("div");
-        quickDetail.className = "game-quick-detail is-collapsed";
-        quickDetail.setAttribute("aria-hidden", "true");
-        quickDetail.innerHTML = '<p class="quick-loading">이닝별 점수를 불러오는 중입니다.</p>';
-        card.append(quickDetail);
-        card.classList.add("is-expandable");
-        card.tabIndex = 0;
-        card.setAttribute("aria-expanded", "false");
-        card.setAttribute("aria-label", `${game.away_team_name} ${awayRuns} 대 ${homeRuns} ${game.home_team_name}, 이닝 점수 펼치기`);
-
-        const toggleInnings = async () => {
-            const expanded = card.getAttribute("aria-expanded") === "true";
-            card.setAttribute("aria-expanded", String(!expanded));
-            quickDetail.classList.toggle("is-expanded", !expanded);
-            quickDetail.classList.toggle("is-collapsed", expanded);
-            quickDetail.setAttribute("aria-hidden", String(expanded));
-            if (!expanded && quickDetail.dataset.loaded !== "true") {
-                quickDetail.replaceChildren(Object.assign(document.createElement("p"), {
-                    className: "quick-loading",
-                    textContent: "이닝별 점수를 불러오는 중입니다."
-                }));
-                const result = await loadInningScore(game.game_id);
-                renderQuickInnings(quickDetail, result, game);
-            }
-        };
-
-        card.addEventListener("click", event => {
-            if (event.target.closest("a, button") || quickDetail.contains(event.target)) return;
-            toggleInnings();
-        });
-        card.addEventListener("keydown", event => {
-            if (event.target !== card || (event.key !== "Enter" && event.key !== " ")) return;
-            event.preventDefault();
-            toggleInnings();
-        });
-    }
     return card;
 }
 

@@ -8,3 +8,30 @@
 .box-table .player-name-cell .player-profile-link,.lineup-card .player-profile-link{display:inline-flex;align-items:center;gap:8px;min-width:max-content}.boxscore-player-headshot{display:block;width:28px;height:28px;flex:0 0 28px;overflow:hidden;border:1px solid #dce4ef;border-radius:50%;background:#f2f6fb;object-fit:cover}.lineup-card .boxscore-player-headshot{width:25px;height:25px;flex-basis:25px}
 @media(max-width:700px){.boxscore-player-headshot{width:24px;height:24px;flex-basis:24px}.lineup-card .boxscore-player-headshot{width:23px;height:23px;flex-basis:23px}}
 .boxscore-notice{margin:24px 0;padding:16px;border:1px solid #d7e4f5;border-radius:8px;background:#f1f6fd;color:#31557f;text-align:center;font-size:14px}
+
+/* Match the spacing, type scale, and simple cards used by the BASEBOT team pages. */
+.game-detail-page{padding-top:18px;color:#222}
+.detail-heading{margin:4px 0 12px}
+.detail-heading .eyebrow,.section-heading .eyebrow{display:none}
+.detail-heading h1{margin:0;color:#102d63;font-size:25px;letter-spacing:-.7px}
+.sample-notice{margin:0 0 18px;color:#727d8e;font-size:14px}
+.back-link{border-radius:6px;color:#102d63;font-weight:700}
+.scoreboard-card{padding:18px 24px;border:1px solid #e1e7f0;border-radius:6px;background:#fff;color:#222;box-shadow:none}
+.game-meta{color:#777;font-size:12px}
+.status-pill{background:#eef3fa;color:#31557f}
+.matchup{margin:14px auto 5px}
+.detail-team h2{color:#222;font-size:17px}
+.detail-team p{color:#777;font-size:12px}
+.detail-team .player-name-link{color:#174b8a}
+.detail-team .player-name-link:hover{color:#102d63}
+.final-score{color:#102d63;font-size:38px}
+.final-score small{color:#777}
+.boxscore-section{margin-top:24px}
+.section-heading h2{color:#102d63;font-size:20px}
+.table-scroll,.lineup-card{border-color:#e1e7f0;border-radius:6px}
+.box-table{font-size:14px}
+.box-table th{padding:10px 12px;background:#f4f6f9;color:#444;font-size:12px}
+.box-table td{padding:10px 12px;color:#333}
+.detail-tabs{margin-top:26px}
+.tab-button{font-size:14px}
+@media(max-width:700px){.game-detail-page{padding-top:12px}.detail-heading h1{font-size:22px}.sample-notice{font-size:13px}.scoreboard-card{padding:14px 10px}.box-table{font-size:13px}.box-table th,.box-table td{padding:9px 10px}}

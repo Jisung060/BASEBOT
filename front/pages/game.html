@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경기 일정·결과 - BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/game.css?v=37">
+    <link rel="stylesheet" href="../css/game.css?v=38">
 </head>
 <body>
     <div id="header"></div>
@@ -19,10 +19,6 @@
         </header>
 
         <section class="schedule-tools" aria-label="경기 검색 조건">
-            <div class="league-tabs" role="tablist" aria-label="리그 선택">
-                <button type="button" class="league-tab selected" data-league-filter="ALL" role="tab" aria-selected="true">전체</button>
-                <button type="button" class="league-tab" data-league-filter="TEAM" role="tab" aria-selected="false">MLB</button>
-            </div>
             <div class="schedule-date-picker">
                 <div class="date-picker-heading">
                     <button type="button" class="recent-button" id="btn-today">최근</button>
@@ -36,7 +32,7 @@
                     <div class="month-strip" id="month-strip" aria-label="월 선택"></div>
                 </div>
             </div>
-            <div class="team-filter" id="team-filter" hidden>
+            <div class="team-filter" id="team-filter">
                 <div class="team-picker" id="team-picker">
                     <div class="team-rail" id="team-rail" role="group" aria-label="구단 선택"></div>
                     <select id="select-team" aria-label="팀" tabindex="-1" aria-hidden="true"><option value="ALL">전체 구단</option></select>
@@ -53,6 +49,6 @@
     <div id="footer"></div>
     <button type="button" class="scroll-to-top" id="scroll-to-top" aria-label="맨 위로 올라가기" title="맨 위로" hidden>↑</button>
     <script src="../js/main.js"></script>
-    <script src="../js/game.js?v=35"></script>
+    <script src="../js/game.js?v=36"></script>
 </body>
 </html>
