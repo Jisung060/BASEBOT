@@ -1,13 +1,16 @@
 import os
 import re
-import sqlite3
 import threading
 from datetime import datetime
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from database.db_connection import SessionFactory
 from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/api/news", tags=["News"])
@@ -18,7 +21,8 @@ router = APIRouter(prefix="/api/news", tags=["News"])
 # 기본 폴더 구조:
 # project/
 # ├─ back/
-# │  └─ news.py
+# │  └─ routers/
+# │     └─ news.py
 # └─ front/
 #    └─ mlb_news.html
 #
@@ -26,11 +30,6 @@ router = APIRouter(prefix="/api/news", tags=["News"])
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_HTML_FILE = os.path.abspath(os.path.join(BACKEND_DIR, "..", "front", "pages", "mlb_news.html"))
 HTML_FILE = os.path.abspath(os.getenv("MLB_NEWS_HTML", DEFAULT_HTML_FILE))
-
-# DB도 news.py가 있는 backend 폴더에 생성되도록 함.
-DB_PATH = os.path.abspath(
-    os.getenv("MLB_NEWS_DB", os.path.join(BACKEND_DIR,"..", "database", "mlb_news.db"))
-)
 
 BASE_URL = "https://www.mlbkor.com"
 NEWS_LIST_URL = BASE_URL + "/news/articleList.html"
@@ -73,43 +72,16 @@ def mlb_news_page():
 # DB
 # ============================================================
 def get_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+    db = SessionLocal()
 
-
-def init_db():
-    conn = get_db()
     try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS mlb_news (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_id TEXT UNIQUE,
-                title TEXT NOT NULL,
-                url TEXT NOT NULL UNIQUE,
-                author TEXT DEFAULT '',
-                published_at TEXT DEFAULT '',
-                content TEXT DEFAULT '',
-                summary TEXT DEFAULT '',
-                image_url TEXT DEFAULT '',
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-            """
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_mlb_news_published "
-            "ON mlb_news(published_at)"
-        )
-        conn.commit()
+        yield db
     finally:
-        conn.close()
+        db.close()
 
 
-init_db()
-
+def create_db_session():
+    return SessionLocal()
 
 # ============================================================
 # 문자열/HTML 파싱
@@ -341,69 +313,146 @@ def fetch_article_detail(url):
 # DB 저장 / 중복 방지
 # ============================================================
 def upsert_news(item):
-    conn = get_db()
-    now = datetime.now().isoformat(sep=" ")
+    db = SessionFactory()
 
     try:
-        existing = conn.execute(
-            "SELECT id FROM mlb_news WHERE source_id=? OR url=?",
-            (item["source_id"], item["url"]),
-        ).fetchone()
+        # -----------------------------------------------------
+        # 기존 기사 확인
+        # -----------------------------------------------------
+        existing = db.execute(
+            text("""
+                SELECT news_id
+                FROM mlb_news
+                WHERE source_id = :source_id
+                   OR source_url = :source_url
+                LIMIT 1
+            """),
+            {
+                "source_id": item["source_id"],
+                "source_url": item["url"],
+            },
+        ).mappings().first()
 
+        # -----------------------------------------------------
+        # 기존 기사 → UPDATE
+        # -----------------------------------------------------
         if existing:
-            conn.execute(
-                """
-                UPDATE mlb_news
-                SET title=?,
-                    author=CASE WHEN ?<>'' THEN ? ELSE author END,
-                    published_at=CASE WHEN ?<>'' THEN ? ELSE published_at END,
-                    content=CASE WHEN ?<>'' THEN ? ELSE content END,
-                    image_url=CASE WHEN ?<>'' THEN ? ELSE image_url END,
-                    updated_at=?
-                WHERE id=?
-                """,
-                (
-                    item["title"],
-                    item.get("author", ""),
-                    item.get("author", ""),
-                    item.get("published_at", ""),
-                    item.get("published_at", ""),
-                    item.get("content", ""),
-                    item.get("content", ""),
-                    item.get("image_url", ""),
-                    item.get("image_url", ""),
-                    now,
-                    existing["id"],
-                ),
+
+            db.execute(
+                text("""
+                    UPDATE mlb_news
+                    SET
+                        title = :title,
+
+                        author =
+                            CASE
+                                WHEN :author <> ''
+                                THEN :author
+                                ELSE author
+                            END,
+
+                        published_at =
+                            CASE
+                                WHEN :published_at IS NOT NULL
+                                     AND :published_at <> ''
+                                THEN :published_at
+                                ELSE published_at
+                            END,
+
+                        content =
+                            CASE
+                                WHEN :content <> ''
+                                THEN :content
+                                ELSE content
+                            END,
+
+                        image_url =
+                            CASE
+                                WHEN :image_url <> ''
+                                THEN :image_url
+                                ELSE image_url
+                            END,
+
+                        updated_at = CURRENT_TIMESTAMP
+
+                    WHERE news_id = :news_id
+                """),
+                {
+                    "title": item["title"],
+                    "author": item.get("author", ""),
+                    "published_at": item.get("published_at", ""),
+                    "content": item.get("content", ""),
+                    "image_url": item.get("image_url", ""),
+                    "news_id": existing["news_id"],
+                },
             )
-            conn.commit()
-            return existing["id"], False
 
-        cursor = conn.execute(
-            """
-            INSERT INTO mlb_news
-                (source_id, title, url, author, published_at, content,
-                 summary, image_url, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?)
-            """,
-            (
-                item["source_id"],
-                item["title"],
-                item["url"],
-                item.get("author", ""),
-                item.get("published_at", ""),
-                item.get("content", ""),
-                item.get("image_url", ""),
-                now,
-                now,
-            ),
+            db.commit()
+
+            return existing["news_id"], False
+
+        # -----------------------------------------------------
+        # 신규 기사 → INSERT
+        # -----------------------------------------------------
+        result = db.execute(
+            text("""
+                INSERT INTO mlb_news (
+                    source_id,
+                    source_url,
+                    source_name,
+                    title,
+                    author,
+                    published_at,
+                    crawled_at,
+                    content,
+                    summary,
+                    image_url,
+                    category,
+                    is_new,
+                    is_featured,
+                    view_count,
+                    status
+                )
+                VALUES (
+                    :source_id,
+                    :source_url,
+                    'MLB Korea',
+                    :title,
+                    :author,
+                    :published_at,
+                    CURRENT_TIMESTAMP,
+                    :content,
+                    '',
+                    :image_url,
+                    :category,
+                    TRUE,
+                    FALSE,
+                    0,
+                    'ACTIVE'
+                )
+            """),
+            {
+                "source_id": item["source_id"],
+                "source_url": item["url"],
+                "title": item["title"],
+                "author": item.get("author", ""),
+                "published_at": item.get("published_at") or None,
+                "content": item.get("content", ""),
+                "image_url": item.get("image_url", ""),
+                "category": item.get("category"),
+            },
         )
-        conn.commit()
-        return cursor.lastrowid, True
+
+        db.commit()
+
+        return result.lastrowid, True
+
+    except Exception:
+        db.rollback()
+        raise
+
     finally:
-        conn.close()
-
-
+        db.close()
 # ============================================================
 # 동기화
 # ============================================================
@@ -417,14 +466,24 @@ def sync_news():
         updated_count = 0
 
         for item in reversed(listed):
-            conn = get_db()
+            db = SessionFactory()
+
             try:
-                existing = conn.execute(
-                    "SELECT id, content FROM mlb_news WHERE source_id=? OR url=?",
-                    (item["source_id"], item["url"]),
-                ).fetchone()
+                existing = db.execute(
+                    text("""
+                         SELECT news_id, content
+                         FROM mlb_news
+                         WHERE source_id = :source_id
+                            OR source_url = :source_url LIMIT 1
+                         """),
+                    {
+                        "source_id": item["source_id"],
+                        "source_url": item["url"],
+                    },
+                ).mappings().first()
+
             finally:
-                conn.close()
+                db.close()
 
             # 신규 기사 또는 본문이 비어 있는 기존 기사만 상세 페이지까지 수집.
             if existing is None or not existing["content"]:
@@ -486,73 +545,154 @@ def start_background_crawler():
 # API
 # ============================================================
 @router.get("/mlb")
-def get_mlb_news(limit: int = 20):
+def get_mlb_news(
+    limit: int = 20,
+    page: int = 1
+):
     limit = max(1, min(limit, 100))
+    page = max(1, page)
 
-    conn = get_db()
+    offset = (page - 1) * limit
+
+    db = SessionFactory()
+
     try:
-        rows = conn.execute(
-            """
-            SELECT id, source_id, title, url, author, published_at, image_url,
-                   CASE WHEN content<>'' THEN 1 ELSE 0 END AS has_content,
-                   CASE WHEN summary<>'' THEN 1 ELSE 0 END AS has_summary
-            FROM mlb_news
-            ORDER BY
-                CASE WHEN published_at<>'' THEN published_at ELSE created_at END DESC,
-                id DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+
+        rows = db.execute(
+            text("""
+                SELECT
+                    news_id,
+                    source_id,
+                    title,
+                    source_url,
+                    author,
+                    published_at,
+                    image_url,
+                    summary,
+                    is_new,
+                    is_featured,
+                    view_count,
+                    category,
+                    related_team_id,
+                    related_player_id,
+
+                    CASE
+                        WHEN content IS NOT NULL
+                             AND content <> ''
+                        THEN 1
+                        ELSE 0
+                    END AS has_content
+
+                FROM mlb_news
+
+                WHERE status = 'ACTIVE'
+
+                ORDER BY
+                    published_at DESC,
+                    news_id DESC
+
+                LIMIT :limit
+                OFFSET :offset
+            """),
+            {
+                "limit": limit,
+                "offset": offset,
+            },
+        ).mappings().all()
 
         data = []
+
         for number, row in enumerate(rows, 1):
-            data.append(
-                {
-                    "id": row["id"],
-                    "source_id": row["source_id"],
-                    "number": number,
-                    "title": row["title"],
-                    "url": row["url"],
-                    "author": row["author"],
-                    "date": row["published_at"],
-                    "image_url": row["image_url"],
-                    "has_content": bool(row["has_content"]),
-                    "has_summary": bool(row["has_summary"]),
-                }
-            )
+
+            data.append({
+                "id": row["news_id"],
+                "source_id": row["source_id"],
+                "number": number,
+                "title": row["title"],
+                "url": row["source_url"],
+                "author": row["author"],
+                "date": row["published_at"],
+                "image_url": row["image_url"],
+                "summary": row["summary"],
+                "is_new": bool(row["is_new"]),
+                "is_featured": bool(row["is_featured"]),
+                "view_count": row["view_count"],
+                "category": row["category"],
+                "related_team_id": row["related_team_id"],
+                "related_player_id": row["related_player_id"],
+                "has_content": bool(row["has_content"]),
+            })
 
         return {
             "status": "success",
+            "page": page,
+            "limit": limit,
             "data": data,
             "updated_at": datetime.now().isoformat(),
             "next_crawl_seconds": CRAWL_INTERVAL,
         }
+
     finally:
-        conn.close()
-
-
+        db.close()
 @router.get("/mlb/{news_id}")
 def get_article(news_id: int):
-    conn = get_db()
+
+    db = SessionFactory()
+
     try:
-        row = conn.execute(
-            """
-            SELECT id, source_id, title, url, author, published_at,
-                   content, image_url, summary
-            FROM mlb_news
-            WHERE id=?
-            """,
-            (news_id,),
-        ).fetchone()
+
+        row = db.execute(
+            text("""
+                SELECT
+                    news_id,
+                    source_id,
+                    title,
+                    source_url,
+                    author,
+                    published_at,
+                    content,
+                    image_url,
+                    summary,
+                    category,
+                    related_team_id,
+                    related_player_id,
+                    view_count
+                FROM mlb_news
+                WHERE news_id = :news_id
+                  AND status = 'ACTIVE'
+            """),
+            {
+                "news_id": news_id
+            },
+        ).mappings().first()
 
         if not row:
-            raise HTTPException(404, "기사를 찾을 수 없습니다.")
+            raise HTTPException(
+                status_code=404,
+                detail="기사를 찾을 수 없습니다."
+            )
 
-        return {"status": "success", "data": dict(row)}
+        # 조회수 증가
+        db.execute(
+            text("""
+                UPDATE mlb_news
+                SET view_count = view_count + 1
+                WHERE news_id = :news_id
+            """),
+            {
+                "news_id": news_id
+            },
+        )
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "data": dict(row)
+        }
+
     finally:
-        conn.close()
-
+        db.close()
 
 # ============================================================
 # OpenAI 3줄 요약
@@ -621,15 +761,32 @@ def ai_summary(title, content):
 
 @router.get("/summary/{news_id}")
 def get_summary(news_id: int):
-    conn = get_db()
+
+    db = SessionFactory()
+
     try:
-        row = conn.execute(
-            "SELECT id, title, content, summary FROM mlb_news WHERE id=?",
-            (news_id,),
-        ).fetchone()
+
+        row = db.execute(
+            text("""
+                SELECT
+                    news_id,
+                    title,
+                    content,
+                    summary
+                FROM mlb_news
+                WHERE news_id = :news_id
+                  AND status = 'ACTIVE'
+            """),
+            {
+                "news_id": news_id
+            },
+        ).mappings().first()
 
         if not row:
-            raise HTTPException(404, "기사를 찾을 수 없습니다.")
+            raise HTTPException(
+                status_code=404,
+                detail="기사를 찾을 수 없습니다."
+            )
 
         if row["summary"]:
             return {
@@ -639,35 +796,60 @@ def get_summary(news_id: int):
             }
 
         if not row["content"]:
-            raise HTTPException(422, "기사 본문이 아직 수집되지 않았습니다.")
+            raise HTTPException(
+                status_code=422,
+                detail="기사 본문이 아직 수집되지 않았습니다."
+            )
 
         try:
-            summary = ai_summary(row["title"], row["content"])
+            summary = ai_summary(
+                row["title"],
+                row["content"]
+            )
+
         except requests.HTTPError as exc:
+
             detail = "OpenAI API 요청에 실패했습니다."
+
             try:
                 detail = (
-                    exc.response.json().get("error", {}).get("message")
+                    exc.response.json()
+                    .get("error", {})
+                    .get("message")
                     or detail
                 )
             except Exception:
                 pass
-            raise HTTPException(502, detail)
 
-        conn.execute(
-            "UPDATE mlb_news SET summary=?, updated_at=? WHERE id=?",
-            (summary, datetime.now().isoformat(sep=" "), news_id),
+            raise HTTPException(
+                status_code=502,
+                detail=detail
+            )
+
+        db.execute(
+            text("""
+                UPDATE mlb_news
+                SET
+                    summary = :summary,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE news_id = :news_id
+            """),
+            {
+                "summary": summary,
+                "news_id": news_id,
+            },
         )
-        conn.commit()
+
+        db.commit()
 
         return {
             "status": "success",
             "summary": summary,
             "cached": False,
         }
-    finally:
-        conn.close()
 
+    finally:
+        db.close()
 
 # news.py가 import될 때 자동으로 30초 수집기를 시작한다.
 # 단일 Uvicorn 프로세스(local 개발) 기준으로 사용한다.

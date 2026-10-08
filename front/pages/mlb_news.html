@@ -385,459 +385,1096 @@
     <div id="footer"></div>
 
     <script>
-        async function loadComponents() {
-            try {
-                const headerRes = await fetch('/components/header.html');
-                const footerRes = await fetch('/components/footer.html');
+    async function loadComponents() {
+        try {
+            const headerRes = await fetch('/components/header.html');
+            const footerRes = await fetch('/components/footer.html');
 
-                if (headerRes.ok) {
-                    document.getElementById('header').innerHTML = await headerRes.text();
-                    // ▼ 헤더가 로드된 직후 로그인 상태를 체크하여 UI 업데이트
-                    updateLoginUI();
-                }
-                if (footerRes.ok) document.getElementById('footer').innerHTML = await footerRes.text();
-            } catch (err) {
-                console.error("컴포넌트 로드 실패:", err);
+            if (headerRes.ok) {
+                document.getElementById('header').innerHTML = await headerRes.text();
+                updateLoginUI();
             }
+
+            if (footerRes.ok) {
+                document.getElementById('footer').innerHTML = await footerRes.text();
+            }
+        } catch (err) {
+            console.error("컴포넌트 로드 실패:", err);
         }
-
- // 로그인 상태에 따라 헤더 UI를 변경하는 함수
-function checkLoginStatus() {
-    const userJson = localStorage.getItem("user");
-
-    // HTML 헤더 내부의 로그인 버튼과 유저 정보 영역의 선택자(ID 또는 클래스)를 확인 후 적용하세요.
-    const loginButtonArea = document.getElementById("login-btn-area"); // 예: 로그인 버튼이 있는 요소
-    const userArea = document.getElementById("user-info-area");         // 예: 닉네임이나 마이페이지가 있는 요소
-
-    if (userJson) {
-        // 로그인된 상태
-        const user = JSON.parse(userJson);
-        if (loginButtonArea) loginButtonArea.style.display = "none";
-        if (userArea) {
-            userArea.style.display = "block";
-            // 필요시 닉네임 표시
-            // document.getElementById("user-nickname").textContent = user.nickname;
-        }
-    } else {
-        // 로그아웃된 상태
-        if (loginButtonArea) loginButtonArea.style.display = "block";
-        if (userArea) userArea.style.display = "none";
     }
-}
 
-        loadComponents();
 
-        const API_BASE = "";
-        const REFRESH_MS = 30000;
+    // ============================================================
+    // 로그인 상태
+    // ============================================================
 
-        let allNewsList = []; // 전체 뉴스 저장용
-        let filteredNewsList = []; // 현재 필터/검색 결과
-        let currentPage = 1;
-        const ITEMS_PER_PAGE = 10;
-        // 실제 최신 기사에만 NEW 표시
-        // 기사 등록일 기준 최근 24시간 이내인 기사만 NEW
-        const NEW_WINDOW_HOURS = 24;
+    function checkLoginStatus() {
+        const userJson = localStorage.getItem("user");
 
-        window.addEventListener("DOMContentLoaded", () => {
-            loadNews();
-            setInterval(loadNews, REFRESH_MS);
-        });
+        const loginButtonArea = document.getElementById("login-btn-area");
+        const userArea = document.getElementById("user-info-area");
 
-        async function loadNews() {
-            const tbody = document.getElementById("news-tbody");
-            const status = document.getElementById("status-text");
-            const dot = document.getElementById("status-dot");
+        if (userJson) {
+            const user = JSON.parse(userJson);
 
-            status.textContent = "최신 뉴스 확인 중...";
-            dot.classList.add("loading");
+            if (loginButtonArea) {
+                loginButtonArea.style.display = "none";
+            }
 
-            try {
-                const response = await fetch(`${API_BASE}/api/news/mlb?limit=50`, { cache: "no-store" });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (userArea) {
+                userArea.style.display = "block";
+            }
+        } else {
+            if (loginButtonArea) {
+                loginButtonArea.style.display = "block";
+            }
 
-                const result = await response.json();
-                if (result.status !== "success") throw new Error("뉴스 API 응답 오류");
-
-                allNewsList = result.data; // 서버에서 받은 전체 데이터 저장
-
-                // 뉴스 로드 직후, 현재 적용된 필터(카테고리/검색어) 상태를 유지하여 화면 렌더링
-                applyFilters();
-
-                status.textContent = `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
-                dot.classList.remove("loading");
-            } catch (error) {
-                console.error(error);
-                status.textContent = "뉴스 서버 연결 실패 · 30초 후 다시 시도합니다.";
-                dot.classList.add("loading");
-
-                if (firstLoad) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="error-message">뉴스 서버에 연결할 수 없습니다.<br>FastAPI 서버가 실행 중인지 확인해주세요.</td></tr>`;
-                }
+            if (userArea) {
+                userArea.style.display = "none";
             }
         }
+    }
 
-        // 카테고리 선택 및 검색어 입력을 통합 처리하는 필터 함수
-        function applyFilters(resetPage = true) {
-            const teamFilter = document.getElementById('team-select').value;
-            const keyword = document.getElementById('search-input').value.trim().toLowerCase();
 
-            let filteredList = allNewsList;
+    loadComponents();
 
-            if (teamFilter !== "ALL") {
-                filteredList = filteredList.filter(news =>
-                    news.title.includes(teamFilter)
-                );
-            }
 
-            if (keyword) {
-                filteredList = filteredList.filter(news =>
-                    news.title.toLowerCase().includes(keyword)
-                );
-            }
+    // ============================================================
+    // 뉴스 설정
+    // ============================================================
 
-            filteredNewsList = filteredList;
+    const API_BASE = "";
+    const REFRESH_MS = 30000;
 
-            if (resetPage) {
-                currentPage = 1;
-            }
+    let allNewsList = [];
+    let filteredNewsList = [];
 
-            const totalPages = Math.max(
-                1,
-                Math.ceil(filteredNewsList.length / ITEMS_PER_PAGE)
+    let currentPage = 1;
+
+    // 한 페이지당 10개
+    const ITEMS_PER_PAGE = 10;
+
+    // 실제 최신 기사만 NEW
+    const NEW_WINDOW_HOURS = 24;
+
+
+    window.addEventListener("DOMContentLoaded", () => {
+        loadNews();
+
+        // 30초마다 최신 뉴스 확인
+        setInterval(loadNews, REFRESH_MS);
+    });
+
+
+    // ============================================================
+    // 뉴스 불러오기
+    // ============================================================
+
+    async function loadNews() {
+        const tbody = document.getElementById("news-tbody");
+        const status = document.getElementById("status-text");
+        const dot = document.getElementById("status-dot");
+
+        status.textContent = "최신 뉴스 확인 중...";
+        dot.classList.add("loading");
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/api/news/mlb?limit=50`,
+                {
+                    cache: "no-store"
+                }
             );
 
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            renderCurrentPage();
-        }
+            const result = await response.json();
 
-        function renderCurrentPage() {
-            const tbody = document.getElementById('news-tbody');
+            if (result.status !== "success") {
+                throw new Error("뉴스 API 응답 오류");
+            }
 
-            if (filteredNewsList.length === 0) {
+            // 전체 뉴스 저장
+            allNewsList = result.data || [];
+
+            // 현재 필터 유지
+            applyFilters(false);
+
+            status.textContent =
+                `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
+
+            dot.classList.remove("loading");
+
+        } catch (error) {
+
+            console.error(error);
+
+            status.textContent =
+                "뉴스 서버 연결 실패 · 30초 후 다시 시도합니다.";
+
+            dot.classList.add("loading");
+
+            if (typeof firstLoad === "undefined" || firstLoad) {
+
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="loading-message">
-                            조건에 맞는 검색 결과가 없습니다.
+                        <td colspan="4" class="error-message">
+                            뉴스 서버에 연결할 수 없습니다.<br>
+                            FastAPI 서버가 실행 중인지 확인해주세요.
                         </td>
                     </tr>
                 `;
-
-                renderPagination();
-                return;
             }
+        }
+    }
 
-            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
-            const pageList = filteredNewsList.slice(
+    // ============================================================
+    // 검색 / 구단 필터
+    // ============================================================
+
+    function applyFilters(resetPage = true) {
+
+        const teamFilter =
+            document.getElementById("team-select").value;
+
+        const keyword =
+            document.getElementById("search-input")
+                .value
+                .trim()
+                .toLowerCase();
+
+
+        let filteredList = allNewsList;
+
+
+        // 구단 필터
+        if (teamFilter !== "ALL") {
+
+            filteredList = filteredList.filter(news =>
+                String(news.title || "").includes(teamFilter)
+            );
+        }
+
+
+        // 제목 검색
+        if (keyword) {
+
+            filteredList = filteredList.filter(news =>
+                String(news.title || "")
+                    .toLowerCase()
+                    .includes(keyword)
+            );
+        }
+
+
+        filteredNewsList = filteredList;
+
+
+        if (resetPage) {
+            currentPage = 1;
+        }
+
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(
+                filteredNewsList.length / ITEMS_PER_PAGE
+            )
+        );
+
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+
+        renderCurrentPage();
+    }
+
+
+    // ============================================================
+    // 현재 페이지 렌더링
+    // ============================================================
+
+    function renderCurrentPage() {
+
+        const tbody =
+            document.getElementById("news-tbody");
+
+
+        if (filteredNewsList.length === 0) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="loading-message">
+                        조건에 맞는 검색 결과가 없습니다.
+                    </td>
+                </tr>
+            `;
+
+            renderPagination();
+
+            return;
+        }
+
+
+        const startIndex =
+            (currentPage - 1) * ITEMS_PER_PAGE;
+
+
+        const pageList =
+            filteredNewsList.slice(
                 startIndex,
                 startIndex + ITEMS_PER_PAGE
             );
 
-            renderNewsBoard(pageList, tbody, startIndex);
-            renderPagination();
-        }
 
-        function renderPagination() {
-            const pagination = document.getElementById('pagination');
-            const totalPages = Math.ceil(
-                filteredNewsList.length / ITEMS_PER_PAGE
+        renderNewsBoard(
+            pageList,
+            tbody,
+            startIndex
+        );
+
+
+        renderPagination();
+    }
+
+
+    // ============================================================
+    // 페이지네이션
+    // ============================================================
+
+    function renderPagination() {
+
+        const pagination =
+            document.getElementById("pagination");
+
+
+        const totalPages =
+            Math.ceil(
+                filteredNewsList.length /
+                ITEMS_PER_PAGE
             );
 
-            pagination.innerHTML = '';
 
-            if (totalPages <= 1) {
-                return;
-            }
+        pagination.innerHTML = "";
 
-            const prevButton = document.createElement('button');
-            prevButton.textContent = '‹';
-            prevButton.title = '이전 페이지';
-            prevButton.disabled = currentPage === 1;
-            prevButton.onclick = () => goToPage(currentPage - 1);
-            pagination.appendChild(prevButton);
 
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(totalPages, currentPage + 2);
-
-            if (currentPage <= 3) {
-                endPage = Math.min(totalPages, 5);
-            }
-
-            if (currentPage >= totalPages - 2) {
-                startPage = Math.max(1, totalPages - 4);
-            }
-
-            for (let page = startPage; page <= endPage; page++) {
-                const button = document.createElement('button');
-
-                button.textContent = page;
-
-                if (page === currentPage) {
-                    button.classList.add('active');
-                }
-
-                button.onclick = () => goToPage(page);
-                pagination.appendChild(button);
-            }
-
-            const nextButton = document.createElement('button');
-            nextButton.textContent = '›';
-            nextButton.title = '다음 페이지';
-            nextButton.disabled = currentPage === totalPages;
-            nextButton.onclick = () => goToPage(currentPage + 1);
-            pagination.appendChild(nextButton);
-
-            const info = document.createElement('span');
-            info.className = 'page-info';
-            info.textContent =
-                `${currentPage} / ${totalPages} 페이지 · 총 ${filteredNewsList.length}개`;
-
-            pagination.appendChild(info);
+        if (totalPages <= 1) {
+            return;
         }
 
-        function goToPage(page) {
-            const totalPages = Math.ceil(
-                filteredNewsList.length / ITEMS_PER_PAGE
-            );
 
-            if (page < 1 || page > totalPages) {
-                return;
+        // 이전
+        const prevButton =
+            document.createElement("button");
+
+        prevButton.textContent = "‹";
+        prevButton.title = "이전 페이지";
+
+        prevButton.disabled =
+            currentPage === 1;
+
+        prevButton.onclick =
+            () => goToPage(currentPage - 1);
+
+        pagination.appendChild(prevButton);
+
+
+        // 페이지 번호
+        let startPage =
+            Math.max(1, currentPage - 2);
+
+        let endPage =
+            Math.min(totalPages, currentPage + 2);
+
+
+        if (currentPage <= 3) {
+            endPage =
+                Math.min(totalPages, 5);
+        }
+
+
+        if (currentPage >= totalPages - 2) {
+            startPage =
+                Math.max(1, totalPages - 4);
+        }
+
+
+        for (
+            let page = startPage;
+            page <= endPage;
+            page++
+        ) {
+
+            const button =
+                document.createElement("button");
+
+            button.textContent = page;
+
+
+            if (page === currentPage) {
+                button.classList.add("active");
             }
 
-            currentPage = page;
-            renderCurrentPage();
 
-            document.querySelector('.table-wrap').scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+            button.onclick =
+                () => goToPage(page);
+
+
+            pagination.appendChild(button);
+        }
+
+
+        // 다음
+        const nextButton =
+            document.createElement("button");
+
+        nextButton.textContent = "›";
+        nextButton.title = "다음 페이지";
+
+        nextButton.disabled =
+            currentPage === totalPages;
+
+        nextButton.onclick =
+            () => goToPage(currentPage + 1);
+
+        pagination.appendChild(nextButton);
+
+
+        // 페이지 정보
+        const info =
+            document.createElement("span");
+
+        info.className = "page-info";
+
+        info.textContent =
+            `${currentPage} / ${totalPages} 페이지 · 총 ${filteredNewsList.length}개`;
+
+        pagination.appendChild(info);
+    }
+
+
+    // ============================================================
+    // 페이지 이동
+    // ============================================================
+
+    function goToPage(page) {
+
+        const totalPages =
+            Math.ceil(
+                filteredNewsList.length /
+                ITEMS_PER_PAGE
+            );
+
+
+        if (
+            page < 1 ||
+            page > totalPages
+        ) {
+            return;
+        }
+
+
+        currentPage = page;
+
+        renderCurrentPage();
+
+
+        document
+            .querySelector(".table-wrap")
+            .scrollIntoView({
+                behavior: "smooth",
+                block: "start"
             });
+    }
+
+
+    // ============================================================
+    // 검색 엔터
+    // ============================================================
+
+    function handleSearch(event) {
+
+        if (event.key === "Enter") {
+            applyFilters();
+        }
+    }
+
+
+    // ============================================================
+    // 뉴스 게시판 출력
+    // ============================================================
+
+    function renderNewsBoard(
+        list,
+        tbody,
+        startIndex = 0
+    ) {
+
+        tbody.innerHTML = "";
+
+
+        list.forEach((news, index) => {
+
+            const row =
+                document.createElement("tr");
+
+
+            const globalIndex =
+                startIndex + index;
+
+
+            // 실제 최신 기사만 NEW
+            const isNew =
+                isLatestNews(
+                    news,
+                    allNewsList
+                );
+
+
+            if (isNew) {
+                row.classList.add("new-row");
+            }
+
+
+            // ====================================================
+            // 일반 뉴스 행
+            // ====================================================
+
+            row.innerHTML = `
+
+                <td>
+                    ${news.number || globalIndex + 1}
+                </td>
+
+
+                <td class="col-title">
+
+                    <!--
+                        제목 클릭 시 원문 이동이 아니라
+                        기사 본문을 바로 펼침
+                    -->
+                    <a
+                        href="javascript:void(0)"
+                        class="title-link"
+                        onclick="toggleArticle(${news.id}, this, ${index})"
+                    >
+                        ${escapeHtml(news.title)}
+                    </a>
+
+
+                    ${
+                        isNew
+                            ? '<span class="new-badge">NEW</span>'
+                            : ''
+                    }
+
+                </td>
+
+
+                <td>
+
+                    <div class="action-buttons">
+
+                        <!-- 기존 본문 버튼을 원문사이트 접속으로 변경 -->
+                        <button
+                            class="btn-body"
+                            onclick="openOriginalArticle('${escapeHtml(news.url)}')"
+                        >
+                            원문사이트 접속
+                        </button>
+
+
+                        <button
+                            class="btn-ai"
+                            onclick="toggleSummary(${news.id}, this, ${index})"
+                        >
+                            ✨ 3줄 요약
+                        </button>
+
+                    </div>
+
+                </td>
+
+
+                <td class="col-date">
+                    ${escapeHtml(formatDate(news.date))}
+                </td>
+            `;
+
+
+            tbody.appendChild(row);
+
+
+            // ====================================================
+            // 기사 상세 행
+            // ====================================================
+
+            const detailRow =
+                document.createElement("tr");
+
+
+            detailRow.className =
+                "detail-row";
+
+
+            detailRow.id =
+                `detail-row-${index}`;
+
+
+            detailRow.innerHTML = `
+
+                <td colspan="4">
+
+                    <div class="detail-box">
+
+                        <div class="detail-title">
+                            ${escapeHtml(news.title)}
+                        </div>
+
+
+                        <div class="detail-meta">
+                            ${escapeHtml(news.author || "MLB Korea")}
+                            ·
+                            ${escapeHtml(formatDate(news.date))}
+                        </div>
+
+
+                        <!-- 기사 본문 -->
+                        <div
+                            class="article-content"
+                            id="article-content-${index}"
+                            style="display:none"
+                        ></div>
+
+
+                        <!-- AI 요약 -->
+                        <div
+                            class="summary-box"
+                            id="summary-box-${index}"
+                            style="display:none"
+                        >
+
+                            <div class="summary-header">
+                                ✨ AI 기사 3줄 요약
+                            </div>
+
+
+                            <div
+                                class="summary-text"
+                                id="summary-text-${index}"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                </td>
+            `;
+
+
+            tbody.appendChild(detailRow);
+
+        });
+
+
+        if (allNewsList.length > 0) {
+            firstLoad = false;
+        }
+    }
+
+
+    // ============================================================
+    // 기사 본문 열기
+    // ============================================================
+
+    async function toggleArticle(
+        id,
+        titleElement,
+        index
+    ) {
+
+        const row =
+            document.getElementById(
+                `detail-row-${index}`
+            );
+
+
+        const content =
+            document.getElementById(
+                `article-content-${index}`
+            );
+
+
+        const summaryBox =
+            document.getElementById(
+                `summary-box-${index}`
+            );
+
+
+        // ========================================================
+        // 이미 열려 있으면 닫기
+        // ========================================================
+
+        if (content.style.display === "block") {
+
+            content.style.display = "none";
+
+            summaryBox.style.display = "none";
+
+            row.style.display = "none";
+
+            return;
         }
 
-        function handleSearch(event) {
-            if (event.key === 'Enter') {
-                applyFilters();
-            }
+
+        // ========================================================
+        // 본문 열기
+        // ========================================================
+
+        row.style.display = "table-row";
+
+        content.style.display = "block";
+
+
+        // 이미 불러온 본문이면 다시 요청하지 않음
+        if (
+            content.dataset.loaded === "true"
+        ) {
+            return;
         }
 
-        function extractTeamName(title) {
-            const teams = ["양키스", "다저스", "파드리스", "에인절스", "레드삭스", "메츠", "브레이브스", "필리스", "오리올스", "애스트로스", "레인저스", "컵스"];
-            for (let team of teams) {
-                if (title.includes(team)) return team;
+
+        content.textContent =
+            "기사 본문을 불러오는 중...";
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_BASE}/api/news/mlb/${id}`,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                result.status !== "success"
+            ) {
+
+                throw new Error(
+                    result.detail ||
+                    "기사 본문 조회 실패"
+                );
             }
+
+
+            content.textContent =
+                result.data.content ||
+                "기사 본문을 가져오지 못했습니다.";
+
+
+            content.dataset.loaded = "true";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            content.textContent =
+                "기사 본문을 불러오지 못했습니다.";
+        }
+    }
+
+
+    // ============================================================
+    // 원문 사이트 접속
+    // ============================================================
+
+    function openOriginalArticle(url) {
+
+        if (!url) {
+
+            alert(
+                "원문 기사 주소가 없습니다."
+            );
+
+            return;
+        }
+
+
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }
+
+
+    // ============================================================
+    // AI 3줄 요약
+    // ============================================================
+
+    async function toggleSummary(
+        id,
+        button,
+        index
+    ) {
+
+        const row =
+            document.getElementById(
+                `detail-row-${index}`
+            );
+
+
+        const content =
+            document.getElementById(
+                `article-content-${index}`
+            );
+
+
+        const summaryBox =
+            document.getElementById(
+                `summary-box-${index}`
+            );
+
+
+        const text =
+            document.getElementById(
+                `summary-text-${index}`
+            );
+
+
+        // ========================================================
+        // 이미 열려 있으면 닫기
+        // ========================================================
+
+        if (
+            summaryBox.style.display === "block"
+        ) {
+
+            summaryBox.style.display = "none";
+
+            content.style.display = "none";
+
+            row.style.display = "none";
+
+            button.textContent =
+                "✨ 3줄 요약";
+
+            return;
+        }
+
+
+        // ========================================================
+        // 요약 열기
+        // ========================================================
+
+        row.style.display =
+            "table-row";
+
+
+        summaryBox.style.display =
+            "block";
+
+
+        // 이미 불러온 요약
+        if (
+            text.dataset.loaded === "true"
+        ) {
+
+            button.textContent =
+                "요약 닫기";
+
+            return;
+        }
+
+
+        button.disabled = true;
+
+        button.textContent =
+            "요약 중...";
+
+
+        text.textContent =
+            "AI가 실제 기사 본문을 분석하고 있습니다...";
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_BASE}/api/news/summary/${id}`,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                result.status !== "success"
+            ) {
+
+                throw new Error(
+                    result.detail ||
+                    "AI 요약 실패"
+                );
+            }
+
+
+            text.textContent =
+                result.summary;
+
+
+            text.dataset.loaded =
+                "true";
+
+
+            button.textContent =
+                "요약 닫기";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            text.textContent =
+                `AI 요약 실패: ${error.message}`;
+
+
+            button.textContent =
+                "✨ 3줄 요약";
+
+
+        } finally {
+
+            button.disabled = false;
+        }
+    }
+
+
+    // ============================================================
+    // NEW 판정
+    // 실제 등록일이 가장 최신인 기사만 NEW
+    // ============================================================
+
+    function parseNewsDate(value) {
+
+        if (!value) {
             return null;
         }
 
-        function renderNewsBoard(list, tbody, startIndex = 0) {
-            tbody.innerHTML = "";
-            list.forEach((news, index) => {
-                const row = document.createElement("tr");
-                const globalIndex = startIndex + index;
 
-                // 실제 기사 등록일이 최근 24시간 이내일 때만 NEW
-                const isNew = isLatestNews(news, allNewsList);
+        const raw =
+            String(value).trim();
 
-                const teamBadge = extractTeamName(news.title);
 
-                if (isNew) row.classList.add("new-row");
-
-                row.innerHTML = `
-                    <td>${news.number || globalIndex + 1}</td>
-                    <td class="col-title">
-                        <a href="${escapeHtml(news.url)}" class="title-link" target="_blank" rel="noopener noreferrer">
-                            ${escapeHtml(news.title)}
-                        </a>
-                        ${isNew ? '<span class="new-badge">NEW</span>' : ''}
-                        <div class="meta">
-                            ${teamBadge ? `<span class="team-badge">${teamBadge}</span>` : ''}
-                            ${escapeHtml(news.author || "MLB Korea")}
-                        </div>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-body" onclick="toggleArticle(${news.id}, this, ${index})">본문</button>
-                            <button class="btn-ai" onclick="toggleSummary(${news.id}, this, ${index})">✨ 3줄 요약</button>
-                        </div>
-                    </td>
-                    <td class="col-date">${escapeHtml(formatDate(news.date))}</td>`;
-
-                tbody.appendChild(row);
-
-                const detailRow = document.createElement("tr");
-                detailRow.className = "detail-row";
-                detailRow.id = `detail-row-${index}`;
-                detailRow.innerHTML = `
-                    <td colspan="4">
-                        <div class="detail-box">
-                            <div class="detail-title">${escapeHtml(news.title)}</div>
-                            <div class="detail-meta">
-                                ${escapeHtml(news.author || "MLB Korea")} · ${escapeHtml(formatDate(news.date))}
-                            </div>
-                            <div class="article-content" id="article-content-${index}" style="display:none"></div>
-                            <div class="summary-box" id="summary-box-${index}" style="display:none">
-                                <div class="summary-header">✨ AI 기사 3줄 요약</div>
-                                <div class="summary-text" id="summary-text-${index}"></div>
-                            </div>
-                        </div>
-                    </td>`;
-
-                tbody.appendChild(detailRow);
-            });
-
-            if (allNewsList.length > 0) {
-                firstLoad = false;
-            }
+        if (!raw) {
+            return null;
         }
 
-async function toggleArticle(id, button, index) {
-            const row = document.getElementById(`detail-row-${index}`);
-            const content = document.getElementById(`article-content-${index}`);
-            const summaryBox = document.getElementById(`summary-box-${index}`);
-            const summaryBtn = row.querySelector('.btn-ai');
 
-            // 본문이 이미 열려 있는 상태라면 -> 전부 닫기 및 초기화
-            if (content.style.display === "block") {
-                content.style.display = "none";
-                summaryBox.style.display = "none";
-                row.style.display = "none";
-                button.textContent = "본문";
-                summaryBtn.textContent = "✨ 3줄 요약";
-                return;
-            }
+        let date =
+            new Date(raw);
 
-            // 닫혀 있는 상태라면 -> 상세 행 열고 본문 표시 (요약은 닫힌 상태 유지)
-            row.style.display = "table-row";
-            content.style.display = "block";
-            button.textContent = "본문 닫기";
 
-            if (content.dataset.loaded === "true") return;
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
 
-            content.textContent = "기사 본문을 불러오는 중...";
-
-            try {
-                const response = await fetch(`${API_BASE}/api/news/mlb/${id}`, { cache: "no-store" });
-                const result = await response.json();
-
-                if (!response.ok || result.status !== "success") throw new Error(result.detail || "기사 본문 조회 실패");
-
-                content.textContent = result.data.content || "기사 본문을 가져오지 못했습니다.";
-                content.dataset.loaded = "true";
-            } catch (error) {
-                console.error(error);
-                content.textContent = "기사 본문을 불러오지 못했습니다.";
-            }
+            date =
+                new Date(
+                    raw.replace(
+                        " ",
+                        "T"
+                    )
+                );
         }
 
-        async function toggleSummary(id, button, index) {
-            const row = document.getElementById(`detail-row-${index}`);
-            const content = document.getElementById(`article-content-${index}`);
-            const summaryBox = document.getElementById(`summary-box-${index}`);
-            const articleBtn = row.querySelector('.btn-body');
-            const text = document.getElementById(`summary-text-${index}`);
 
-            // 요약이 이미 열려 있는 상태라면 -> 전부 닫기 및 초기화
-            if (summaryBox.style.display === "block") {
-                summaryBox.style.display = "none";
-                content.style.display = "none";
-                row.style.display = "none";
-                button.textContent = "✨ 3줄 요약";
-                articleBtn.textContent = "본문";
-                return;
+        return Number.isNaN(
+            date.getTime()
+        )
+            ? null
+            : date;
+    }
+
+
+    function getNewsDate(news) {
+
+        return (
+            news?.date ??
+            news?.published_at ??
+            news?.publishedAt ??
+            news?.created_at ??
+            news?.createdAt ??
+            null
+        );
+    }
+
+
+    function isLatestNews(
+        news,
+        newsList
+    ) {
+
+        if (
+            !news ||
+            !Array.isArray(newsList) ||
+            newsList.length === 0
+        ) {
+            return false;
+        }
+
+
+        const articleDate =
+            parseNewsDate(
+                getNewsDate(news)
+            );
+
+
+        if (!articleDate) {
+            return false;
+        }
+
+
+        const latestTime =
+            newsList
+
+                .map(item =>
+                    parseNewsDate(
+                        getNewsDate(item)
+                    )
+                )
+
+                .filter(
+                    date => date !== null
+                )
+
+                .reduce(
+                    (
+                        max,
+                        date
+                    ) =>
+                        Math.max(
+                            max,
+                            date.getTime()
+                        ),
+                    -Infinity
+                );
+
+
+        if (
+            latestTime === -Infinity
+        ) {
+            return false;
+        }
+
+
+        return (
+            articleDate.getTime() ===
+            latestTime
+        );
+    }
+
+
+    // ============================================================
+    // 날짜 표시
+    // ============================================================
+
+    function formatDate(value) {
+
+        if (!value) {
+            return "최근";
+        }
+
+
+        const date =
+            new Date(
+                value.replace(
+                    " ",
+                    "T"
+                )
+            );
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+            return value;
+        }
+
+
+        return date.toLocaleString(
+            "ko-KR",
+            {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
             }
+        );
+    }
 
-            // 닫혀 있는 상태라면 -> 상세 행 열고 요약 표시
-            row.style.display = "table-row";
-            summaryBox.style.display = "block";
 
-            if (text.dataset.loaded === "true") {
-                button.textContent = "요약 닫기";
-                return;
-            }
+    // ============================================================
+    // HTML escape
+    // ============================================================
 
-            button.disabled = true;
-            button.textContent = "요약 중...";
-            text.textContent = "AI가 실제 기사 본문을 분석하고 있습니다...";
+    function escapeHtml(value) {
 
-            try {
-                const response = await fetch(`${API_BASE}/api/news/summary/${id}`, { cache: "no-store" });
-                const result = await response.json();
+        return String(
+            value ?? ""
+        )
 
-                if (!response.ok || result.status !== "success") throw new Error(result.detail || "AI 요약 실패");
+            .replaceAll(
+                "&",
+                "&amp;"
+            )
 
-                text.textContent = result.summary;
-                text.dataset.loaded = "true";
-                button.textContent = "요약 닫기";
-            } catch (error) {
-                console.error(error);
-                text.textContent = `AI 요약 실패: ${error.message}`;
-                button.textContent = "✨ 3줄 요약";
-            } finally {
-                button.disabled = false;
-            }
-        }
+            .replaceAll(
+                "<",
+                "&lt;"
+            )
 
-        // ============================================================
-        // NEW 판정
-        // API가 반환한 뉴스 중 "실제 등록일이 가장 최신"인 기사만 NEW 표시
-        // 시간 차이(24시간/60분)를 사용하지 않음
-        // ============================================================
-        function parseNewsDate(value) {
-            if (!value) return null;
+            .replaceAll(
+                ">",
+                "&gt;"
+            )
 
-            const raw = String(value).trim();
-            if (!raw) return null;
+            .replaceAll(
+                '"',
+                "&quot;"
+            )
 
-            // ISO / MySQL DATETIME 모두 대응
-            let date = new Date(raw);
+            .replaceAll(
+                "'",
+                "&#039;"
+            );
+    }
 
-            if (Number.isNaN(date.getTime())) {
-                date = new Date(raw.replace(' ', 'T'));
-            }
-
-            return Number.isNaN(date.getTime()) ? null : date;
-        }
-
-        function getNewsDate(news) {
-            // 백엔드에서 date를 사용하지만, 혹시 필드명이 다른 경우도 대응
-            return news?.date ?? news?.published_at ?? news?.publishedAt ?? news?.created_at ?? news?.createdAt ?? null;
-        }
-
-        function isLatestNews(news, newsList) {
-            if (!news || !Array.isArray(newsList) || newsList.length === 0) {
-                return false;
-            }
-
-            const articleDate = parseNewsDate(getNewsDate(news));
-            if (!articleDate) return false;
-
-            const latestTime = newsList
-                .map(item => parseNewsDate(getNewsDate(item)))
-                .filter(date => date !== null)
-                .reduce((max, date) => Math.max(max, date.getTime()), -Infinity);
-
-            if (latestTime === -Infinity) return false;
-
-            // 최신 등록일과 정확히 같은 기사만 NEW
-            return articleDate.getTime() === latestTime;
-        }
-
-        function formatDate(value) {
-            if (!value) return "최근";
-            const date = new Date(value.replace(" ", "T"));
-            if (Number.isNaN(date.getTime())) return value;
-            return date.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? "")
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
-        }
-    </script>
+</script>
 </body>
 </html>
