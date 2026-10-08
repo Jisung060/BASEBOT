@@ -1274,10 +1274,9 @@ async function loadPostDetail() {
         }
 
 
-        /* =================================
-           좋아요
-        ================================= */
-
+        // =================================
+        //          좋아요
+        // =================================
         const likeButton =
             document.getElementById(
                 "postLikeButton"
@@ -1290,6 +1289,7 @@ async function loadPostDetail() {
                     "strong"
                 );
 
+            // 현재 게시글의 좋아요 개수 표시
             if (count) {
 
                 count.textContent =
@@ -1297,8 +1297,144 @@ async function loadPostDetail() {
                         post.like_count || 0
                     ).toLocaleString();
             }
+
+
+            // =================================
+            //          현재 좋아요 상태 확인
+            // =================================
+            try {
+
+                const likeStatusResponse =
+                    await fetch(
+                        `${API_BASE_URL}/community/posts/${post.post_id}/like`
+                    );
+
+                console.log("좋아요 상태 API 응답:",
+                    likeStatusResponse.status
+                );
+
+                if (!likeStatusResponse.ok) {
+
+                    const errorText =
+                        await likeStatusResponse.text();
+
+                    console.error(
+                        "좋아요 상태 조회 실패:",
+                        likeStatusResponse.status,
+                        errorText
+                    );
+
+                } else {
+
+                    const likeStatus =
+                        await likeStatusResponse.json();
+
+                    console.log(
+                        "현재 좋아요 상태:",
+                        likeStatus
+                    );
+
+                    // 좋아요 개수 표시
+                    if (count) {
+
+                        count.textContent =
+                            Number(
+                                likeStatus.like_count || 0
+                            ).toLocaleString();
+                    }
+
+                    // 이미 좋아요를 눌렀다면
+                    if (likeStatus.liked) {
+
+                        likeButton.classList.add("liked");
+
+                    } else {
+
+                        likeButton.classList.remove("liked");
+                    }
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "좋아요 상태 조회 오류:",
+                    error
+                );
+            }
+
+
+            // =================================
+            //          좋아요 버튼 클릭
+            // =================================
+            likeButton.onclick = async function () {
+
+                try {
+
+                    const likeResponse =
+                        await fetch(
+                            `${API_BASE_URL}/community/posts/${post.post_id}/like`,
+                            {
+                                method: "POST"
+                            }
+                        );
+
+                    if (!likeResponse.ok) {
+
+                        const errorData =
+                            await likeResponse.json();
+
+                        throw new Error(
+                            errorData.detail ||
+                            "좋아요 처리에 실패했습니다."
+                        );
+                    }
+
+                    const result =
+                        await likeResponse.json();
+
+                    console.log(
+                        "좋아요 처리 결과:",
+                        result
+                    );
+
+
+                    // 좋아요 개수 즉시 변경
+                    if (count) {
+
+                        count.textContent =
+                            Number(
+                                result.like_count || 0
+                            ).toLocaleString();
+                    }
+
+
+                    // 좋아요 상태에 따라 버튼 변경
+                    if (result.liked) {
+
+                        likeButton.classList.add("liked");
+
+                    } else {
+
+                        likeButton.classList.remove("liked");
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "좋아요 처리 오류:",
+                        error
+                    );
+
+                    showBasebotModal(
+                        "좋아요 오류",
+                        error.message ||
+                        "좋아요 처리 중 오류가 발생했습니다."
+                    );
+                }
+            };
         }
 
+        await loadComments(post.post_id);
 
         /* =================================
            수정 버튼
@@ -1326,8 +1462,303 @@ async function loadPostDetail() {
     }
 }
 
-
 loadPostDetail();
+
+
+async function loadComments(postId) {
+
+    const commentList =
+        document.getElementById("commentList");
+
+    const commentCount =
+        document.getElementById("commentCount");
+
+    if (!commentList) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/comments`
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "댓글을 불러오지 못했습니다."
+            );
+        }
+
+        const comments =
+            await response.json();
+
+        console.log(
+            "댓글 목록:",
+            comments
+        );
+
+        // 댓글 개수
+        if (commentCount) {
+
+            commentCount.textContent =
+                comments.length;
+        }
+
+        // 기존 댓글 비우기
+        commentList.innerHTML = "";
+
+        // 댓글이 없는 경우
+        if (comments.length === 0) {
+
+            commentList.innerHTML = `
+                <p class="comment-empty">
+                    아직 댓글이 없습니다.
+                </p>
+            `;
+
+            return;
+        }
+
+       // -----------------------------------------
+        // 댓글 계층 구조 만들기
+        // -----------------------------------------
+
+        const commentMap = new Map();
+
+        comments.forEach(function (comment) {
+
+            commentMap.set(
+                comment.comment_id,
+                {
+                    ...comment,
+                    children: []
+                }
+            );
+        });
+
+
+        // -----------------------------------------
+        // 부모 댓글에 자식 댓글 연결
+        // -----------------------------------------
+
+        const rootComments = [];
+
+        comments.forEach(function (comment) {
+
+            const current =
+                commentMap.get(
+                    comment.comment_id
+                );
+
+            if (
+                comment.parent_comment_id &&
+                commentMap.has(
+                    comment.parent_comment_id
+                )
+            ) {
+
+                const parent =
+                    commentMap.get(
+                        comment.parent_comment_id
+                    );
+
+                parent.children.push(
+                    current
+                );
+
+            } else {
+
+                rootComments.push(
+                    current
+                );
+            }
+        });
+
+
+        // -----------------------------------------
+        // 댓글 재귀 출력
+        // -----------------------------------------
+
+        function renderComment(
+            comment,
+            depth = 0
+        ) {
+
+            const commentItem =
+                createCommentElement(
+                    comment,
+                    depth
+                );
+
+            commentList.appendChild(
+                commentItem
+            );
+
+
+            // 자식 댓글 출력
+            comment.children.forEach(
+                function (child) {
+
+                    renderComment(
+                        child,
+                        depth + 1
+                    );
+                }
+            );
+        }
+
+
+        // -----------------------------------------
+        // 최상위 댓글부터 출력
+        // -----------------------------------------
+
+        rootComments.forEach(
+            function (comment) {
+
+                renderComment(
+                    comment,
+                    0
+                );
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "댓글 조회 오류:",
+            error
+        );
+    }
+}
+
+
+function createCommentElement(
+    comment,
+    depth = 0
+) {
+
+    const commentItem =
+        document.createElement("div");
+
+
+    commentItem.className =
+        depth > 0
+            ? "comment-item reply-comment"
+            : "comment-item";
+
+
+    commentItem.dataset.commentId =
+        comment.comment_id;
+
+
+    commentItem.dataset.depth =
+        depth;
+
+
+    commentItem.innerHTML = `
+        <div class="comment-head">
+
+            <strong>
+                ${comment.nickname}
+            </strong>
+
+            <span>
+                ${formatCommentDate(
+                    comment.created_at
+                )}
+            </span>
+
+        </div>
+
+
+        <p class="comment-text">
+            ${comment.content}
+        </p>
+
+
+        <div class="comment-actions">
+
+            <button
+                type="button"
+                class="comment-like-button"
+            >
+                ♥ 좋아요
+                <strong>
+                    ${comment.like_count}
+                </strong>
+            </button>
+
+
+            <button
+                type="button"
+                class="reply-button"
+            >
+                답글
+            </button>
+
+        </div>
+    `;
+
+
+    // -----------------------------------------
+    // 대댓글 깊이에 따른 들여쓰기
+    // -----------------------------------------
+
+    if (depth > 0) {
+
+        commentItem.style.marginLeft =
+            `${Math.min(depth * 28, 140)}px`;
+    }
+
+
+    return commentItem;
+}
+
+function getPostId() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    return params.get("postId");
+}
+
+function formatCommentDate(dateString) {
+
+    const date =
+        new Date(dateString);
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    const hours =
+        String(
+            date.getHours()
+        ).padStart(2, "0");
+
+    const minutes =
+        String(
+            date.getMinutes()
+        ).padStart(2, "0");
+
+    return `${year}.${month}.${day} ${hours}:${minutes}`;
+}
+
+
 
 /* =========================================
    게시글 작성
@@ -2174,20 +2605,147 @@ function setupShare() {
 
 setupShare();
 
+/* =========================================
+   댓글
+========================================= */
+
+const commentForm =
+    document.getElementById("commentForm");
+
+commentForm?.addEventListener("submit", async event => {
+
+    event.preventDefault();
+
+    const textarea =
+        commentForm.querySelector("textarea");
+
+    const content =
+        textarea.value.trim();
+
+    if (!content) {
+
+        alert(
+            "댓글 내용을 입력해주세요."
+        );
+
+        return;
+    }
+
+    // 현재 게시글 번호 가져오기
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const postId =
+        params.get("postId");
+
+    if (!postId) {
+
+        alert(
+            "게시글 번호를 찾을 수 없습니다."
+        );
+
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/comments?content=${encodeURIComponent(content)}`,
+                {
+                    method: "POST"
+                }
+            );
+
+        if (!response.ok) {
+
+            const errorData =
+                await response.json();
+
+            throw new Error(
+                errorData.detail ||
+                "댓글 등록에 실패했습니다."
+            );
+        }
+
+        const result =
+            await response.json();
+
+        console.log(
+            "댓글 등록 완료:",
+            result
+        );
+
+        // 입력창 비우기
+        textarea.value = "";
+
+        // 댓글 목록 다시 불러오기
+        await loadComments(postId);
+
+    } catch (error) {
+
+        console.error(
+            "댓글 등록 오류:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "댓글 등록 중 오류가 발생했습니다."
+        );
+    }
+});
+
+const commentTextarea =
+    commentForm?.querySelector("textarea");
+
+commentTextarea?.addEventListener("keydown", event => {
+
+    if (event.key === "Enter" && !event.shiftKey) {
+
+        event.preventDefault();
+
+        commentForm.requestSubmit();
+    }
+
+});
 
 /* =========================================
    대댓글
 ========================================= */
 
-document.querySelectorAll(".reply-button").forEach(button => {
+document
+    .getElementById("commentList")
+    ?.addEventListener("click", function (event) {
 
-    button.addEventListener("click", () => {
+        const replyButton =
+            event.target.closest(".reply-button");
+
+        if (!replyButton) {
+            return;
+        }
 
         const comment =
-            button.closest(".comment-item");
+            replyButton.closest(".comment-item");
 
-        if (!comment) return;
+        if (!comment) {
+            return;
+        }
 
+        const commentId =
+            comment.dataset.commentId;
+
+        if (!commentId) {
+            alert(
+                "댓글 번호를 찾을 수 없습니다."
+            );
+
+            return;
+        }
+
+        // 이미 답글 입력창이 있으면 닫기
         let replyBox =
             comment.querySelector(
                 ":scope > .reply-write"
@@ -2200,6 +2758,7 @@ document.querySelectorAll(".reply-button").forEach(button => {
             return;
         }
 
+        // 답글 입력창 생성
         replyBox =
             document.createElement("div");
 
@@ -2207,21 +2766,39 @@ document.querySelectorAll(".reply-button").forEach(button => {
             "reply-write";
 
         replyBox.innerHTML = `
-            <textarea placeholder="답글을 입력하세요"></textarea>
-            <button type="button">답글 등록</button>
+            <textarea
+                placeholder="답글을 입력하세요"
+            ></textarea>
+
+            <button
+                type="button"
+            >
+                답글 등록
+            </button>
         `;
-
-        replyBox.style.marginTop = "10px";
-
-        replyBox.style.display = "grid";
-
-        replyBox.style.gridTemplateColumns =
-            "1fr 80px";
-
-        replyBox.style.gap = "6px";
 
         const textarea =
             replyBox.querySelector("textarea");
+
+        const submit =
+            replyBox.querySelector("button");
+        // 답글 입력창 Enter 등록
+        textarea.addEventListener(
+            "keydown",
+            function (event) {
+
+                // Enter만 누르면 등록
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    submit.click();
+                }
+            }
+        );
 
         textarea.style.minHeight = "60px";
 
@@ -2229,9 +2806,6 @@ document.querySelectorAll(".reply-button").forEach(button => {
 
         textarea.style.border =
             "1px solid #d8dde6";
-
-        const submit =
-            replyBox.querySelector("button");
 
         submit.style.border = "0";
 
@@ -2241,60 +2815,78 @@ document.querySelectorAll(".reply-button").forEach(button => {
 
         submit.style.cursor = "pointer";
 
-        submit.addEventListener("click", () => {
+        // 답글 등록
+        submit.addEventListener(
+            "click",
+            async function () {
 
-            if (!textarea.value.trim()) {
+                const content =
+                    textarea.value.trim();
 
-                alert(
-                    "답글 내용을 입력해주세요."
-                );
+                if (!content) {
 
-                return;
+                    alert(
+                        "답글 내용을 입력해주세요."
+                    );
+
+                    return;
+                }
+
+                try {
+
+                    const response =
+                        await fetch(
+                            `${API_BASE_URL}/community/posts/${getPostId()}/comments?content=${encodeURIComponent(content)}&parent_comment_id=${commentId}`,
+                            {
+                                method: "POST"
+                            }
+                        );
+
+                    if (!response.ok) {
+
+                        const errorData =
+                            await response.json();
+
+                        throw new Error(
+                            errorData.detail ||
+                            "답글 등록에 실패했습니다."
+                        );
+                    }
+
+                    const result =
+                        await response.json();
+
+                    console.log(
+                        "대댓글 등록 완료:",
+                        result
+                    );
+
+                    // 댓글 목록 다시 불러오기
+                    await loadComments(
+                        getPostId()
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "대댓글 등록 오류:",
+                        error
+                    );
+
+                    alert(
+                        error.message ||
+                        "답글 등록 중 오류가 발생했습니다."
+                    );
+                }
             }
-
-            alert(
-                "대댓글 UI 테스트입니다. 실제 저장은 추후 API와 연결합니다."
-            );
-
-            textarea.value = "";
-        });
+        );
 
         comment.appendChild(replyBox);
 
         textarea.focus();
     });
-});
 
 
-/* =========================================
-   댓글
-========================================= */
-
-const commentForm =
-    document.getElementById("commentForm");
-
-commentForm?.addEventListener("submit", event => {
-
-    event.preventDefault();
-
-    const textarea =
-        commentForm.querySelector("textarea");
-
-    if (!textarea.value.trim()) {
-
-        alert(
-            "댓글 내용을 입력해주세요."
-        );
-
-        return;
-    }
-
-    alert(
-        "댓글 UI 테스트입니다. 실제 저장은 추후 FastAPI와 연결합니다."
-    );
-
-    textarea.value = "";
-});
 
 // =========================================
 // 게시글 삭제
