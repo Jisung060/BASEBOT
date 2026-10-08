@@ -4,116 +4,335 @@
 
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
+    async function () {
 
+        /* ==================================================
+           로그인 확인
+        ================================================== */
         const user =
-            getLoginUser();
+            JSON.parse(
+                sessionStorage.getItem("user")
+            );
 
-        if (!user) {
+        const token =
+            sessionStorage.getItem(
+                "access_token"
+            );
+
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            location.href = "/login.html";
             return;
         }
+
+        /* ==================================================
+           HTML 요소
+        ================================================== */
 
         const username =
             document.getElementById(
                 "editUsername"
             );
-
         const nickname =
             document.getElementById(
                 "editNickname"
             );
-
         const email =
             document.getElementById(
                 "editEmail"
             );
-
-        if (username && user.username) {
-            username.value =
-                user.username;
-        }
-
-        if (nickname && user.nickname) {
-            nickname.value =
-                user.nickname;
-        }
-
-        if (email && user.email) {
-            email.value =
-                user.email;
-        }
-
-
-        /* 회원정보 저장 */
+        const favoriteTeam =
+            document.getElementById(
+                "editFavoriteTeam"
+            );
         const memberEditForm =
             document.getElementById(
                 "memberEditForm"
             );
 
+        /* ==================================================
+           현재 회원정보 조회
+        ================================================== */
+
+        try {
+
+            const response =
+                await fetch(
+                    "/users/me",
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+            /* 로그인 만료 */
+
+            if (response.status === 401) {
+
+                alert(
+                    "로그인이 만료되었습니다."
+                );
+
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("user");
+
+                location.href =
+                    "/login.html";
+
+                return;
+            }
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "회원정보를 불러오지 못했습니다."
+                );
+            }
+
+            const data =
+                await response.json();
+
+
+            /* ==================================================
+               회원정보 화면 표시
+            ================================================== */
+
+            if (username) {
+                username.value =
+                    data.username || "";
+
+            }
+
+            if (nickname) {
+                nickname.value =
+                    data.nickname || "";
+
+            }
+
+            if (email) {
+                email.value =
+                    data.email || "";
+
+            }
+
+
+            if (favoriteTeam) {
+                favoriteTeam.value =
+                    data.favorite_team_id
+                    ? String(data.favorite_team_id)
+                    : "";
+
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "회원정보 조회 오류:",
+                error
+            );
+
+            alert(
+                "회원정보를 불러오는 중 오류가 발생했습니다."
+            );
+            return;
+        }
+
+
+        /* ==================================================
+           회원정보 저장
+        ================================================== */
+
         if (memberEditForm) {
 
             memberEditForm.addEventListener(
                 "submit",
-                function (event) {
+                async function (event) {
 
                     event.preventDefault();
 
-                    /*
-                     * 현재는 화면 동작만 연결.
-                     * 실제 DB 저장은 회원정보 수정 API 연결 후
-                     * fetch("/users/me") 등의 API 호출로 교체.
-                     */
+                    /* 입력값 */
 
-                    alert(
-                        "회원정보 수정 API 연결 후 저장됩니다."
-                    );
-                }
-            );
-        }
+                    const nicknameValue =
+                        nickname.value.trim();
+
+                    const emailValue =
+                        email.value.trim();
+
+                    const favoriteTeamValue =
+                        favoriteTeam.value;
 
 
-        /* 비밀번호 변경 */
-        const passwordForm =
-            document.getElementById(
-                "passwordForm"
-            );
+                    /* ==================================================
+                       기본 입력값 확인
+                    ================================================== */
 
-        if (passwordForm) {
-
-            passwordForm.addEventListener(
-                "submit",
-                function (event) {
-
-                    event.preventDefault();
-
-                    const newPassword =
-                        document.getElementById(
-                            "newPassword"
-                        ).value;
-
-                    const confirmPassword =
-                        document.getElementById(
-                            "newPasswordConfirm"
-                        ).value;
-
-                    if (
-                        newPassword !==
-                        confirmPassword
-                    ) {
-
+                    if (!nicknameValue) {
                         alert(
-                            "새 비밀번호가 일치하지 않습니다."
+                            "닉네임을 입력해주세요."
                         );
-
+                        nickname.focus();
                         return;
                     }
 
-                    alert(
-                        "비밀번호 변경 API 연결 후 저장됩니다."
-                    );
+                    if (!emailValue) {
+                        alert(
+                            "이메일을 입력해주세요."
+                        );
+                        email.focus();
+                        return;
+                    }
+
+
+                    /* ==================================================
+                       수정 데이터
+                    ================================================== */
+
+                    const requestData = {
+                        nickname:
+                            nicknameValue,
+                        email:
+                            emailValue,
+                        favorite_team_id:
+                            favoriteTeamValue
+                                ? Number(favoriteTeamValue)
+                                : null
+
+                    };
+
+                    try {
+
+
+                        /* ==================================================
+                           회원정보 수정 API
+                        ================================================== */
+
+                        const response =
+                            await fetch(
+                                "/users/me",
+                                {
+                                    method: "PUT",
+
+                                    headers: {
+
+                                        "Content-Type":
+                                            "application/json",
+
+                                        "Authorization":
+                                            `Bearer ${token}`
+
+                                    },
+
+                                    body:
+                                        JSON.stringify(
+                                            requestData
+                                        )
+                                }
+                            );
+
+                        /* ==================================================
+                           응답 처리
+                        ================================================== */
+
+                        const data =
+                            await response.json();
+
+                        /* 로그인 만료 */
+
+                        if (
+                            response.status === 401
+                        ) {
+
+                            alert(
+                                "로그인이 만료되었습니다."
+                            );
+
+                            localStorage.removeItem(
+                                "access_token"
+                            );
+
+                            localStorage.removeItem(
+                                "loginUser"
+                            );
+
+                            location.href =
+                                "/login.html";
+
+                            return;
+                        }
+
+                        /* 닉네임 / 이메일 중복 */
+                        if (
+                            response.status === 409
+                        ) {
+                            alert(
+                                data.detail
+                            );
+                            return;
+                        }
+
+                        /* 기타 오류 */
+                        if (!response.ok) {
+                            alert(
+                                data.detail ||
+                                "회원정보 수정에 실패했습니다."
+                            );
+                            return;
+                        }
+
+                        /* ==================================================
+                           수정 성공
+                        ================================================== */
+
+                        alert(
+                            "회원정보가 수정되었습니다."
+                        );
+
+                        /* ==================================================
+                           localStorage 회원정보도 갱신
+                        ================================================== */
+
+                        const loginUser =
+                            getLoginUser();
+
+                        if (loginUser) {
+
+                            loginUser.nickname =
+                                data.nickname;
+
+                            loginUser.email =
+                                data.email;
+
+                            loginUser.favorite_team_id =
+                                data.favorite_team_id;
+
+                            localStorage.setItem(
+                                "loginUser",
+                                JSON.stringify(
+                                    loginUser
+                                )
+                            );
+                        }
+
+                        /* 마이페이지 이동 */
+                        location.href =
+                            "/mypage.html";
+
+                    } catch (error) {
+                        console.error(
+                            "회원정보 수정 오류:",
+                            error
+                        );
+                        alert(
+                            "회원정보 수정 중 오류가 발생했습니다."
+                        );
+                    }
                 }
             );
         }
-
     }
 );

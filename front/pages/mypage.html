@@ -56,22 +56,22 @@
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">포인트</div>
-            <div class="mypage-stat-value">1,000 P</div>
+            <div class="mypage-stat-value" id="userPoint">-</div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">등급</div>
-            <div class="mypage-stat-value">BRONZE</div>
+            <div class="mypage-stat-value" id="userGrade">-</div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">현재 연속 적중</div>
-            <div class="mypage-stat-value">0회</div>
+            <div class="mypage-stat-value" id="userPredictionStreak">-</div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">최고 연속 적중</div>
-            <div class="mypage-stat-value">0회</div>
+            <div class="mypage-stat-value" id="userMaxPredictionStreak">-</div>
         </div>
 
     </div>
@@ -103,14 +103,14 @@
 
                 <tr>
                     <th>관심 팀</th>
-                    <td>설정된 관심 팀이 없습니다.</td>
+                    <td id="userFavoriteTeam">-</td>
                 </tr>
 
                 <tr>
                     <th>회원 등급</th>
                     <td>
-                        <span class="grade-badge">
-                            BRONZE
+                        <span class="grade-badge" id="userGradeBadge">
+                            -
                         </span>
                     </td>
                 </tr>
