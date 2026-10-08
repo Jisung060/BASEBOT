@@ -454,23 +454,31 @@
     // 한 페이지당 10개
     const ITEMS_PER_PAGE = 10;
 
+    // 현재 열려 있는 기사
+    let openedArticleId = null;
+
+    // 자동 갱신 타이머
+    let newsRefreshTimer = null;
+
     // 실제 최신 기사만 NEW
     const NEW_WINDOW_HOURS = 24;
 
-
     window.addEventListener("DOMContentLoaded", () => {
-        loadNews();
+    loadNews();
 
-        // 30초마다 최신 뉴스 확인
-        setInterval(loadNews, REFRESH_MS);
-    });
+    // 30초마다 최신 뉴스 확인
+    newsRefreshTimer = setInterval(() => {
+        loadNews(true);
+    }, REFRESH_MS);
+});
+
 
 
     // ============================================================
     // 뉴스 불러오기
     // ============================================================
 
-    async function loadNews() {
+    async function loadNews(isRefresh = false) {
         const tbody = document.getElementById("news-tbody");
         const status = document.getElementById("status-text");
         const dot = document.getElementById("status-dot");
@@ -491,16 +499,26 @@
             }
 
             const result = await response.json();
+            // 전체 뉴스 저장
+            allNewsList = result.data || [];
 
             if (result.status !== "success") {
                 throw new Error("뉴스 API 응답 오류");
             }
+
+            // 현재 보고 있는 기사 기억
+            const currentOpenedArticleId = openedArticleId;
 
             // 전체 뉴스 저장
             allNewsList = result.data || [];
 
             // 현재 필터 유지
             applyFilters(false);
+
+            // 자동 갱신 후 현재 보고 있던 기사 다시 열기
+            if (currentOpenedArticleId !== null) {
+            restoreOpenedArticle(currentOpenedArticleId);
+            }
 
             status.textContent =
                 `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
@@ -530,7 +548,59 @@
         }
     }
 
+// ============================================================
+// 자동 갱신 후 열려 있던 기사 복원
+// ============================================================
 
+function restoreOpenedArticle(newsId) {
+
+    const articleIndex =
+        filteredNewsList.findIndex(
+            news => Number(news.id) === Number(newsId)
+        );
+
+    if (articleIndex === -1) {
+        return;
+    }
+
+    const startIndex =
+        (currentPage - 1) * ITEMS_PER_PAGE;
+
+    const pageIndex =
+        articleIndex - startIndex;
+
+    if (
+        pageIndex < 0 ||
+        pageIndex >= ITEMS_PER_PAGE
+    ) {
+        return;
+    }
+
+    const detailRow =
+        document.getElementById(
+            `detail-row-${pageIndex}`
+        );
+
+    const content =
+        document.getElementById(
+            `article-content-${pageIndex}`
+        );
+
+    if (!detailRow || !content) {
+        return;
+    }
+
+    detailRow.style.display = "table-row";
+    content.style.display = "block";
+
+    // 본문은 다시 서버에서 가져오도록 함
+    content.dataset.loaded = "false";
+
+    loadArticleContent(
+        newsId,
+        content
+    );
+}
     // ============================================================
     // 검색 / 구단 필터
     // ============================================================
@@ -987,115 +1057,113 @@
         }
     }
 
+// ============================================================
+// 기사 본문 가져오기
+// ============================================================
 
+async function loadArticleContent(id, content) {
+
+    content.textContent =
+        "기사 본문을 불러오는 중...";
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/api/news/mlb/${id}`,
+                {
+                    cache: "no-store"
+                }
+            );
+
+        const result =
+            await response.json();
+
+        if (
+            !response.ok ||
+            result.status !== "success"
+        ) {
+            throw new Error(
+                result.detail ||
+                "기사 본문 조회 실패"
+            );
+        }
+
+        content.textContent =
+            result.data.content ||
+            "기사 본문을 가져오지 못했습니다.";
+
+        content.dataset.loaded = "true";
+
+    } catch (error) {
+
+        console.error(error);
+
+        content.textContent =
+            "기사 본문을 불러오지 못했습니다.";
+    }
+}
     // ============================================================
     // 기사 본문 열기
     // ============================================================
 
     async function toggleArticle(
-        id,
-        titleElement,
-        index
-    ) {
+    id,
+    titleElement,
+    index
+) {
 
-        const row =
-            document.getElementById(
-                `detail-row-${index}`
-            );
+    const row =
+        document.getElementById(
+            `detail-row-${index}`
+        );
 
+    const content =
+        document.getElementById(
+            `article-content-${index}`
+        );
 
-        const content =
-            document.getElementById(
-                `article-content-${index}`
-            );
-
-
-        const summaryBox =
-            document.getElementById(
-                `summary-box-${index}`
-            );
+    const summaryBox =
+        document.getElementById(
+            `summary-box-${index}`
+        );
 
 
-        // ========================================================
-        // 이미 열려 있으면 닫기
-        // ========================================================
+    // 이미 열려 있으면 닫기
+    if (content.style.display === "block") {
 
-        if (content.style.display === "block") {
+        content.style.display = "none";
+        summaryBox.style.display = "none";
+        row.style.display = "none";
 
-            content.style.display = "none";
+        openedArticleId = null;
 
-            summaryBox.style.display = "none";
-
-            row.style.display = "none";
-
-            return;
-        }
-
-
-        // ========================================================
-        // 본문 열기
-        // ========================================================
-
-        row.style.display = "table-row";
-
-        content.style.display = "block";
-
-
-        // 이미 불러온 본문이면 다시 요청하지 않음
-        if (
-            content.dataset.loaded === "true"
-        ) {
-            return;
-        }
-
-
-        content.textContent =
-            "기사 본문을 불러오는 중...";
-
-
-        try {
-
-            const response =
-                await fetch(
-                    `${API_BASE}/api/news/mlb/${id}`,
-                    {
-                        cache: "no-store"
-                    }
-                );
-
-
-            const result =
-                await response.json();
-
-
-            if (
-                !response.ok ||
-                result.status !== "success"
-            ) {
-
-                throw new Error(
-                    result.detail ||
-                    "기사 본문 조회 실패"
-                );
-            }
-
-
-            content.textContent =
-                result.data.content ||
-                "기사 본문을 가져오지 못했습니다.";
-
-
-            content.dataset.loaded = "true";
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            content.textContent =
-                "기사 본문을 불러오지 못했습니다.";
-        }
+        return;
     }
+
+
+    // 현재 열려 있는 기사 기억
+    openedArticleId = id;
+
+
+    // 본문 열기
+    row.style.display = "table-row";
+    content.style.display = "block";
+
+
+    // 이미 불러온 본문이면 다시 요청하지 않음
+    if (
+        content.dataset.loaded === "true"
+    ) {
+        return;
+    }
+
+
+    await loadArticleContent(
+        id,
+        content
+    );
+}
 
 
     // ============================================================
