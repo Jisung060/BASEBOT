@@ -7,6 +7,7 @@ from models.user import User
 from models.team import Team
 from models.post_like import PostLike
 from models.comment import Comment
+from models.comment_like import CommentLike
 
 from schemas.community import (
     CommunityPostCreate, CommunityPostUpdate )
@@ -486,4 +487,224 @@ def create_comment(
         "like_count": new_comment.like_count,
         "comment_count": post.comment_count,
         "created_at": new_comment.created_at
+    }
+
+# =========================================
+# 댓글 수정
+# =========================================
+
+@router.put("/comments/{comment_id}")
+def update_comment(
+    comment_id: int,
+    content: str,
+    session: Session = Depends(get_session)
+):
+    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
+    user_id = 1
+
+    # 댓글 확인
+    comment = (
+        session.query(Comment)
+        .filter(
+            Comment.comment_id == comment_id
+        )
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(
+            status_code=404,
+            detail="댓글을 찾을 수 없습니다."
+        )
+
+    # 작성자 확인
+    if comment.user_id != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="댓글을 수정할 권한이 없습니다."
+        )
+
+    # 빈 댓글 확인
+    if not content.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="댓글 내용을 입력해주세요."
+        )
+
+    # 댓글 내용 수정
+    comment.content = content.strip()
+
+    session.commit()
+    session.refresh(comment)
+
+    return {
+        "comment_id": comment.comment_id,
+        "content": comment.content,
+        "updated_at": comment.updated_at
+    }
+
+# =========================================
+# 댓글 삭제
+# =========================================
+
+@router.delete("/comments/{comment_id}")
+def delete_comment(
+    comment_id: int,
+    session: Session = Depends(get_session)
+):
+    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
+    user_id = 1
+
+    # 댓글 확인
+    comment = (
+        session.query(Comment)
+        .filter(
+            Comment.comment_id == comment_id
+        )
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(
+            status_code=404,
+            detail="댓글을 찾을 수 없습니다."
+        )
+
+    # 작성자 확인
+    if comment.user_id != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="댓글을 삭제할 권한이 없습니다."
+        )
+
+    # 게시글 찾기
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == comment.post_id
+        )
+        .first()
+    )
+
+    # 댓글 삭제
+    session.delete(comment)
+
+    # 게시글 댓글 수 감소
+    if post and post.comment_count > 0:
+        post.comment_count -= 1
+
+    session.commit()
+
+    return {
+        "comment_id": comment_id,
+        "message": "댓글이 삭제되었습니다.",
+        "comment_count": post.comment_count if post else 0
+    }
+
+# =========================================
+# 댓글 좋아요
+# =========================================
+
+@router.post("/comments/{comment_id}/like")
+def toggle_comment_like(
+    comment_id: int,
+    session: Session = Depends(get_session)
+):
+    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
+    user_id = 1
+
+    # 댓글 확인
+    comment = (
+        session.query(Comment)
+        .filter(
+            Comment.comment_id == comment_id
+        )
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(
+            status_code=404,
+            detail="댓글을 찾을 수 없습니다."
+        )
+
+    # 기존 좋아요 확인
+    existing_like = (
+        session.query(CommentLike)
+        .filter(
+            CommentLike.comment_id == comment_id,
+            CommentLike.user_id == user_id
+        )
+        .first()
+    )
+
+    # 이미 좋아요를 눌렀다면 → 좋아요 취소
+    if existing_like:
+        session.delete(existing_like)
+
+        if comment.like_count > 0:
+            comment.like_count -= 1
+
+        liked = False
+
+    # 좋아요를 누르지 않았다면 → 좋아요 등록
+    else:
+        new_like = CommentLike(
+            comment_id=comment_id,
+            user_id=user_id
+        )
+
+        session.add(new_like)
+        comment.like_count += 1
+
+        liked = True
+
+    session.commit()
+    session.refresh(comment)
+
+    return {
+        "comment_id": comment_id,
+        "liked": liked,
+        "like_count": comment.like_count
+    }
+
+
+# 댓글 좋아요 상태
+@router.get("/comments/{comment_id}/like")
+def get_comment_like(
+    comment_id: int,
+    session: Session = Depends(get_session)
+):
+    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
+    user_id = 1
+
+    # 댓글 확인
+    comment = (
+        session.query(Comment)
+        .filter(
+            Comment.comment_id == comment_id
+        )
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(
+            status_code=404,
+            detail="댓글을 찾을 수 없습니다."
+        )
+
+    # 현재 사용자가 좋아요를 눌렀는지 확인
+    existing_like = (
+        session.query(CommentLike)
+        .filter(
+            CommentLike.comment_id == comment_id,
+            CommentLike.user_id == user_id
+        )
+        .first()
+    )
+
+    return {
+        "comment_id": comment_id,
+        "liked": existing_like is not None,
+        "like_count": comment.like_count
     }

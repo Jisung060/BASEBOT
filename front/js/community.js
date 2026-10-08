@@ -1634,7 +1634,423 @@ async function loadComments(postId) {
     }
 }
 
+/* =========================================
+   댓글 좋아요
+========================================= */
 
+document
+    .getElementById("commentList")
+    ?.addEventListener("click", async function (event) {
+
+        const likeButton =
+            event.target.closest(".comment-like-button");
+
+        if (!likeButton) {
+            return;
+        }
+
+        const commentId =
+            likeButton.dataset.commentId;
+
+        if (!commentId) {
+            alert("댓글 번호를 찾을 수 없습니다.");
+            return;
+        }
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_BASE_URL}/community/comments/${commentId}/like`,
+                    {
+                        method: "POST"
+                    }
+                );
+
+            if (!response.ok) {
+
+                const errorData =
+                    await response.json();
+
+                throw new Error(
+                    errorData.detail ||
+                    "댓글 좋아요 처리에 실패했습니다."
+                );
+            }
+
+            const result =
+                await response.json();
+
+            console.log(
+                "댓글 좋아요 결과:",
+                result
+            );
+
+            // 댓글 목록 다시 불러오기
+            await loadComments(getPostId());
+
+        } catch (error) {
+
+            console.error(
+                "댓글 좋아요 오류:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "댓글 좋아요 처리 중 오류가 발생했습니다."
+            );
+        }
+    });
+/* =========================================
+   댓글 수정
+========================================= */
+
+document
+    .getElementById("commentList")
+    ?.addEventListener("click", function (event) {
+
+        const editButton =
+            event.target.closest(
+                ".comment-edit-button"
+            );
+
+        if (!editButton) {
+            return;
+        }
+
+        const commentItem =
+            editButton.closest(
+                ".comment-item"
+            );
+
+        if (!commentItem) {
+            return;
+        }
+
+        const commentId =
+            commentItem.dataset.commentId;
+
+        const commentText =
+            commentItem.querySelector(
+                ".comment-text"
+            );
+
+        if (!commentId || !commentText) {
+            return;
+        }
+
+        /* 이미 수정 중이면 다시 만들지 않음 */
+
+        if (
+            commentItem.querySelector(
+                ".comment-edit-box"
+            )
+        ) {
+            return;
+        }
+
+        /* 기존 댓글 내용 저장 */
+
+        const originalContent =
+            commentText.textContent;
+
+        /* 기존 댓글 내용 숨기기 */
+
+        commentText.style.display = "none";
+
+        const commentActions =
+            commentItem.querySelector(".comment-actions");
+
+        if (commentActions) {
+            commentActions.style.display = "none";
+            }
+        /* 수정 영역 생성 */
+
+        const editBox =
+            document.createElement("div");
+
+        editBox.className =
+            "comment-edit-box";
+
+        editBox.innerHTML = `
+            <textarea
+                class="comment-edit-textarea"
+            ></textarea>
+
+            <div class="comment-edit-actions">
+
+                <button
+                    type="button"
+                    class="comment-save-button"
+                >
+                    저장
+                </button>
+
+                <button
+                    type="button"
+                    class="comment-cancel-button"
+                >
+                    취소
+                </button>
+
+            </div>
+        `;
+
+        /* 기존 댓글 영역 바로 그 자리에 삽입 */
+
+        commentText.parentNode.insertBefore(
+            editBox,
+            commentText
+        );
+
+        /* textarea에 기존 내용 넣기 */
+
+        const textarea =
+            editBox.querySelector(
+                ".comment-edit-textarea"
+            );
+
+        textarea.value =
+            originalContent;
+
+        /* 버튼 */
+
+        const saveButton =
+            editBox.querySelector(
+                ".comment-save-button"
+            );
+
+        const cancelButton =
+            editBox.querySelector(
+                ".comment-cancel-button"
+            );
+
+        /* textarea 자동 포커스 */
+
+        textarea.focus();
+
+        /* 커서를 글 마지막으로 이동 */
+
+        textarea.setSelectionRange(
+            textarea.value.length,
+            textarea.value.length
+        );
+
+        /* =========================================
+           수정 취소
+        ========================================= */
+
+        cancelButton.addEventListener(
+            "click",
+            function () {
+
+                editBox.remove();
+
+                commentText.style.display = "";
+
+                if (commentActions) {
+                    commentActions.style.display = "";
+                }
+            }
+        );
+
+        /* =========================================
+           수정 저장
+        ========================================= */
+
+        saveButton.addEventListener(
+            "click",
+            async function () {
+
+                const content =
+                    textarea.value.trim();
+
+                if (!content) {
+
+                    showBasebotModal(
+                        "댓글 수정",
+                        "댓글 내용을 입력해주세요."
+                    );
+
+                    return;
+                }
+
+                try {
+
+                    const response =
+                        await fetch(
+                            `${API_BASE_URL}/community/comments/${commentId}?content=${encodeURIComponent(content)}`,
+                            {
+                                method: "PUT"
+                            }
+                        );
+
+                    if (!response.ok) {
+
+                        const errorData =
+                            await response.json();
+
+                        throw new Error(
+                            errorData.detail ||
+                            "댓글 수정에 실패했습니다."
+                        );
+                    }
+
+                    const result =
+                        await response.json();
+
+                    console.log(
+                        "댓글 수정 완료:",
+                        result
+                    );
+
+                    /* 수정된 댓글 목록 다시 불러오기 */
+
+                    await loadComments(
+                        getPostId()
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "댓글 수정 오류:",
+                        error
+                    );
+
+                    showBasebotModal(
+                        "댓글 수정 오류",
+                        error.message ||
+                        "댓글 수정 중 오류가 발생했습니다."
+                    );
+                }
+            }
+        );
+
+        /* =========================================
+           Ctrl + Enter → 저장
+           Enter → 줄바꿈
+        ========================================= */
+
+        textarea.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter" &&
+                    (event.ctrlKey || event.metaKey)
+                ) {
+
+                    event.preventDefault();
+
+                    saveButton.click();
+                }
+            }
+        );
+    });
+
+/* =========================================
+   댓글 삭제
+========================================= */
+
+document
+    .getElementById("commentList")
+    ?.addEventListener("click", async function (event) {
+
+        const deleteButton =
+            event.target.closest(
+                ".comment-delete-button"
+            );
+
+        if (!deleteButton) {
+            return;
+        }
+
+        const commentItem =
+            deleteButton.closest(
+                ".comment-item"
+            );
+
+        if (!commentItem) {
+            return;
+        }
+
+        const commentId =
+            commentItem.dataset.commentId;
+
+        if (!commentId) {
+            alert(
+                "댓글 번호를 찾을 수 없습니다."
+            );
+            return;
+        }
+
+        // 삭제 확인
+            showBasebotConfirm(
+        "댓글 삭제",
+        "정말 이 댓글을 삭제하시겠습니까?",
+
+        async function () {
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_BASE_URL}/community/comments/${commentId}`,
+                        {
+                            method: "DELETE"
+                        }
+                    );
+
+                if (!response.ok) {
+
+                    const errorData =
+                        await response.json();
+
+                    throw new Error(
+                        errorData.detail ||
+                        "댓글 삭제에 실패했습니다."
+                    );
+                }
+
+                const result =
+                    await response.json();
+
+                console.log(
+                    "댓글 삭제 완료:",
+                    result
+                );
+
+                showBasebotModal(
+                    "삭제 완료",
+                    "댓글이 삭제되었습니다.",
+                    function () {
+
+                        loadComments(
+                            getPostId()
+                        );
+
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "댓글 삭제 오류:",
+                    error
+                );
+
+                showBasebotModal(
+                    "삭제 오류",
+                    error.message ||
+                    "댓글 삭제 중 오류가 발생했습니다."
+                );
+            }
+        },
+
+        "삭제"
+    );
+    });
 
 function createCommentElement(
     comment,
@@ -1682,25 +2098,45 @@ function createCommentElement(
 
         <div class="comment-actions">
 
-            <button
-                type="button"
-                class="comment-like-button"
-            >
-                ♥ 좋아요
-                <strong>
-                    ${comment.like_count}
-                </strong>
-            </button>
-
-
-            <button
-                type="button"
-                class="reply-button"
-            >
-                답글
-            </button>
-
-        </div>
+        <button
+            type="button"
+            class="comment-like-button"
+            data-comment-id="${comment.comment_id}"
+        >
+            ♥ 좋아요
+            <strong>
+                ${comment.like_count}
+            </strong>
+        </button>
+    
+        <button
+            type="button"
+            class="reply-button"
+        >
+            답글
+        </button>
+    
+        ${
+            comment.user_id === 1
+                ? `
+                    <button
+                        type="button"
+                        class="comment-edit-button"
+                    >
+                        수정
+                    </button>
+    
+                    <button
+                        type="button"
+                        class="comment-delete-button"
+                    >
+                        삭제
+                    </button>
+                `
+                : ""
+        }
+    
+    </div>
     `;
 
 
