@@ -392,7 +392,7 @@
 
             if (headerRes.ok) {
                 document.getElementById('header').innerHTML = await headerRes.text();
-                updateLoginUI();
+              updateLoginUI();
             }
 
             if (footerRes.ok) {
@@ -403,6 +403,40 @@
         }
     }
 
+    function updateLoginUI() {
+    const loginLink = document.getElementById("loginLink");
+    const signupArea = document.getElementById("signupArea");
+    const mypageArea = document.getElementById("mypageArea");
+
+    const userData = sessionStorage.getItem("user");
+
+    if (userData) {
+        // 로그인 상태
+        loginLink.textContent = "로그아웃";
+        loginLink.href = "#";
+
+        signupArea.style.display = "none";
+        mypageArea.style.display = "inline";
+
+        loginLink.onclick = function (e) {
+            e.preventDefault();
+
+            sessionStorage.removeItem("user");
+
+            window.location.href = "login.html";
+        };
+
+    } else {
+        // 로그아웃 상태
+        loginLink.textContent = "로그인";
+        loginLink.href = "login.html";
+
+        signupArea.style.display = "inline";
+        mypageArea.style.display = "none";
+
+        loginLink.onclick = null;
+    }
+}
 
     // ============================================================
     // 로그인 상태
@@ -477,76 +511,95 @@
     // ============================================================
     // 뉴스 불러오기
     // ============================================================
+async function loadNews(isRefresh = false) {
+    const tbody = document.getElementById("news-tbody");
+    const status = document.getElementById("status-text");
+    const dot = document.getElementById("status-dot");
 
-    async function loadNews(isRefresh = false) {
-        const tbody = document.getElementById("news-tbody");
-        const status = document.getElementById("status-text");
-        const dot = document.getElementById("status-dot");
-
+    // 최초 로딩이 아니면 화면을 다시 그리지 않고
+    // 백그라운드에서 최신 뉴스만 확인한다.
+    if (!isRefresh) {
         status.textContent = "최신 뉴스 확인 중...";
         dot.classList.add("loading");
+    }
 
-        try {
-            const response = await fetch(
-                `${API_BASE}/api/news/mlb?limit=50`,
-                {
-                    cache: "no-store"
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+    try {
+        const response = await fetch(
+            `${API_BASE}/api/news/mlb?limit=50`,
+            {
+                cache: "no-store"
             }
+        );
 
-            const result = await response.json();
-            // 전체 뉴스 저장
-            allNewsList = result.data || [];
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
 
-            if (result.status !== "success") {
-                throw new Error("뉴스 API 응답 오류");
-            }
+        const result = await response.json();
 
-            // 현재 보고 있는 기사 기억
+        if (result.status !== "success") {
+            throw new Error("뉴스 API 응답 오류");
+        }
+
+        const newNewsList = result.data || [];
+
+        // 기존 뉴스와 새 뉴스의 ID를 비교
+        const oldIds = allNewsList
+            .map(news => news.news_id)
+            .join(",");
+
+        const newIds = newNewsList
+            .map(news => news.news_id)
+            .join(",");
+
+        const hasNewsChanged = oldIds !== newIds;
+
+        // 최신 뉴스 데이터 저장
+        allNewsList = newNewsList;
+
+        // --------------------------------------------
+        // 최초 로딩이거나 실제 뉴스가 변경된 경우에만
+        // 화면을 다시 그린다.
+        // --------------------------------------------
+        if (!isRefresh || hasNewsChanged) {
+
             const currentOpenedArticleId = openedArticleId;
 
-            // 전체 뉴스 저장
-            allNewsList = result.data || [];
-
-            // 현재 필터 유지
             applyFilters(false);
 
-            // 자동 갱신 후 현재 보고 있던 기사 다시 열기
+            // 현재 보고 있던 기사 다시 열기
             if (currentOpenedArticleId !== null) {
-            restoreOpenedArticle(currentOpenedArticleId);
-            }
-
-            status.textContent =
-                `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
-
-            dot.classList.remove("loading");
-
-        } catch (error) {
-
-            console.error(error);
-
-            status.textContent =
-                "뉴스 서버 연결 실패 · 30초 후 다시 시도합니다.";
-
-            dot.classList.add("loading");
-
-            if (typeof firstLoad === "undefined" || firstLoad) {
-
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="error-message">
-                            뉴스 서버에 연결할 수 없습니다.<br>
-                            FastAPI 서버가 실행 중인지 확인해주세요.
-                        </td>
-                    </tr>
-                `;
+                restoreOpenedArticle(currentOpenedArticleId);
             }
         }
+
+        status.textContent =
+            `실시간 연결됨 · 마지막 확인 ${new Date().toLocaleTimeString("ko-KR")} · 30초마다 자동 갱신`;
+
+        dot.classList.remove("loading");
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "뉴스 서버 연결 실패 · 30초 후 다시 시도합니다.";
+
+        dot.classList.add("loading");
+
+        if (typeof firstLoad === "undefined" || firstLoad) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="error-message">
+                        뉴스 서버에 연결할 수 없습니다.<br>
+                        FastAPI 서버가 실행 중인지 확인해주세요.
+                    </td>
+                </tr>
+            `;
+        }
     }
+}
 
 // ============================================================
 // 자동 갱신 후 열려 있던 기사 복원
