@@ -1550,6 +1550,13 @@ async function loadPostDetail() {
             // =================================
             likeButton.onclick = async function () {
 
+                const accessToken = sessionStorage.getItem("access_token");
+
+                if (!accessToken) {
+                    showLoginRequiredModal();
+                    return;
+                }
+
                 try {
                     const likeResponse =
                         await fetch(
@@ -1557,7 +1564,7 @@ async function loadPostDetail() {
                             {
                                 method: "POST",
                                 headers: {
-                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                                    "Authorization": `Bearer ${accessToken}`
                                 }
                             }
                         );
@@ -2858,6 +2865,15 @@ async function setupEditForm() {
         return;
     }
 
+        // 로그인 여부 확인
+    const accessToken =
+        sessionStorage.getItem("access_token");
+
+    if (!accessToken) {
+        showLoginRequiredModal();
+        return;
+    }
+
     const params =
         new URLSearchParams(
             window.location.search
@@ -3128,7 +3144,7 @@ async function setupEditForm() {
 
                             headers: {
                                 "Content-Type": "application/json",
-                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                                "Authorization": `Bearer ${accessToken}`
                             },
 
                             body:
@@ -3285,10 +3301,7 @@ function setupPostActions() {
             const token = sessionStorage.getItem("access_token");
 
             if (!token) {
-                showBasebotModal(
-                    "로그인 필요",
-                    "스크랩 기능은 로그인 후 이용할 수 있습니다."
-                );
+                showLoginRequiredModal();
                 return;
             }
 
@@ -3386,8 +3399,16 @@ function setupReportModal() {
         modal.hidden = true;
     };
 
-    // 신고 모달 열기
+    // 신고 모달 열기 전에 로그인 확인
     openButton.addEventListener("click", () => {
+        const token =
+            sessionStorage.getItem("access_token");
+
+        if (!token) {
+            showLoginRequiredModal();
+            return;
+        }
+
         modal.hidden = false;
     });
 
@@ -3433,10 +3454,7 @@ function setupReportModal() {
             sessionStorage.getItem("access_token");
 
         if (!token) {
-            showBasebotModal(
-                "로그인 필요",
-                "신고 기능은 로그인 후 이용할 수 있습니다."
-            );
+            showLoginRequiredModal();
             return;
         }
 
@@ -3645,6 +3663,15 @@ commentForm?.addEventListener("submit", async event => {
 
     event.preventDefault();
 
+        // 댓글 작성 전 로그인 확인
+    const accessToken =
+        sessionStorage.getItem("access_token");
+
+    if (!accessToken) {
+        showLoginRequiredModal();
+        return;
+    }
+
     const textarea =
         commentForm.querySelector("textarea");
 
@@ -3686,7 +3713,7 @@ commentForm?.addEventListener("submit", async event => {
             {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                    "Authorization": `Bearer ${accessToken}`
                 }
             }
         );
@@ -3758,6 +3785,15 @@ document
             event.target.closest(".reply-button");
 
         if (!replyButton) {
+            return;
+        }
+
+        // 대댓글 작성 전 로그인 확인
+        const accessToken =
+            sessionStorage.getItem("access_token");
+
+        if (!accessToken) {
+            showLoginRequiredModal();
             return;
         }
 
@@ -3875,7 +3911,7 @@ document
                             {
                                 method: "POST",
                                 headers: {
-                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                                    "Authorization": `Bearer ${accessToken}`
                                 }
                             }
                         );
@@ -4018,6 +4054,67 @@ async function deletePost() {
         "삭제"
     );
 }
+
+
+/* =========================================
+   로그인 필요 공통 팝업
+========================================= */
+function showLoginRequiredModal() {
+    const modal = document.getElementById("basebotModal");
+    const titleElement = document.getElementById("basebotModalTitle");
+    const messageElement = document.getElementById("basebotModalMessage");
+    const button = document.getElementById("basebotModalButton");
+    const cancelButton = document.getElementById("basebotModalCancelButton");
+
+    if (!modal || !titleElement || !messageElement || !button || !cancelButton) {
+        showBasebotModal(
+            "로그인 필요",
+            "이 기능은 로그인 후 이용할 수 있습니다."
+        );
+        return;
+    }
+
+    titleElement.textContent = "로그인이 필요합니다";
+    messageElement.textContent = "이 기능은 로그인 후 이용할 수 있습니다.";
+
+    cancelButton.style.display = "inline-flex";
+    cancelButton.textContent = "취소";
+    button.textContent = "로그인";
+
+    modal.classList.add("show");
+
+    cancelButton.onclick = function () {
+        modal.classList.remove("show");
+    };
+
+    button.onclick = function () {
+        modal.classList.remove("show");
+        window.location.href = "login.html";
+    };
+}
+
+
+/* =========================================
+   글쓰기 버튼 로그인 확인
+========================================= */
+function setupCommunityWriteLoginCheck() {
+    const writeButton = document.getElementById("communityWriteButton");
+
+    if (!writeButton) {
+        return;
+    }
+
+    writeButton.addEventListener("click", function (event) {
+        const accessToken = sessionStorage.getItem("access_token");
+
+        if (!accessToken) {
+            event.preventDefault();
+            showLoginRequiredModal();
+        }
+    });
+}
+
+setupCommunityWriteLoginCheck();
 
 
 // =========================================
