@@ -6,6 +6,36 @@
     <title>구단 상세 정보 - BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/player-detail.css">
+    <style>
+        /* 팀 상세 페이지 전용 테이블 및 선수명 스타일 보정 */
+        .roster-container { width: 100%; margin-top: 25px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .section-title h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; margin-top: 35px; }
+
+        .roster-table { width: 100%; border-collapse: collapse; font-size: 13px; border-top: 2px solid #111827; margin-bottom: 30px; }
+        .roster-table th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 10px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .roster-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+        .roster-table tr:hover { background-color: #f8fafc; cursor: pointer; }
+
+        /* 선수 프로필 셀: 대형 글자 방지 및 인라인 정렬 */
+        .player-cell { display: flex; align-items: center; gap: 8px; text-align: left; justify-content: flex-start; padding-left: 12px !important; }
+        .player-headshot { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #e2e8f0; flex-shrink: 0; }
+        
+        /* player-detail.css의 거대한 h1/font-size를 덮어쓰기 */
+        .roster-table .player-name {
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            text-decoration: none !important;
+            white-space: nowrap !important;
+            line-height: 1.2 !important;
+        }
+        .roster-table tr:hover .player-name { color: #1d4ed8 !important; text-decoration: underline !important; }
+
+        .stat-highlight { font-weight: 700; color: #0f172a; }
+        .stat-secondary { color: #64748b; font-size: 12px; }
+        .badge-pos { display: inline-block; padding: 2px 5px; font-size: 11px; font-weight: 600; background: #e2e8f0; color: #334155; border-radius: 3px; }
+        .no-data { text-align: center; padding: 20px; color: #94a3b8; }
+    </style>
 </head>
 <body>
     <div id="header"></div>
@@ -38,7 +68,7 @@
                 </div>
                 <div class="player-info-details">
                     <div class="team-badge" id="teamLeagueDiv">-</div>
-                    <h1 class="player-name" id="teamFullName">구단 이름 로딩 중...</h1>
+                    <h1 class="player-name" id="teamFullName" style="font-size: 26px !important;">구단 정보 로딩 중...</h1>
                     <div class="player-meta-grid">
                         <div class="meta-item">
                             <span class="meta-label">연고지</span>
@@ -52,26 +82,64 @@
                 </div>
             </div>
 
+            <!-- 1. 타자 로스터 -->
             <div class="section-title">
                 <h2>2024 시즌 소속 타자 로스터</h2>
             </div>
-
             <div class="table-responsive">
-                <table class="player-stats-table">
+                <table class="roster-table">
                     <thead>
                         <tr>
-                            <th>선수</th>
+                            <th style="text-align: left; padding-left: 15px; width: 200px;">선수</th>
+                            <th>No.</th>
+                            <th>포지션</th>
+                            <th>나이</th>
+                            <th>B/T</th>
                             <th>경기</th>
                             <th>타율</th>
                             <th>안타</th>
                             <th>홈런</th>
                             <th>타점</th>
+                            <th>OPS</th>
+                            <th>wRC+</th>
                             <th>bWAR</th>
-                            <th>평균 타구속도</th>
+                            <th>fWAR</th>
                         </tr>
                     </thead>
-                    <tbody id="rosterTbody">
-                        <tr><td colspan="8" class="no-data">로스터를 불러오는 중입니다...</td></tr>
+                    <tbody id="battersTbody">
+                        <tr><td colspan="14" class="no-data">타자 로스터를 불러오는 중입니다...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2. 투수 로스터 -->
+            <div class="section-title">
+                <h2>2024 시즌 소속 투수 로스터</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="roster-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding-left: 15px; width: 200px;">선수</th>
+                            <th>No.</th>
+                            <th>포지션</th>
+                            <th>나이</th>
+                            <th>투구</th>
+                            <th>경기</th>
+                            <th>승</th>
+                            <th>패</th>
+                            <th>ERA</th>
+                            <th>이닝</th>
+                            <th>탈삼진</th>
+                            <th>WHIP</th>
+                            <th>FIP</th>
+                            <th>ERA+</th>
+                            <th>bWAR</th>
+                            <th>fWAR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pitchersTbody">
+                        <tr><td colspan="16" class="no-data">투수 로스터를 불러오는 중입니다...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -82,76 +150,106 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // loadComponent("header", "../components/header.html");
-            // loadComponent("footer", "../components/footer.html");
-
             const urlParams = new URLSearchParams(window.location.search);
-            const teamId = urlParams.get("id") || "147"; // 기본 양키스
+            const teamId = urlParams.get("id") || "147"; // 기본: 뉴욕 양키스
             fetchTeamRoster(teamId);
         });
 
-        async function loadComponent(id, path) {
-            try {
-                const res = await fetch(path);
-                if (res.ok) document.getElementById(id).innerHTML = await res.text();
-            } catch(e) {}
-        }
-
         async function fetchTeamRoster(teamId) {
-            try {
-                const res = await fetch(`http://127.0.0.1:8000/api/teams/${teamId}`);
-                if (!res.ok) throw new Error("구단 정보를 불러오지 못했습니다.");
-                const data = await res.json();
-                
-                const t = data.team;
-                document.getElementById("bcTeamName").textContent = t.team_name;
-                document.getElementById("sidebarTeamName").textContent = `${t.team_code} 로스터`;
-                document.getElementById("teamFullName").textContent = t.team_name;
-                document.getElementById("teamLogo").src = t.logo_url;
-                document.getElementById("teamLeagueDiv").textContent = `${t.league} ${t.division}`;
-                document.getElementById("teamCity").textContent = t.city || '-';
-                document.getElementById("teamStadium").textContent = t.stadium || '-';
+        try {
+        // 백엔드 엔드포인트 호출
+        const res = await fetch(`http://127.0.0.1:8000/api/teams/${teamId}`);
+        if (!res.ok) throw new Error("구단 정보를 불러오지 못했습니다.");
+        const data = await res.json();
+        
+        // 1. 구단 메타데이터 렌더링
+        const t = data.team;
+        document.getElementById("bcTeamName").textContent = t.team_name || '-';
+        document.getElementById("sidebarTeamName").textContent = `${t.team_name} 로스터`;
+        document.getElementById("teamFullName").textContent = t.team_name || '구단 정보';
+        
+        const logoImg = document.getElementById("teamLogo");
+        logoImg.src = t.logo_url || `https://www.mlbstatic.com/team-logos/${t.team_id}.svg`;
+        logoImg.alt = t.team_name;
 
-                const tbody = document.getElementById("rosterTbody");
-                tbody.innerHTML = "";
+        document.getElementById("teamLeagueDiv").textContent = `${t.league || ''} ${t.division || ''}`;
+        document.getElementById("teamCity").textContent = t.city || '-';
+        document.getElementById("teamStadium").textContent = t.stadium || '-';
 
-                if (!data.roster || data.roster.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="no-data">등록된 소속 타자 데이터가 없습니다.</td></tr>`;
-                    return;
-                }
-
-                data.roster.forEach(p => {
-                    const tr = document.createElement("tr");
-                    tr.style.cursor = "pointer";
-                    // 같은 폴더의 player-detail.html로 바로 이동
-                    tr.onclick = () => location.href = `player-detail.html?id=${p.player_id}`;
-                    
-                    tr.innerHTML = `
-                        <td style="text-align: left; padding-left: 20px; font-weight: 700; color: #102d63;">
-                            <img src="${p.headshot_url}" style="width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
-                            ${p.player_name}
-                        </td>
-                        <td>${p.games || 0}</td>
-                        <td>${p.batting_avg !== null ? p.batting_avg.toFixed(3) : '-'}</td>
-                        <td>${p.hits || 0}</td>
-                        <td><strong>${p.home_runs || 0}</strong></td>
-                        <td>${p.rbi || 0}</td>
-                        <td>${p.bwar !== null ? p.bwar.toFixed(1) : '-'}</td>
-                        <td>${p.avg_exit_velocity !== null ? p.avg_exit_velocity.toFixed(1) + ' mph' : '-'}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error(err);
-                document.getElementById("rosterTbody").innerHTML = 
-                    `<tr><td colspan="8" class="no-data">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
-            }
+        // 2. 타자 로스터 렌더링
+        const bTbody = document.getElementById("battersTbody");
+        bTbody.innerHTML = "";
+        if (!data.batters || data.batters.length === 0) {
+                    bTbody.innerHTML = `<tr><td colspan="14" class="no-data">등록된 타자 데이터가 없습니다.</td></tr>`;
+        } else {
+            data.batters.forEach(p => {
+                const tr = document.createElement("tr");
+                tr.onclick = () => location.href = `player-detail.html?id=${p.player_id}`;
+                tr.innerHTML = `
+                    <td class="player-cell">
+                        <img class="player-headshot" src="${p.headshot_url}" onerror="this.src='https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current'" alt="${p.player_name}">
+                        <span class="player-name">${p.player_name}</span>
+                    </td>
+                    <td class="stat-secondary">${p.jersey_number || '-'}</td>
+                    <td><span class="badge-pos">${p.position || 'DH'}</span></td>
+                    <td>${p.age || '-'}</td>
+                    <td>${p.bt || '-'}</td>
+                    <td>${p.games || 0}</td>
+                    <td class="stat-highlight">${p.batting_avg !== null ? Number(p.batting_avg).toFixed(3).replace('0.', '.') : '-'}</td>
+                    <td>${p.hits || 0}</td>
+                    <td class="stat-highlight">${p.home_runs || 0}</td>
+                    <td>${p.rbi || 0}</td>
+                    <td class="stat-highlight">${p.ops !== '-' && p.ops !== null ? Number(p.ops).toFixed(3).replace('0.', '.') : '-'}</td>
+                    <td class="stat-highlight">${p.wrc_plus !== null ? p.wrc_plus : '-'}</td>
+                    <td>${p.bwar !== null ? Number(p.bwar).toFixed(1) : '-'}</td>
+                    <td>${p.fwar !== null ? Number(p.fwar).toFixed(1) : '-'}</td>
+                `;
+                bTbody.appendChild(tr);
+            });
         }
+
+        // 3. 투수 로스터 렌더링
+        const pTbody = document.getElementById("pitchersTbody");
+        pTbody.innerHTML = "";
+        if (!data.pitchers || data.pitchers.length === 0) {
+            pTbody.innerHTML = `<tr><td colspan="16" class="no-data">등록된 투수 데이터가 없습니다.</td></tr>`;
+        } else {
+            data.pitchers.forEach(p => {
+                const tr = document.createElement("tr");
+                tr.onclick = () => location.href = `player-detail.html?id=${p.player_id}`;
+                tr.innerHTML = `
+                    <td class="player-cell">
+                        <img class="player-headshot" src="${p.headshot_url}" onerror="this.src='https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current'" alt="${p.player_name}">
+                        <span class="player-name">${p.player_name}</span>
+                    </td>
+                    <td class="stat-secondary">${p.jersey_number || '-'}</td>
+                    <td><span class="badge-pos">${p.position || 'P'}</span></td>
+                    <td>${p.age || '-'}</td>
+                    <td>${p.throws || '-'}</td>
+                    <td>${p.games || 0}</td>
+                    <td>${p.wins || 0}</td>
+                    <td>${p.losses || 0}</td>
+                    <td class="stat-highlight">${p.era !== null ? Number(p.era).toFixed(2) : '-'}</td>
+                    <td>${p.innings_pitched !== null ? Number(p.innings_pitched).toFixed(1) : '-'}</td>
+                    <td class="stat-highlight">${p.strikeouts || 0}</td>
+                    <td>${p.whip !== null ? Number(p.whip).toFixed(2) : '-'}</td>
+                    <td>${p.fip !== null ? Number(p.fip).toFixed(2) : '-'}</td>
+                    <td class="stat-highlight">${p.era_plus || '-'}</td>
+                    <td>${p.bwar !== null ? Number(p.bwar).toFixed(1) : '-'}</td>
+                    <td>${p.fwar !== null ? Number(p.fwar).toFixed(1) : '-'}</td>
+                `;
+                pTbody.appendChild(tr);
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById("battersTbody").innerHTML = 
+            `<tr><td colspan="13" class="no-data">데이터를 불러오는 중 오류가 발생했습니다. (FastAPI 콘솔 확인)</td></tr>`;
+        document.getElementById("pitchersTbody").innerHTML = 
+            `<tr><td colspan="16" class="no-data">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
+    }
+}
     </script>
-    <!-- ==================================================
-        JavaScript
-    ================================================== -->
-    <!-- 1. 팀 공통 스크립트 (Header, Footer, 로그인/로그아웃 자동 처리) -->
     <script src="../js/main.js"></script>
 </body>
 </html>
