@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 
 # 모듈 검색 경로에 back 폴더 추가
-BACK_DIR = Path(__file__).resolve().parent.parent
+BACK_DIR = Path(__file__).resolve().parent.parent.parent
 if str(BACK_DIR) not in sys.path:
     sys.path.insert(0, str(BACK_DIR))
 

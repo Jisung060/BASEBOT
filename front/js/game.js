@@ -312,6 +312,7 @@ function renderGamePage() {
     list.replaceChildren(...createMonthlyGroups(filteredGames));
 }
 
+
 async function fetchAndEnrichMonthGames(date) {
     const cacheKey = `month:${date.slice(0, 7)}`;
     if (gameDataCache.has(cacheKey)) return gameDataCache.get(cacheKey);
