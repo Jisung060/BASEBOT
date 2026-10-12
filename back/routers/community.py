@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+import os
+import re
+from urllib.parse import urlparse
 
 from database.db_connection import get_session
 from models.community import CommunityPost
@@ -109,12 +112,60 @@ def create_post(
         content=post.content
     )
 
+
     session.add(new_post)
     session.commit()
     session.refresh(new_post)
 
+    # 게시글 본문에서 이미지 주소 추출
+    import re
+    import os
+    from urllib.parse import urlparse
+
+    image_urls = re.findall(
+        r'<img[^>]+src=["\']([^"\']+)["\']',
+        post.content,
+        re.IGNORECASE
+    )
+
+    # 이미지 정보를 community_images 테이블에 저장
+    for image_url in image_urls:
+        parsed_url = urlparse(image_url)
+        stored_name = os.path.basename(parsed_url.path)
+
+        # 서버에 업로드된 이미지 주소인지 확인
+        if not stored_name:
+            continue
+
+        if "/uploads/community/" not in parsed_url.path:
+            continue
+
+        file_path = os.path.join(
+            "uploads",
+            "community",
+            stored_name
+        )
+
+        # 실제 서버 파일이 존재하는지 확인
+        if not os.path.isfile(file_path):
+            continue
+
+        image_info = CommunityImage(
+            post_id=new_post.post_id,
+            original_name=stored_name,
+            stored_name=stored_name,
+            file_path=file_path,
+            file_size=os.path.getsize(file_path)
+        )
+
+        session.add(image_info)
+
+    session.commit()
+
     return new_post
 
+
+# 게시글 수정
 @router.put("/posts/{post_id}")
 def update_post(
     post_id: int,
@@ -130,18 +181,16 @@ def update_post(
         .first()
     )
 
-    # 2. 게시글이 없는 경우
     if not existing_post:
         raise HTTPException(
             status_code=404,
             detail="게시글을 찾을 수 없습니다."
         )
 
-    # 3. 관련 팀 찾기
+    # 2. 관련 팀 찾기
     related_team_id = None
 
     if post.related_team_code:
-
         team = (
             session.query(Team)
             .filter(
@@ -158,30 +207,145 @@ def update_post(
 
         related_team_id = team.team_id
 
-    # 4. 게시글 내용 수정
-    existing_post.category = post.category
-
-    existing_post.related_team_id = (
-        related_team_id
+    # 3. 수정 후 본문에 남아 있는 이미지 파일명 추출
+    image_urls = re.findall(
+        r'<img[^>]+src=["\']([^"\']+)["\']',
+        post.content or "",
+        re.IGNORECASE
     )
 
-    existing_post.title = post.title
+    new_image_names = set()
 
+    for image_url in image_urls:
+        parsed_url = urlparse(image_url)
+
+        # 서버 업로드 폴더의 이미지 주소만 처리
+        if "/uploads/community/" not in parsed_url.path:
+            continue
+
+        stored_name = os.path.basename(
+            parsed_url.path
+        )
+
+        if stored_name:
+            new_image_names.add(stored_name)
+
+    # 4. 기존 게시글의 이미지 정보 가져오기
+    old_images = (
+        session.query(CommunityImage)
+        .filter(
+            CommunityImage.post_id == post_id
+        )
+        .all()
+    )
+
+    # 5. 수정 후 본문에서 사라진 이미지 정리
+    for image in old_images:
+        old_name = image.stored_name
+
+        if not old_name and image.file_path:
+            old_name = os.path.basename(
+                image.file_path.replace("\\", "/")
+            )
+
+        # 수정 후에도 본문에 남아 있으면 유지
+        if old_name in new_image_names:
+            continue
+
+        # 실제 업로드 폴더 안의 파일인지 확인
+        if old_name:
+            upload_dir = os.path.realpath(
+                os.path.join("uploads", "community")
+            )
+
+            file_path = os.path.realpath(
+                os.path.join(upload_dir, old_name)
+            )
+
+            if (
+                os.path.commonpath(
+                    [upload_dir, file_path]
+                ) == upload_dir
+                and os.path.isfile(file_path)
+            ):
+                # 다른 이미지 정보에서도 사용 중인지 확인
+                other_image = (
+                    session.query(CommunityImage)
+                    .filter(
+                        CommunityImage.stored_name == old_name,
+                        CommunityImage.image_id != image.image_id
+                    )
+                    .first()
+                )
+
+                if not other_image:
+                    os.remove(file_path)
+
+        # 이미지 DB 정보 삭제
+        session.delete(image)
+
+    # 6. 새로 추가된 이미지의 DB 정보 등록
+    existing_names = {
+        image.stored_name
+        for image in old_images
+        if image.stored_name
+    }
+
+    for stored_name in new_image_names:
+        if stored_name in existing_names:
+            continue
+
+        upload_dir = os.path.realpath(
+            os.path.join("uploads", "community")
+        )
+
+        file_path = os.path.realpath(
+            os.path.join(upload_dir, stored_name)
+        )
+
+        if (
+            os.path.commonpath(
+                [upload_dir, file_path]
+            ) != upload_dir
+            or not os.path.isfile(file_path)
+        ):
+            continue
+
+        image_info = CommunityImage(
+            post_id=post_id,
+            original_name=stored_name,
+            stored_name=stored_name,
+            file_path=os.path.join(
+                "uploads",
+                "community",
+                stored_name
+            ),
+            file_size=os.path.getsize(file_path)
+        )
+
+        session.add(image_info)
+
+    # 7. 게시글 내용 수정
+    existing_post.category = post.category
+    existing_post.related_team_id = related_team_id
+    existing_post.title = post.title
     existing_post.content = post.content
 
-    # 5. DB 저장
+    # 8. DB 저장
     session.commit()
-
-    # 6. 최신 데이터 다시 가져오기
     session.refresh(existing_post)
 
     return existing_post
+
+
+# 게시글 삭제
 
 @router.delete("/posts/{post_id}")
 def delete_post(
     post_id: int,
     session: Session = Depends(get_session)
 ):
+    # 1. 삭제할 게시글 찾기
     post = (
         session.query(CommunityPost)
         .filter(
@@ -196,6 +360,59 @@ def delete_post(
             detail="게시글을 찾을 수 없습니다."
         )
 
+    # 2. 게시글에 연결된 이미지 정보 가져오기
+    images = (
+        session.query(CommunityImage)
+        .filter(
+            CommunityImage.post_id == post_id
+        )
+        .all()
+    )
+
+    # 3. 실제 이미지 파일 삭제
+    upload_dir = os.path.realpath(
+        os.path.join("uploads", "community")
+    )
+
+    for image in images:
+        stored_name = image.stored_name
+
+        if not stored_name and image.file_path:
+            stored_name = os.path.basename(
+                image.file_path.replace("\\", "/")
+            )
+
+        if not stored_name:
+            continue
+
+        file_path = os.path.realpath(
+            os.path.join(upload_dir, stored_name)
+        )
+
+        # 업로드 폴더 내부의 파일만 삭제
+        if (
+            os.path.commonpath(
+                [upload_dir, file_path]
+            ) == upload_dir
+            and os.path.isfile(file_path)
+        ):
+            # 다른 게시글의 이미지 정보에서도 사용하는지 확인
+            other_image = (
+                session.query(CommunityImage)
+                .filter(
+                    CommunityImage.stored_name == stored_name,
+                    CommunityImage.image_id != image.image_id
+                )
+                .first()
+            )
+
+            if not other_image:
+                os.remove(file_path)
+
+        # 4. 이미지 DB 정보 삭제
+        session.delete(image)
+
+    # 5. 게시글 삭제 및 DB 저장
     session.delete(post)
     session.commit()
 
@@ -203,6 +420,7 @@ def delete_post(
         "message": "게시글이 삭제되었습니다.",
         "post_id": post_id
     }
+
 
 # 게시글 상세 조회
 @router.get("/posts/{post_id}")
@@ -738,6 +956,18 @@ def upload_community_image(
     import os
     import uuid
 
+    # community.py가 있는 routers 폴더의 상위인 back 폴더
+    BACK_DIR = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+
+    upload_dir = os.path.join(
+        BACK_DIR,
+        "uploads",
+        "community"
+    )
+
+    # 폴더가 없으면 자동 생성
     os.makedirs(upload_dir, exist_ok=True)
 
     # 저장할 파일명 생성

@@ -3433,7 +3433,6 @@ if (deletePostButton) {
 
 
 function setupEditorImage() {
-
     const imageInput =
         document.getElementById("editorImage");
 
@@ -3444,100 +3443,91 @@ function setupEditorImage() {
         return;
     }
 
-    imageInput.addEventListener(
-        "change",
-        function () {
+    imageInput.addEventListener("change", async function () {
+        const file = imageInput.files[0];
 
-            const file =
-                imageInput.files[0];
-
-            if (!file) {
-                return;
-            }
-
-            if (!file.type.startsWith("image/")) {
-                alert("이미지 파일만 첨부할 수 있습니다.");
-                return;
-            }
-
-            const reader =
-                new FileReader();
-
-            reader.onload = function (event) {
-
-                const image =
-                    document.createElement("img");
-
-                image.src =
-                    event.target.result;
-
-                image.alt =
-                    "첨부 이미지";
-
-                image.style.maxWidth =
-                    "100%";
-
-                image.style.height =
-                    "auto";
-
-                image.style.display =
-                    "block";
-
-                image.style.margin =
-                    "10px 0";
-
-                // 현재 커서 위치에 이미지 삽입
-                const selection =
-                    window.getSelection();
-
-                if (
-                    selection.rangeCount > 0 &&
-                    editor.contains(
-                        selection.anchorNode
-                    )
-                ) {
-
-                    const range =
-                        selection.getRangeAt(0);
-
-                    range.deleteContents();
-
-                    range.insertNode(image);
-
-                    range.setStartAfter(image);
-                    range.collapse(true);
-
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-
-                } else {
-
-                    // 커서가 에디터 밖에 있다면
-                    // 에디터 마지막에 이미지 추가
-                    editor.appendChild(image);
-
-                }
-
-                // 이미지 뒤에서 계속 글을 쓸 수 있도록 줄 추가
-                const paragraph =
-                    document.createElement("p");
-
-                paragraph.innerHTML =
-                    "<br>";
-
-                image.parentNode.insertBefore(
-                    paragraph,
-                    image.nextSibling
-                );
-
-                // 파일 선택 초기화
-                imageInput.value = "";
-
-            };
-
-            reader.readAsDataURL(file);
+        if (!file) {
+            return;
         }
-    );
+
+        if (!file.type.startsWith("image/")) {
+            alert("이미지 파일만 첨부할 수 있습니다.");
+            imageInput.value = "";
+            return;
+        }
+
+        try {
+            // 1. 서버에 업로드할 데이터 준비
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // 2. 이미지 업로드 API 호출
+            const response = await fetch(
+                `${API_BASE_URL}/community/images/upload`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("이미지 업로드에 실패했습니다.");
+            }
+
+            const result = await response.json();
+
+            // 3. 서버에 저장된 이미지 주소 생성
+            const imageUrl =
+                `${API_BASE_URL}/uploads/community/${result.stored_name}`;
+
+            // 4. 본문에 이미지 삽입
+            const image = document.createElement("img");
+
+            image.src = imageUrl;
+            image.alt = "첨부 이미지";
+            image.style.maxWidth = "100%";
+            image.style.height = "auto";
+            image.style.display = "block";
+            image.style.margin = "10px 0";
+
+            const selection = window.getSelection();
+
+            if (
+                selection.rangeCount > 0 &&
+                editor.contains(selection.anchorNode)
+            ) {
+                const range = selection.getRangeAt(0);
+
+                range.deleteContents();
+                range.insertNode(image);
+
+                range.setStartAfter(image);
+                range.collapse(true);
+
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                editor.appendChild(image);
+            }
+
+            // 이미지 다음 줄에서 글을 이어 쓸 수 있도록 처리
+            const paragraph = document.createElement("p");
+            paragraph.innerHTML = "<br>";
+
+            image.parentNode.insertBefore(
+                paragraph,
+                image.nextSibling
+            );
+
+            console.log("이미지 업로드 성공:", result);
+
+        } catch (error) {
+            console.error("이미지 업로드 오류:", error);
+            alert("이미지 업로드에 실패했습니다. 다시 시도해 주세요.");
+        } finally {
+            imageInput.value = "";
+        }
+    });
 }
 
 setupEditorImage();

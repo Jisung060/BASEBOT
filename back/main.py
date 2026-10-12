@@ -97,12 +97,25 @@ app.mount(
     name="assets"
 )
 
-# 업로드 이미지
+import os
+# 프로젝트 back 폴더 기준으로 업로드 경로 설정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+COMMUNITY_UPLOAD_DIR = os.path.join(
+    UPLOAD_DIR,
+    "community"
+)
+
+# 업로드 폴더가 없으면 자동 생성
+os.makedirs(COMMUNITY_UPLOAD_DIR, exist_ok=True)
+
+# 업로드 이미지 접근 경로 연결
 app.mount(
     "/uploads",
-    StaticFiles(directory="uploads"),
+    StaticFiles(directory=UPLOAD_DIR),
     name="uploads"
 )
+
 
 # 메인 페이지
 @app.get("/")
