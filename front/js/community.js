@@ -1041,6 +1041,16 @@ async function loadPosts() {
         // 게시글 하나씩 화면에 생성
         posts.forEach(post => {
 
+            console.log(
+                "게시글 목록 데이터:",
+                {
+                    post_id: post.post_id,
+                    title: post.title,
+                    user_id: post.user_id,
+                    nickname: post.nickname
+                }
+            );
+
             // 카테고리 표시용 이름
             const categoryNames = {
                 GENERAL: "자유",
@@ -1612,8 +1622,8 @@ async function loadPostDetail() {
 
 
         /* =================================
-                  수정 버튼
-           ================================= */
+           수정 버튼
+        ================================= */
 
         const editButton =
             postDetail.querySelector(
@@ -1622,19 +1632,18 @@ async function loadPostDetail() {
 
         if (editButton) {
 
-            // 수정 페이지로 바로 이동하지 않도록 설정
+            // 링크의 기본 이동 동작 방지
             editButton.href = "#";
 
-            editButton.addEventListener("click", function (event) {
+            // 기존 클릭 이벤트를 덮어써서 중복 실행 방지
+            editButton.onclick = function (event) {
 
-                // 링크의 기본 이동 동작 막기
                 event.preventDefault();
 
                 // 로그인 토큰 가져오기
                 const accessToken =
                     sessionStorage.getItem("access_token");
 
-                // 로그인하지 않은 경우
                 if (!accessToken) {
                     showBasebotModal(
                         "로그인 필요",
@@ -1643,7 +1652,7 @@ async function loadPostDetail() {
                     return;
                 }
 
-                // 토큰에서 로그인 사용자 ID 확인
+                // 로그인 사용자 ID 확인
                 let currentUserId = null;
 
                 try {
@@ -1655,9 +1664,11 @@ async function loadPostDetail() {
                         )
                     );
 
-                    currentUserId = Number(payload.user_id);
+                    currentUserId =
+                        Number(payload.user_id);
 
                 } catch (error) {
+
                     console.error(
                         "로그인 사용자 정보 확인 오류:",
                         error
@@ -1667,6 +1678,7 @@ async function loadPostDetail() {
                         "인증 오류",
                         "로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요."
                     );
+
                     return;
                 }
 
@@ -1674,17 +1686,57 @@ async function loadPostDetail() {
                 if (
                     Number(post.user_id) !== currentUserId
                 ) {
+
                     showBasebotModal(
                         "수정 권한 없음",
                         "본인이 작성한 게시글만 수정할 수 있습니다."
                     );
+
                     return;
                 }
 
-                // 본인이 작성한 글인 경우에만 수정 페이지로 이동
+                // 수정에 사용할 실제 게시글 번호 확인
+                const currentPostId =
+                    Number(post.post_id);
+
+                console.log(
+                    "현재 상세 페이지 주소:",
+                    window.location.href
+                );
+
+                console.log(
+                    "URL에서 읽은 게시글 번호:",
+                    postId
+                );
+
+                console.log(
+                    "백엔드 응답의 게시글 번호:",
+                    post.post_id
+                );
+
+                console.log(
+                    "수정 페이지로 전달할 게시글 번호:",
+                    currentPostId
+                );
+
+                // 게시글 번호가 올바른지 확인
+                if (
+                    !Number.isInteger(currentPostId) ||
+                    currentPostId <= 0
+                ) {
+
+                    showBasebotModal(
+                        "수정 오류",
+                        "게시글 번호를 확인할 수 없습니다."
+                    );
+
+                    return;
+                }
+
+                // 본인이 작성한 게시글의 수정 페이지로 이동
                 window.location.href =
-                    `community-edit.html?postId=${post.post_id}`;
-            });
+                    `community-edit.html?postId=${currentPostId}`;
+            };
         }
 
 
@@ -3814,7 +3866,7 @@ document
 
                     return;
                 }
-                }
+
 
                 try {
                     const response =

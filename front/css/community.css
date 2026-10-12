@@ -1741,3 +1741,26 @@
     opacity: 0.6;
     cursor: wait;
 }
+
+/* =========================================
+   게시글 상세보기와 댓글 영역 가로 폭
+========================================= */
+
+.community-layout.no-sidebar {
+    display: block;
+    width: min(1230px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.community-layout.no-sidebar .community-content {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.post-detail,
+.comment-section {
+    width: 100%;
+    box-sizing: border-box;
+}
