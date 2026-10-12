@@ -110,12 +110,7 @@ document.addEventListener("DOMContentLoaded", function () {
             post.title
         );
 
-        // 상세 페이지 API 및 URL이 아직 정해지지 않았으므로
-        // 실제 상세 페이지 연결 전에는 링크 이동을 막는다.
-        title.href = "#";
-        title.addEventListener("click", function (event) {
-            event.preventDefault();
-        });
+        title.href = `community-view.html?postId=${encodeURIComponent(post.post_id)}`;
 
         // 조회수, 좋아요, 댓글
         const stats = document.createElement("div");

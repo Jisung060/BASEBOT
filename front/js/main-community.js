@@ -63,7 +63,7 @@ function renderCommunityPosts(posts) {
 
         return `
             <li>
-                <a href="community.html?post_id=${encodeURIComponent(post.post_id)}">
+                <a href="community-view.html?postId=${encodeURIComponent(post.post_id)}">
                     ${title}
                 </a>
                 <span>${date}</span>

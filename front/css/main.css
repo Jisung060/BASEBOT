@@ -567,34 +567,102 @@ input {
    경기 결과
 ================================================== */
 
-.result-list {
+/* ==================================================
+   메인 경기 결과 - 팀 로고 추가
+================================================== */
 
+.result-list {
     border-top: 1px solid #ddd;
 }
 
-
 .result-item {
-
-    height: 65px;
+    min-height: 65px;
+    height: auto;
 
     display: grid;
-
-    grid-template-columns:
-        1fr 100px 1fr;
+    grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr);
 
     align-items: center;
+    gap: 8px;
 
+    padding: 10px 6px;
     border-bottom: 1px solid #eee;
 
     text-align: center;
-
-    font-size: 15px;
+    font-size: 14px;
 }
 
+.result-team {
+    min-width: 0;
 
-.result-item strong {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
 
+.result-team-logo {
+    display: block;
+
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+
+    object-fit: contain;
+}
+
+.result-team span {
+    min-width: 0;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.result-item .result-score {
     font-size: 18px;
+    font-weight: 800;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.game-results-message {
+    padding: 25px 10px;
+    color: #777;
+    text-align: center;
+    font-size: 13px;
+}
+
+/* 작은 화면 */
+@media (max-width: 500px) {
+    .result-item {
+        grid-template-columns: minmax(0, 1fr) 75px minmax(0, 1fr);
+        gap: 4px;
+        padding: 10px 2px;
+    }
+
+    .result-team {
+        gap: 4px;
+    }
+
+    .result-team-logo {
+        display: block;
+        width: 30px;
+        height: 30px;
+        flex-shrink: 0;
+        object-fit: contain;
+    }
+
+    .result-team span {
+        font-size: 11px;
+    }
+
+    .result-item .result-score {
+        font-size: 15px;
+    }
 }
 
 

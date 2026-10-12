@@ -35,3 +35,72 @@ def get_community_post(
             for row in rows
         ]
     }
+
+
+@router.get("/game-results")
+def get_game_results(
+        db: Session = Depends(get_session)
+):
+    sql = text("""
+        SELECT
+            g.game_id,
+            g.game_date,
+            g.game_time,
+            g.home_score,
+            g.away_score,
+            g.status,
+
+            home.team_id AS home_team_id,
+            home.team_name AS home_team_name,
+            home.logo_url AS home_team_logo,
+
+            away.team_id AS away_team_id,
+            away.team_name AS away_team_name,
+            away.logo_url AS away_team_logo
+
+        FROM games g
+
+        JOIN teams home
+            ON g.home_team_id = home.team_id
+
+        JOIN teams away
+            ON g.away_team_id = away.team_id
+
+        WHERE g.status = 'FINAL'
+
+        ORDER BY
+            g.game_date DESC,
+            g.game_time DESC,
+            g.game_id DESC
+
+        LIMIT 3
+    """)
+
+    rows = db.execute(sql).mappings().all()
+
+    return {
+        "games": [
+            {
+                "game_id": row["game_id"],
+                "game_date": (
+                    row["game_date"].isoformat()
+                    if row["game_date"] else None
+                ),
+                "game_time": (
+                    str(row["game_time"])
+                    if row["game_time"] else None
+                ),
+                "home_team_id": row["home_team_id"],
+                "home_team_name": row["home_team_name"],
+                "home_team_logo": row["home_team_logo"],
+                "home_score": row["home_score"],
+                "away_team_id": row["away_team_id"],
+                "away_team_name": row["away_team_name"],
+                "away_team_logo": row["away_team_logo"],
+                "away_score": row["away_score"],
+                "status": row["status"]
+            }
+            for row in rows
+        ]
+    }
+

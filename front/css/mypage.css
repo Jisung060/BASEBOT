@@ -469,3 +469,93 @@
     }
 }
 
+
+/* ==================================================
+   내가 쓴 댓글
+================================================== */
+
+.my-comment-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 0;
+}
+
+.my-comment-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.my-comment-post-title {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.my-comment-text {
+    margin: 0;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.my-comment-item .activity-date {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* 페이지네이션 */
+
+.mypage-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 24px;
+}
+
+.mypage-page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.mypage-page-btn:hover:not(:disabled) {
+    background: #f3f3f3;
+}
+
+.mypage-page-btn.active {
+    background: #222;
+    border-color: #222;
+    color: #fff;
+    font-weight: 600;
+}
+
+.mypage-page-btn:disabled {
+    color: #aaa;
+    background: #f7f7f7;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .my-comment-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .my-comment-item .activity-date {
+        align-self: flex-end;
+        font-size: 12px;
+    }
+}
