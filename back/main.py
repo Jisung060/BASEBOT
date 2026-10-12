@@ -18,7 +18,7 @@ from routers.chat import router as chat_router
 from routers.auth import router as auth_router
 from routers.my_posts import router as my_posts_router
 from routers import favorite_team
-
+from routers import home
 
 from routers.community import router as community_router
 
@@ -54,6 +54,7 @@ app.add_middleware(
 )
 
 # Router
+app.include_router(home.router)
 app.include_router(favorite_team.router)
 app.include_router(auth_router)
 app.include_router(user_router)

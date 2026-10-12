@@ -295,48 +295,18 @@
 
         </ul>
     </div>
-            <!-- 커뮤니티 -->
+            <!-- ==================================================
+                 커뮤니티 최신 게시글
+            ================================================== -->
             <div class="content-box">
                 <div class="section-title">
-                    <h2>
-                        커뮤니티
-                    </h2>
-                    <a href="community.html">
-                        더보기 +
-                    </a>
+                    <h2>커뮤니티</h2>
+                    <a href="community.html">더보기 +</a>
                 </div>
-                <ul class="news-list">
+
+                <ul class="news-list" id="main-community-list">
                     <li>
-                        <a href="#">
-                            오늘 경기 어떻게 생각하시나요?
-                        </a>
-                        <span>
-                            10.03
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            이번 시즌 가장 기대되는 선수
-                        </a>
-                        <span>
-                            10.03
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            팀별 전력에 대한 이야기
-                        </a>
-                        <span>
-                            10.02
-                        </span>
-                    </li>
-                    <li>
-                        <a href="#">
-                            야구 팬들과 자유롭게 이야기해보세요.
-                        </a>
-                        <span>
-                            10.02
-                        </span>
+                        <span>게시글을 불러오는 중입니다.</span>
                     </li>
                 </ul>
             </div>
@@ -449,6 +419,8 @@
     ================================================== -->
 
     <script src="/js/main.js"></script>
+
+    <script src="/js/main-community.js"></script>
 <script>
         async function loadMainNews() {
             const newsListEl = document.getElementById('main-news-list');
@@ -509,7 +481,8 @@
         }
 
         document.addEventListener("DOMContentLoaded", loadMainNews);
-    </script>
+</script>
+
 
     </body>
 

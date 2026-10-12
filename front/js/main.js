@@ -669,3 +669,4 @@ function renderGameResults(
         }
     );
 }
+
