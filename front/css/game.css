@@ -104,8 +104,34 @@
 
 /* Favorite-team emphasis in the all-teams schedule. */
 .game-day-cards .game-card.favorite-game-card{position:relative;background:linear-gradient(135deg,#edf6ff 0%,#dcecff 52%,#f7fbff 100%)}
-.schedule-team-logo-link.favorite-game-logo{position:relative}
-.favorite-game-badge{position:absolute;top:-12px;right:-8px;z-index:1;padding:2px 4px;border:1px solid #f2c65e;border-radius:8px;background:#fff7df;color:#a66b00;font-size:8px;font-weight:800;line-height:1}
+.schedule-team-logo-link.favorite-game-logo {
+    position: relative;
+    overflow: visible;
+}
+
+.favorite-game-badge {
+    position: absolute;
+    top: -8px;
+    right: -5px;
+    z-index: 1;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+
+    padding: 2px 3px;
+    border: 1px solid #f2c65e;
+    border-radius: 6px;
+    background: #fff7df;
+    color: #a66b00;
+
+    font-size: 7px;
+    font-weight: 800;
+    line-height: 1;
+    box-sizing: border-box;
+}
 
 /* Keep the team picker neutral; only the MY badge identifies the favorite team. */
 .team-rail-option.is-favorite-team .team-picker-logo{filter:none}
