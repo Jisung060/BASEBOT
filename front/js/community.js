@@ -4,7 +4,7 @@
    현재는 화면 동작 확인용
    이후 FastAPI API로 교체
 ========================================= */
-const API_BASE_URL = "http://192.168.63.119:8000";
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 function showBasebotModal(
     title,
