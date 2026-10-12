@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 
 from database.db_connection import get_session
@@ -8,6 +8,7 @@ from models.team import Team
 from models.post_like import PostLike
 from models.comment import Comment
 from models.comment_like import CommentLike
+from models.community_image import CommunityImage
 
 from schemas.community import (
     CommunityPostCreate, CommunityPostUpdate )
@@ -707,4 +708,56 @@ def get_comment_like(
         "comment_id": comment_id,
         "liked": existing_like is not None,
         "like_count": comment.like_count
+    }
+
+# =========================================
+# 게시글 이미지 업로드
+# =========================================
+
+@router.post("/images/upload")
+def upload_community_image(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session)
+):
+    # 이미지 파일인지 확인
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="이미지 파일만 업로드할 수 있습니다."
+        )
+
+    # 파일 읽기
+    file_data = file.file.read()
+
+    # 파일 크기 확인
+    file_size = len(file_data)
+
+    # 업로드 폴더
+    upload_dir = "uploads/community"
+
+    import os
+    import uuid
+
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # 저장할 파일명 생성
+    extension = os.path.splitext(file.filename or "")[1]
+
+    stored_name = f"{uuid.uuid4().hex}{extension}"
+
+    file_path = os.path.join(
+        upload_dir,
+        stored_name
+    )
+
+    # 실제 파일 저장
+    with open(file_path, "wb") as image_file:
+        image_file.write(file_data)
+
+    return {
+        "message": "이미지가 업로드되었습니다.",
+        "original_name": file.filename,
+        "stored_name": stored_name,
+        "file_path": file_path,
+        "file_size": file_size
     }

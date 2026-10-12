@@ -97,6 +97,13 @@ app.mount(
     name="assets"
 )
 
+# 업로드 이미지
+app.mount(
+    "/uploads",
+    StaticFiles(directory="uploads"),
+    name="uploads"
+)
+
 # 메인 페이지
 @app.get("/")
 def root():
