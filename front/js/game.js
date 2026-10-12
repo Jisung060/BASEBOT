@@ -13,7 +13,10 @@ let selectedScheduleDay = null;
 function setupDateControls() {
     dateInput.value = DEFAULT_DATE;
     dateInput.addEventListener("change", () => setSelectedDate(dateInput.value));
-    teamSelect.addEventListener("change", loadGames);
+    teamSelect.addEventListener("change", () => {
+        loadGames();
+        if (!document.getElementById("game-calendar").hidden) renderCalendar();
+    });
     document.getElementById("btn-prev-year").addEventListener("click", () => moveYear(-1));
     document.getElementById("btn-next-year").addEventListener("click", () => moveYear(1));
     const topButton = document.getElementById("scroll-to-top");
@@ -28,8 +31,7 @@ function setupDateControls() {
         loadGames();
     });
     document.getElementById("btn-calendar").addEventListener("click", () => {
-        if (typeof dateInput.showPicker === "function") dateInput.showPicker();
-        else dateInput.click();
+        toggleCalendar();
     });
     setupTeamPicker();
     renderMonthStrip();
@@ -51,25 +53,6 @@ function scrollToTopQuickly() {
 
 function setupTeamPicker() {
     addTeamPickerOption("ALL", "전체 구단", "", "MLB");
-    const favoriteButton = document.createElement("button");
-    favoriteButton.type = "button";
-    favoriteButton.className = "favorite-filter-button";
-    favoriteButton.id = "favorite-team-filter";
-    favoriteButton.textContent = "★";
-    favoriteButton.setAttribute("aria-label", "MY 구단");
-    favoriteButton.setAttribute("aria-pressed", "false");
-    favoriteButton.title = "로그인 후 선호 구단을 설정해 주세요.";
-    favoriteButton.disabled = true;
-    favoriteButton.addEventListener("click", showFavoriteTeamGames);
-    document.getElementById("team-rail").append(favoriteButton);
-}
-
-function showFavoriteTeamGames() {
-    if (!myFavoriteTeamId) return;
-    teamSelect.value = String(myFavoriteTeamId);
-    document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "true");
-    updateTeamRailSelection();
-    loadGames();
 }
 
 function addTeamPickerOption(value, name, logoUrl, code) {
@@ -93,7 +76,6 @@ function addTeamPickerOption(value, name, logoUrl, code) {
     }
     option.addEventListener("click", () => {
         teamSelect.value = value;
-        document.getElementById("favorite-team-filter").setAttribute("aria-pressed", "false");
         updateTeamRailSelection();
         teamSelect.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -134,6 +116,75 @@ function setSelectedDate(value) {
     loadGames();
 }
 
+async function toggleCalendar() {
+    const calendar = document.getElementById("game-calendar");
+    calendar.hidden = !calendar.hidden;
+    if (!calendar.hidden) {
+        calendar.dataset.month = dateInput.value.slice(0, 7);
+        await renderCalendar();
+    }
+}
+
+async function renderCalendar() {
+    const calendar = document.getElementById("game-calendar");
+    const monthKey = calendar.dataset.month || dateInput.value.slice(0, 7);
+    const [year, month] = monthKey.split("-").map(Number);
+    const games = await fetchAndEnrichMonthGames(`${monthKey}-01`);
+    const visibleGames = teamSelect.value === "ALL"
+        ? games
+        : games.filter(game => String(game.home_team_id) === teamSelect.value || String(game.away_team_id) === teamSelect.value);
+    const gameDays = new Set(visibleGames.map(game => String(game.game_date).slice(0, 10)));
+    const firstWeekday = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const heading = document.createElement("div");
+    heading.className = "game-calendar-heading";
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.textContent = "‹";
+    previous.setAttribute("aria-label", "이전 달");
+    previous.addEventListener("click", () => moveCalendarMonth(-1));
+    const title = document.createElement("strong");
+    title.textContent = `${year}년 ${month}월`;
+    const next = document.createElement("button");
+    next.type = "button";
+    next.textContent = "›";
+    next.setAttribute("aria-label", "다음 달");
+    next.addEventListener("click", () => moveCalendarMonth(1));
+    heading.append(previous, title, next);
+    const grid = document.createElement("div");
+    grid.className = "game-calendar-grid";
+    ["일", "월", "화", "수", "목", "금", "토"].forEach(label => {
+        const weekday = document.createElement("span");
+        weekday.className = "game-calendar-weekday";
+        weekday.textContent = label;
+        grid.append(weekday);
+    });
+    for (let index = 0; index < firstWeekday; index += 1) grid.append(document.createElement("span"));
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = `${monthKey}-${String(day).padStart(2, "0")}`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "game-calendar-day";
+        button.textContent = day;
+        if (gameDays.has(date)) button.classList.add("has-games");
+        if (date === dateInput.value) button.classList.add("selected");
+        button.addEventListener("click", () => {
+            calendar.hidden = true;
+            setSelectedDate(date);
+        });
+        grid.append(button);
+    }
+    calendar.replaceChildren(heading, grid);
+}
+
+function moveCalendarMonth(delta) {
+    const calendar = document.getElementById("game-calendar");
+    const [year, month] = (calendar.dataset.month || dateInput.value.slice(0, 7)).split("-").map(Number);
+    const target = new Date(year, month - 1 + delta, 1);
+    calendar.dataset.month = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}`;
+    renderCalendar();
+}
+
 function moveYear(delta) {
     const [year, month] = dateInput.value.split("-").map(Number);
     dateInput.value = `${year + delta}-${String(month).padStart(2, "0")}-01`;
@@ -147,10 +198,9 @@ function renderMonthStrip() {
     const [year, selectedMonth] = dateInput.value.split("-").map(Number);
     document.getElementById("year-display").textContent = year;
     const fragment = document.createDocumentFragment();
-    for (let offset = -7; offset < 5; offset += 1) {
-        const monthDate = new Date(year, selectedMonth - 1 + offset, 1);
-        const monthYear = monthDate.getFullYear();
-        const month = monthDate.getMonth() + 1;
+    const months = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8];
+    months.forEach(month => {
+        const monthYear = year;
         const button = document.createElement("button");
         button.type = "button";
         button.className = "month-option";
@@ -171,7 +221,7 @@ function renderMonthStrip() {
             loadGames();
         });
         fragment.append(button);
-    }
+    });
     strip.replaceChildren(fragment);
 }
 
@@ -189,9 +239,6 @@ async function loadTeams() {
             teamSelect.add(new Option(`${team.team_name} (${team.team_code})`, team.team_id));
             addTeamPickerOption(team.team_id, team.team_name, team.logo_url, team.team_code);
         });
-        const favoriteButton = document.getElementById("favorite-team-filter");
-        favoriteButton.disabled = !myFavoriteTeamId;
-        favoriteButton.title = myFavoriteTeamId ? "MY 구단 경기만 보기" : "로그인 후 선호 구단을 설정해 주세요.";
         updateTeamRailSelection();
         teamFilterReady = true;
         renderMonthStrip();
@@ -324,6 +371,7 @@ function createMonthlyGroups(games) {
         const count = document.createElement("span");
         count.textContent = `${dayGames.length}경기`;
         heading.append(dateHeading, count);
+        dayGames.sort((a, b) => String(a.scheduled_at || a.game_time || "99:99").localeCompare(String(b.scheduled_at || b.game_time || "99:99")));
         const cards = document.createElement("div");
         cards.className = "game-day-cards";
         cards.append(...dayGames.map(createGameCard));
@@ -371,6 +419,11 @@ function formatGameTime(dateTime) {
 function createGameCard(game) {
     const card = document.createElement("article");
     card.className = "game-card";
+    const isFavoriteGame = myFavoriteTeamId && (
+        String(game.away_team_id) === String(myFavoriteTeamId) ||
+        String(game.home_team_id) === String(myFavoriteTeamId)
+    );
+    if (isFavoriteGame) card.classList.add("favorite-game-card");
     const statusLabels = { FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" };
     const statusLabel = statusLabels[game.status] || game.status || "상태 미정";
     const isFinal = game.status === "FINAL";
@@ -390,19 +443,19 @@ function createGameCard(game) {
     const matchup = document.createElement("div");
     matchup.className = "matchup-summary";
     const scoreNode = createScoreNode(game, awayRuns, homeRuns, statusLabel, isFinal || isLive);
+    let highlightsLink = null;
     if (isFinal) {
-        const highlightsLink = document.createElement("a");
+        highlightsLink = document.createElement("a");
         highlightsLink.className = "highlight-button score-highlight-link";
         highlightsLink.textContent = "하이라이트";
         highlightsLink.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
         highlightsLink.target = "_blank";
         highlightsLink.rel = "noopener noreferrer";
-        scoreNode.append(highlightsLink);
     }
     matchup.append(
-        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher),
+        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFavoriteGame && String(game.away_team_id) === String(myFavoriteTeamId)),
         scoreNode,
-        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher)
+        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFavoriteGame && String(game.home_team_id) === String(myFavoriteTeamId))
     );
 
     const venue = document.createElement("div");
@@ -415,6 +468,7 @@ function createGameCard(game) {
         const query = new URLSearchParams({ id: game.game_id, date: gameDate });
         link.href = `game-detail.html?${query.toString()}`;
         venue.append(link);
+        venue.append(highlightsLink);
     }
     card.append(timeCell, matchup, venue);
     return card;
@@ -480,7 +534,7 @@ function renderQuickInnings(container, result, game) {
     container.dataset.loaded = "true";
 }
 
-function createTeamNode(name, code, logoUrl, side, teamId, pitcherName) {
+function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavoriteTeam = false) {
     const slot = document.createElement("div");
     slot.className = `schedule-team-slot ${side}`;
     const teamHref = `team-detail.html?id=${encodeURIComponent(teamId || "")}`;
@@ -500,6 +554,13 @@ function createTeamNode(name, code, logoUrl, side, teamId, pitcherName) {
         logo.replaceWith(fallback);
     };
     logoLink.append(logo);
+    if (isFavoriteTeam) {
+        logoLink.classList.add("favorite-game-logo");
+        const badge = document.createElement("span");
+        badge.className = "favorite-game-badge";
+        badge.textContent = "★ MY";
+        logoLink.append(badge);
+    }
     const copy = document.createElement("span");
     copy.className = "team-copy";
     const label = document.createElement("a");
