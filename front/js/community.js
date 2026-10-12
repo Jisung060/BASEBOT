@@ -1041,16 +1041,6 @@ async function loadPosts() {
         // 게시글 하나씩 화면에 생성
         posts.forEach(post => {
 
-            console.log(
-                "게시글 목록 데이터:",
-                {
-                    post_id: post.post_id,
-                    title: post.title,
-                    user_id: post.user_id,
-                    nickname: post.nickname
-                }
-            );
-
             // 카테고리 표시용 이름
             const categoryNames = {
                 GENERAL: "자유",
@@ -1550,13 +1540,6 @@ async function loadPostDetail() {
             // =================================
             likeButton.onclick = async function () {
 
-                const accessToken = sessionStorage.getItem("access_token");
-
-                if (!accessToken) {
-                    showLoginRequiredModal();
-                    return;
-                }
-
                 try {
                     const likeResponse =
                         await fetch(
@@ -1564,7 +1547,7 @@ async function loadPostDetail() {
                             {
                                 method: "POST",
                                 headers: {
-                                    "Authorization": `Bearer ${accessToken}`
+                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                                 }
                             }
                         );
@@ -1629,8 +1612,8 @@ async function loadPostDetail() {
 
 
         /* =================================
-           수정 버튼
-        ================================= */
+                  수정 버튼
+           ================================= */
 
         const editButton =
             postDetail.querySelector(
@@ -1639,18 +1622,19 @@ async function loadPostDetail() {
 
         if (editButton) {
 
-            // 링크의 기본 이동 동작 방지
+            // 수정 페이지로 바로 이동하지 않도록 설정
             editButton.href = "#";
 
-            // 기존 클릭 이벤트를 덮어써서 중복 실행 방지
-            editButton.onclick = function (event) {
+            editButton.addEventListener("click", function (event) {
 
+                // 링크의 기본 이동 동작 막기
                 event.preventDefault();
 
                 // 로그인 토큰 가져오기
                 const accessToken =
                     sessionStorage.getItem("access_token");
 
+                // 로그인하지 않은 경우
                 if (!accessToken) {
                     showBasebotModal(
                         "로그인 필요",
@@ -1659,7 +1643,7 @@ async function loadPostDetail() {
                     return;
                 }
 
-                // 로그인 사용자 ID 확인
+                // 토큰에서 로그인 사용자 ID 확인
                 let currentUserId = null;
 
                 try {
@@ -1671,11 +1655,9 @@ async function loadPostDetail() {
                         )
                     );
 
-                    currentUserId =
-                        Number(payload.user_id);
+                    currentUserId = Number(payload.user_id);
 
                 } catch (error) {
-
                     console.error(
                         "로그인 사용자 정보 확인 오류:",
                         error
@@ -1685,7 +1667,6 @@ async function loadPostDetail() {
                         "인증 오류",
                         "로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요."
                     );
-
                     return;
                 }
 
@@ -1693,57 +1674,17 @@ async function loadPostDetail() {
                 if (
                     Number(post.user_id) !== currentUserId
                 ) {
-
                     showBasebotModal(
                         "수정 권한 없음",
                         "본인이 작성한 게시글만 수정할 수 있습니다."
                     );
-
                     return;
                 }
 
-                // 수정에 사용할 실제 게시글 번호 확인
-                const currentPostId =
-                    Number(post.post_id);
-
-                console.log(
-                    "현재 상세 페이지 주소:",
-                    window.location.href
-                );
-
-                console.log(
-                    "URL에서 읽은 게시글 번호:",
-                    postId
-                );
-
-                console.log(
-                    "백엔드 응답의 게시글 번호:",
-                    post.post_id
-                );
-
-                console.log(
-                    "수정 페이지로 전달할 게시글 번호:",
-                    currentPostId
-                );
-
-                // 게시글 번호가 올바른지 확인
-                if (
-                    !Number.isInteger(currentPostId) ||
-                    currentPostId <= 0
-                ) {
-
-                    showBasebotModal(
-                        "수정 오류",
-                        "게시글 번호를 확인할 수 없습니다."
-                    );
-
-                    return;
-                }
-
-                // 본인이 작성한 게시글의 수정 페이지로 이동
+                // 본인이 작성한 글인 경우에만 수정 페이지로 이동
                 window.location.href =
-                    `community-edit.html?postId=${currentPostId}`;
-            };
+                    `community-edit.html?postId=${post.post_id}`;
+            });
         }
 
 
@@ -2865,15 +2806,6 @@ async function setupEditForm() {
         return;
     }
 
-        // 로그인 여부 확인
-    const accessToken =
-        sessionStorage.getItem("access_token");
-
-    if (!accessToken) {
-        showLoginRequiredModal();
-        return;
-    }
-
     const params =
         new URLSearchParams(
             window.location.search
@@ -3144,7 +3076,7 @@ async function setupEditForm() {
 
                             headers: {
                                 "Content-Type": "application/json",
-                                "Authorization": `Bearer ${accessToken}`
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                             },
 
                             body:
@@ -3301,7 +3233,10 @@ function setupPostActions() {
             const token = sessionStorage.getItem("access_token");
 
             if (!token) {
-                showLoginRequiredModal();
+                showBasebotModal(
+                    "로그인 필요",
+                    "스크랩 기능은 로그인 후 이용할 수 있습니다."
+                );
                 return;
             }
 
@@ -3399,16 +3334,8 @@ function setupReportModal() {
         modal.hidden = true;
     };
 
-    // 신고 모달 열기 전에 로그인 확인
+    // 신고 모달 열기
     openButton.addEventListener("click", () => {
-        const token =
-            sessionStorage.getItem("access_token");
-
-        if (!token) {
-            showLoginRequiredModal();
-            return;
-        }
-
         modal.hidden = false;
     });
 
@@ -3454,7 +3381,10 @@ function setupReportModal() {
             sessionStorage.getItem("access_token");
 
         if (!token) {
-            showLoginRequiredModal();
+            showBasebotModal(
+                "로그인 필요",
+                "신고 기능은 로그인 후 이용할 수 있습니다."
+            );
             return;
         }
 
@@ -3663,15 +3593,6 @@ commentForm?.addEventListener("submit", async event => {
 
     event.preventDefault();
 
-        // 댓글 작성 전 로그인 확인
-    const accessToken =
-        sessionStorage.getItem("access_token");
-
-    if (!accessToken) {
-        showLoginRequiredModal();
-        return;
-    }
-
     const textarea =
         commentForm.querySelector("textarea");
 
@@ -3713,7 +3634,7 @@ commentForm?.addEventListener("submit", async event => {
             {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${accessToken}`
+                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                 }
             }
         );
@@ -3785,15 +3706,6 @@ document
             event.target.closest(".reply-button");
 
         if (!replyButton) {
-            return;
-        }
-
-        // 대댓글 작성 전 로그인 확인
-        const accessToken =
-            sessionStorage.getItem("access_token");
-
-        if (!accessToken) {
-            showLoginRequiredModal();
             return;
         }
 
@@ -3903,7 +3815,6 @@ document
                     return;
                 }
 
-
                 try {
                     const response =
                         await fetch(
@@ -3911,7 +3822,7 @@ document
                             {
                                 method: "POST",
                                 headers: {
-                                    "Authorization": `Bearer ${accessToken}`
+                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                                 }
                             }
                         );
@@ -4054,67 +3965,6 @@ async function deletePost() {
         "삭제"
     );
 }
-
-
-/* =========================================
-   로그인 필요 공통 팝업
-========================================= */
-function showLoginRequiredModal() {
-    const modal = document.getElementById("basebotModal");
-    const titleElement = document.getElementById("basebotModalTitle");
-    const messageElement = document.getElementById("basebotModalMessage");
-    const button = document.getElementById("basebotModalButton");
-    const cancelButton = document.getElementById("basebotModalCancelButton");
-
-    if (!modal || !titleElement || !messageElement || !button || !cancelButton) {
-        showBasebotModal(
-            "로그인 필요",
-            "이 기능은 로그인 후 이용할 수 있습니다."
-        );
-        return;
-    }
-
-    titleElement.textContent = "로그인이 필요합니다";
-    messageElement.textContent = "이 기능은 로그인 후 이용할 수 있습니다.";
-
-    cancelButton.style.display = "inline-flex";
-    cancelButton.textContent = "취소";
-    button.textContent = "로그인";
-
-    modal.classList.add("show");
-
-    cancelButton.onclick = function () {
-        modal.classList.remove("show");
-    };
-
-    button.onclick = function () {
-        modal.classList.remove("show");
-        window.location.href = "login.html";
-    };
-}
-
-
-/* =========================================
-   글쓰기 버튼 로그인 확인
-========================================= */
-function setupCommunityWriteLoginCheck() {
-    const writeButton = document.getElementById("communityWriteButton");
-
-    if (!writeButton) {
-        return;
-    }
-
-    writeButton.addEventListener("click", function (event) {
-        const accessToken = sessionStorage.getItem("access_token");
-
-        if (!accessToken) {
-            event.preventDefault();
-            showLoginRequiredModal();
-        }
-    });
-}
-
-setupCommunityWriteLoginCheck();
 
 
 // =========================================

@@ -25,6 +25,7 @@ async function loadRecentCommunityPosts() {
 
         const data = await response.json();
 
+
         renderCommunityPosts(data.posts || []);
 
     } catch (error) {
