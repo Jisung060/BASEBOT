@@ -14,6 +14,8 @@
 
     <!-- 마이페이지 공통 CSS -->
     <link rel="stylesheet" href="/css/mypage.css">
+
+    <link rel="stylesheet" href="/css/favorite-team.css">
 </head>
 
 <body data-page="favorite-team">
@@ -42,46 +44,33 @@
         <div class="mypage-box-title">
             내 관심 팀
         </div>
-
         <div class="mypage-box-body">
-
-            <div class="favorite-team-card">
-
-                <div class="favorite-team-info">
-
-                    <h2>관심 팀이 없습니다.</h2>
-
-                    <p>
-                        회원정보 수정에서 관심 팀을 선택해주세요.
-                    </p>
-
+            <div class="favorite-team-card" id="favorite-team-card">
+                <div class="favorite-team-info" id="favorite-team-info">
+                    <h2>관심 팀 정보를 불러오는 중입니다.</h2>
+                    <p>잠시만 기다려주세요.</p>
                 </div>
-
                 <a
                     href="member-edit.html"
                     class="mypage-button"
+                    id="favorite-team-setting"
                 >
                     관심 팀 설정
                 </a>
-
             </div>
-
         </div>
     </div>
 
-    <div class="mypage-box">
-
-        <div class="mypage-box-title">
-            최근 경기
-        </div>
-
-        <div class="mypage-box-body">
-
+    <div class="mypage-box-body">
+        <div
+            class="favorite-team-games"
+            id="favorite-team-games"
+        >
             <div class="mypage-empty">
-                관심 팀을 설정하면 최근 경기 결과가 표시됩니다.
+                최근 경기 정보를 불러오는 중입니다.
             </div>
-
         </div>
+
     </div>
 
 </section>
@@ -100,6 +89,6 @@
     <script src="/js/mypage.js"></script>
 
 
-
+    <script src="/js/favorite-team.js"></script>
 </body>
 </html>

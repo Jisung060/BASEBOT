@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -14,6 +15,9 @@
 
     <!-- 마이페이지 공통 CSS -->
     <link rel="stylesheet" href="/css/mypage.css">
+
+    <!-- 내가 쓴 글 전용 CSS -->
+    <link rel="stylesheet" href="/css/my-posts.css">
 </head>
 
 <body data-page="my-posts">
@@ -23,45 +27,44 @@
 
     <!-- Main -->
     <main class="auth-main">
-
         <div class="auth-layout">
 
             <!-- Sidebar -->
             <div id="mypage-sidebar"></div>
 
+            <!-- Content -->
+            <section class="mypage-content">
 
-<section class="mypage-content">
+                <div class="mypage-title">
+                    <h1>내가 쓴 글</h1>
+                    <p>커뮤니티에서 내가 작성한 게시글을 확인할 수 있습니다.</p>
+                </div>
 
-    <div class="mypage-title">
-        <h1>내가 쓴 글</h1>
-        <p>커뮤니티에서 내가 작성한 게시글을 확인할 수 있습니다.</p>
-    </div>
+                <div class="mypage-box">
 
-    <div class="mypage-box">
+                    <div class="mypage-box-title">
+                        게시글 목록
+                        <span class="my-posts-total">총 0개</span>
+                    </div>
 
-        <div class="mypage-box-title">
-            게시글 목록
-        </div>
+                    <div class="mypage-box-body">
 
-        <div class="mypage-box-body">
+                        <!-- DB에서 게시글을 가져와 표시 -->
+                        <ul class="activity-list my-posts-list">
+                        </ul>
 
-            <ul class="activity-list">
+                        <!-- 게시글이 없을 때 -->
+                        <p id="my-posts-empty" style="display: none;">
+                            작성한 게시글이 없습니다.
+                        </p>
 
-                <li>
-                    <a href="community.html" class="activity-title">
-                        작성한 게시글이 없습니다.
-                    </a>
-                    <span class="activity-date">-</span>
-                </li>
+                    </div>
+                </div>
 
-            </ul>
+                <!-- 페이지 이동: box 바깥 -->
+                <div id="my-posts-pagination" class="my-posts-pagination"></div>
 
-        </div>
-    </div>
-
-</section>
-
-
+            </section>
         </div>
     </main>
 
@@ -74,7 +77,8 @@
     <!-- 마이페이지 공통 JS -->
     <script src="/js/mypage.js"></script>
 
-
+    <!-- 내가 쓴 글 페이지 이동 JS -->
+    <script src="/js/my-posts.js"></script>
 
 </body>
 </html>

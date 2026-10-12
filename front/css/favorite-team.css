@@ -1,0 +1,166 @@
+/* ==================================================
+   관심 팀 정보
+================================================== */
+
+.favorite-team-heading {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.favorite-team-logo {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+}
+
+.favorite-team-heading h2 {
+    margin: 0 0 6px;
+}
+
+.favorite-team-heading p {
+    margin: 0;
+    color: #666;
+}
+
+.favorite-team-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+
+.favorite-team-details p {
+    margin: 0;
+    color: #555;
+}
+
+.favorite-team-details strong {
+    margin-right: 6px;
+    color: #222;
+}
+
+
+/* ==================================================
+   최근 경기 목록
+================================================== */
+
+.favorite-team-games {
+    display: flex;
+    flex-direction: column;
+}
+
+.favorite-game-item {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) 60px;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.favorite-game-item:last-child {
+    border-bottom: none;
+}
+
+.favorite-game-date {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: #333;
+    font-size: 14px;
+}
+
+.favorite-game-date span {
+    color: #777;
+    font-size: 12px;
+}
+
+.favorite-game-match {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.favorite-game-team {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    font-weight: 600;
+    text-align: center;
+}
+
+.favorite-game-team span {
+    overflow-wrap: anywhere;
+}
+
+.favorite-game-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.favorite-game-score {
+    text-align: center;
+    font-size: 18px;
+}
+
+.favorite-game-result {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.result-win {
+    color: #15803d;
+}
+
+.result-loss {
+    color: #dc2626;
+}
+
+.result-draw {
+    color: #64748b;
+}
+
+
+/* ==================================================
+   반응형
+================================================== */
+
+@media (max-width: 768px) {
+    .favorite-game-item {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .favorite-game-date {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .favorite-game-match {
+        grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .favorite-game-team {
+        flex-direction: column;
+        font-size: 13px;
+    }
+
+    .favorite-game-logo {
+        width: 26px;
+        height: 26px;
+    }
+
+    .favorite-team-details {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

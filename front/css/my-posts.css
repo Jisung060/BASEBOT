@@ -1,0 +1,189 @@
+/* 게시글 개수 */
+.my-posts-total {
+    float: right;
+    color: #777;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* 게시글 목록 */
+.my-posts-list {
+    margin: 0;
+    padding: 0;
+}
+
+.my-posts-list .my-post-item {
+    display: block;
+    padding: 22px 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.my-posts-list .my-post-item:first-child {
+    padding-top: 5px;
+}
+
+.my-posts-list .my-post-item:last-child {
+    padding-bottom: 5px;
+    border-bottom: none;
+}
+
+/* 게시글 본문 영역 */
+.my-post-main {
+    min-width: 0;
+    width: 100%;
+}
+
+/* 카테고리 및 날짜 */
+.my-post-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 11px;
+}
+
+/* 카테고리 공통 */
+.my-post-category {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: 5px 9px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 자유게시판 */
+.my-post-category.category-general {
+    color: #555;
+    background: #f1f3f5;
+}
+
+/* 경기 분석 */
+.my-post-category.category-analysis {
+    color: #2457a7;
+    background: #eaf2ff;
+}
+
+/* 경기 토론 */
+.my-post-category.category-game {
+    color: #a65a00;
+    background: #fff1d9;
+}
+
+/* 뉴스 카테고리 */
+.my-post-category.category-news {
+    color: #9D174D;
+    background-color: #FBCFE8;
+}
+
+/* 게시글 제목
+   공통 activity-title 스타일을 유지하면서 필요한 부분만 보완 */
+.my-posts-list .my-post-title {
+    display: block;
+    margin-bottom: 12px;
+    color: #333;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.6;
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.my-posts-list .my-post-title:hover {
+    color: #123f91;
+}
+
+/* 게시글 통계 */
+.my-post-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    color: #888;
+    font-size: 12px;
+}
+
+.my-post-stats span {
+    white-space: nowrap;
+}
+
+/* ========================================
+   반응형
+======================================== */
+
+@media (max-width: 700px) {
+
+    .my-posts-list .my-post-item {
+        padding: 18px 2px;
+    }
+
+    .my-posts-list .my-post-title {
+        font-size: 14px;
+    }
+
+    .my-post-info {
+        gap: 8px;
+    }
+
+    .my-post-stats {
+        gap: 12px;
+        font-size: 11px;
+    }
+}
+
+/* =========================================
+   내가 쓴 글 - 페이지 이동
+========================================= */
+
+.my-posts-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 28px;
+    padding: 10px 0 5px;
+}
+
+.my-posts-pagination button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    background-color: #ffffff;
+
+    color: #333333;
+    font-size: 14px;
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+}
+
+.my-posts-pagination button:hover:not(:disabled) {
+    border-color: #333333;
+    background-color: #f5f5f5;
+}
+
+.my-posts-pagination button.active {
+    border-color: #222222;
+    background-color: #222222;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.my-posts-pagination button:disabled {
+    color: #bbbbbb;
+    cursor: default;
+    background-color: #fafafa;
+}
+
+.my-posts-pagination button:focus-visible {
+    outline: 2px solid #555555;
+    outline-offset: 2px;
+}
