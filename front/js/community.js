@@ -282,6 +282,142 @@ let appliedPostSearch = {
     keyword: ""
 };
 
+// =========================================
+// 인기 게시글 불러오기
+// =========================================
+
+async function loadPopularPosts() {
+
+    const popularGrid =
+        document.getElementById("popularGrid");
+
+    if (!popularGrid) return;
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/community/posts/popular`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "인기 게시글을 불러오지 못했습니다."
+            );
+        }
+
+        const posts = await response.json();
+
+        popularGrid.innerHTML = "";
+
+        posts.forEach(post => {
+
+            const card =
+                document.createElement("a");
+
+            card.href =
+                `community-view.html?postId=${post.post_id}`;
+
+            card.className =
+                "popular-card";
+
+            // 상단 필터에서 사용할 데이터
+            card.dataset.league =
+                post.league || "";
+
+            card.dataset.division =
+                post.division || "";
+
+            card.dataset.team =
+                post.team_code || "";
+
+            card.dataset.category =
+                post.category || "";
+
+            // 카테고리 이름
+            let categoryName = "";
+
+            switch (post.category) {
+                case "GENERAL":
+                    categoryName = "자유";
+                    break;
+
+                case "ANALYSIS":
+                    categoryName = "분석";
+                    break;
+
+                case "GAME_THREAD":
+                    categoryName = "경기";
+                    break;
+
+                case "NEWS":
+                    categoryName = "뉴스";
+                    break;
+
+                default:
+                    categoryName = post.category || "";
+            }
+
+            // 카테고리 CSS 클래스
+            const categoryClass =
+                post.category
+                    ? post.category.toLowerCase()
+                    : "";
+
+            // 내용 미리보기
+            const preview =
+                post.content
+                    ? post.content
+                        .replace(/<[^>]*>/g, "")
+                        .trim()
+                        .substring(0, 80)
+                    : "";
+
+            card.innerHTML = `
+                <div class="popular-card-top">
+                    <span class="category-label ${categoryClass}">
+                        ${categoryName}
+                    </span>
+                    <span>
+                        추천 ${post.like_count || 0}
+                    </span>
+                </div>
+
+                <h3>
+                    ${post.title || ""}
+                </h3>
+
+                <p>
+                    ${preview}
+                </p>
+
+                <div class="popular-card-meta">
+                    ${post.nickname || "익명"} ·
+                    조회 ${post.view_count || 0}
+                </div>
+            `;
+
+            popularGrid.appendChild(card);
+        });
+
+        console.log(
+            "인기 게시글 불러오기 완료:",
+            posts
+        );
+
+    } catch (error) {
+
+        console.error(
+            "인기 게시글 불러오기 오류:",
+            error
+        );
+
+        popularGrid.innerHTML = `
+            <p class="popular-empty">
+                인기 게시글을 불러오지 못했습니다.
+            </p>
+        `;
+    }
+}
 
 // =========================================
 // 게시글 필터링 + 정렬
@@ -294,10 +430,10 @@ function updateCommunityBoard() {
         document.querySelector(".board");
 
     const boardRows =
-        [...document.querySelectorAll(".board-row[data-team]")];
+        [...document.querySelectorAll(".board-row")];
 
     const popularCards =
-        [...document.querySelectorAll(".popular-card[data-team]")];
+        [...document.querySelectorAll(".popular-card")];
 
     const selectedFilter =
         document.getElementById("selectedFilter");
@@ -317,39 +453,66 @@ function updateCommunityBoard() {
     // -----------------------------------------
     function matchesTopFilter(element) {
 
-        if (
-            appliedFilter.league &&
-            element.dataset.league !== appliedFilter.league
-        ) {
-            return false;
-        }
+    const elementLeague =
+        (element.dataset.league || "").toUpperCase();
 
-        if (
-            appliedFilter.division &&
-            element.dataset.division !==
-            appliedFilter.division
-        ) {
-            return false;
-        }
+    const elementDivision =
+        (element.dataset.division || "").toUpperCase();
 
-        if (
-            appliedFilter.team &&
-            element.dataset.team !==
-            appliedFilter.team
-        ) {
-            return false;
-        }
+    const elementTeam =
+        (element.dataset.team || "").toUpperCase();
 
-        if (
-            appliedFilter.category &&
-            element.dataset.category !==
-            appliedFilter.category
-        ) {
-            return false;
-        }
+    const elementCategory =
+        (element.dataset.category || "").toUpperCase();
 
-        return true;
+
+    const filterLeague =
+        (appliedFilter.league || "").toUpperCase();
+
+    const filterDivision =
+        (appliedFilter.division || "").toUpperCase();
+
+    const filterTeam =
+        (appliedFilter.team || "").toUpperCase();
+
+    const filterCategory =
+        (appliedFilter.category || "").toUpperCase();
+
+
+    if (
+        filterLeague &&
+        elementLeague !== filterLeague
+    ) {
+        return false;
     }
+
+
+    if (
+        filterDivision &&
+        elementDivision !== filterDivision
+    ) {
+        return false;
+    }
+
+
+    if (
+        filterTeam &&
+        elementTeam !== filterTeam
+    ) {
+        return false;
+    }
+
+
+    if (
+        filterCategory &&
+        elementCategory !== filterCategory
+    ) {
+        return false;
+    }
+
+
+    return true;
+}
 
 
     // -----------------------------------------
@@ -479,6 +642,16 @@ function updateCommunityBoard() {
             !matchedRows.includes(row);
     });
 
+    // -----------------------------------------
+    // 인기 게시글도 상단 필터 적용
+    // -----------------------------------------
+
+    popularCards.forEach(card => {
+
+        card.hidden =
+            !matchesTopFilter(card);
+    });
+
 
     // -----------------------------------------
     // 정렬
@@ -494,15 +667,6 @@ function updateCommunityBoard() {
         });
     }
 
-
-    // -----------------------------------------
-    // 인기 게시글도 상단 조건 적용
-    // -----------------------------------------
-    popularCards.forEach(card => {
-
-        card.hidden =
-            !matchesTopFilter(card);
-    });
 
 
     // -----------------------------------------
@@ -728,6 +892,8 @@ function setupCommunityFilters() {
                 button.classList.add(
                     "active"
                 );
+
+                updateCommunityBoard();
             }
         );
     });
@@ -1025,6 +1191,7 @@ async function loadPosts() {
 async function startCommunity() {
 
     await loadPosts();
+    await loadPopularPosts();
 
     setupCommunityFilters();
 
@@ -1047,6 +1214,7 @@ window.addEventListener("pageshow", async function (event) {
     // 브라우저 뒤로가기/앞으로가기로 돌아온 경우에만 새로고침
     if (event.persisted) {
         await loadPosts();
+        await loadPopularPosts();
         setupCommunityFilters();
     }
 });
@@ -1722,7 +1890,11 @@ document
             likeButton.dataset.commentId;
 
         if (!commentId) {
-            alert("댓글 번호를 찾을 수 없습니다.");
+            showBasebotModal(
+                "답글 작성",
+                "댓글 번호를 찾을 수 없습니다."
+            );
+
             return;
         }
 
@@ -1768,7 +1940,8 @@ document
                 error
             );
 
-            alert(
+            showBasebotModal(
+                "댓글 좋아요 오류",
                 error.message ||
                 "댓글 좋아요 처리 중 오류가 발생했습니다."
             );
@@ -2053,7 +2226,8 @@ document
             commentItem.dataset.commentId;
 
         if (!commentId) {
-            alert(
+            showBasebotModal(
+                "댓글 삭제",
                 "댓글 번호를 찾을 수 없습니다."
             );
             return;
@@ -2432,7 +2606,10 @@ function setupWriteForm() {
 
             if (!category) {
 
-                alert("분류를 선택해주세요.");
+                showBasebotModal(
+                    "게시글 작성",
+                    "분류를 선택해주세요."
+                );
 
                 return;
             }
@@ -2440,7 +2617,10 @@ function setupWriteForm() {
 
             if (!title) {
 
-                alert("제목을 입력해주세요.");
+                showBasebotModal(
+                    "게시글 작성",
+                    "제목을 입력해주세요."
+                );
 
                 return;
             }
@@ -2451,7 +2631,10 @@ function setupWriteForm() {
                 content === "<p><br></p>"
             ) {
 
-                alert("내용을 입력해주세요.");
+                showBasebotModal(
+                    "게시글 작성",
+                    "내용을 입력해주세요."
+                );
 
                 return;
             }
@@ -2539,7 +2722,8 @@ function setupWriteForm() {
                     error
                 );
 
-                alert(
+                showBasebotModal(
+                    "게시글 작성 오류",
                     error.message ||
                     "게시글 등록 중 오류가 발생했습니다."
                 );
@@ -2631,7 +2815,10 @@ async function setupEditForm() {
         params.get("postId");
 
     if (!postId) {
-        alert("게시글 번호를 찾을 수 없습니다.");
+        showBasebotModal(
+            "게시글 수정",
+            "게시글 번호를 찾을 수 없습니다."
+        );
         return;
     }
 
@@ -2768,7 +2955,8 @@ async function setupEditForm() {
             error
         );
 
-        alert(
+        showBasebotModal(
+            "게시글 수정 오류",
             error.message ||
             "게시글을 불러오는 중 오류가 발생했습니다."
         );
@@ -2819,9 +3007,10 @@ async function setupEditForm() {
             // 입력 확인
             // -------------------------
 
-            if (!category) {
+           if (!category) {
 
-                alert(
+                showBasebotModal(
+                    "게시글 수정",
                     "분류를 선택해주세요."
                 );
 
@@ -2830,7 +3019,8 @@ async function setupEditForm() {
 
             if (!title) {
 
-                alert(
+                showBasebotModal(
+                    "게시글 수정",
                     "제목을 입력해주세요."
                 );
 
@@ -2842,7 +3032,8 @@ async function setupEditForm() {
                 content === "<p><br></p>"
             ) {
 
-                alert(
+                showBasebotModal(
+                    "게시글 수정",
                     "내용을 입력해주세요."
                 );
 
@@ -2934,7 +3125,8 @@ async function setupEditForm() {
                     error
                 );
 
-                alert(
+                showBasebotModal(
+                    "게시글 수정 오류",
                     error.message ||
                     "게시글 수정 중 오류가 발생했습니다."
                 );
@@ -2980,15 +3172,133 @@ function setupPostActions() {
         }
     });
 
-    scrapButton?.addEventListener("click", function () {
 
-        this.classList.toggle("scrapped");
+        // =========================================
+        // 게시글 스크랩 상태 조회 및 버튼 처리
+        // =========================================
 
-        this.textContent =
-            this.classList.contains("scrapped")
-                ? "🔖 스크랩됨"
+        const postId = new URLSearchParams(
+            window.location.search
+        ).get("postId");
+
+        const accessToken = sessionStorage.getItem("access_token");
+
+        // 버튼 모양과 문구를 변경하는 함수
+        function updateScrapButton(scrapped) {
+            if (!scrapButton) return;
+
+            scrapButton.classList.toggle("scrapped", scrapped);
+
+            scrapButton.textContent = scrapped
+                ? "🔖 스크랩 완료"
                 : "🔖 스크랩";
-    });
+        }
+
+        // 페이지를 열었을 때 기존 스크랩 상태 조회
+        async function loadScrapStatus() {
+            if (!scrapButton || !postId || !accessToken) {
+                updateScrapButton(false);
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/community/posts/${postId}/scrap`,
+                    {
+                        headers: {
+                            "Authorization": `Bearer ${accessToken}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    console.error(
+                        "스크랩 상태 조회 실패:",
+                        response.status
+                    );
+                    return;
+                }
+
+                const data = await response.json();
+
+                updateScrapButton(data.scrapped);
+
+            } catch (error) {
+                console.error("스크랩 상태 조회 오류:", error);
+            }
+        }
+
+        // 스크랩 버튼 클릭
+        scrapButton?.addEventListener("click", async function () {
+            const token = sessionStorage.getItem("access_token");
+
+            if (!token) {
+                showBasebotModal(
+                    "로그인 필요",
+                    "스크랩 기능은 로그인 후 이용할 수 있습니다."
+                );
+                return;
+            }
+
+            if (!postId) {
+                showBasebotModal(
+                    "오류",
+                    "게시글 정보를 찾을 수 없습니다."
+                );
+                return;
+            }
+
+            // 요청 중 중복 클릭 방지
+            if (this.disabled) return;
+
+            this.disabled = true;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/community/posts/${postId}/scrap`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showBasebotModal(
+                        "스크랩 실패",
+                        data.detail || "스크랩 처리 중 오류가 발생했습니다."
+                    );
+                    return;
+                }
+
+                updateScrapButton(data.scrapped);
+
+                showBasebotModal(
+                    "스크랩",
+                    data.message
+                );
+
+            } catch (error) {
+                console.error("게시글 스크랩 오류:", error);
+
+                showBasebotModal(
+                    "오류",
+                    "서버와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요."
+                );
+
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        // 페이지 진입 시 상태 표시
+        loadScrapStatus();
+
+
+
 
 }
 
@@ -3000,7 +3310,6 @@ setupPostActions();
 ========================================= */
 
 function setupReportModal() {
-
     const openButton =
         document.getElementById("postReportButton");
 
@@ -3016,53 +3325,134 @@ function setupReportModal() {
     const submitButton =
         document.getElementById("submitReport");
 
+    const reportContent =
+        document.getElementById("reportContent");
+
     if (!openButton || !modal) return;
 
     const close = () => {
         modal.hidden = true;
     };
 
+    // 신고 모달 열기
     openButton.addEventListener("click", () => {
         modal.hidden = false;
     });
 
+    // 신고 모달 닫기
     closeButton?.addEventListener("click", close);
-
     cancelButton?.addEventListener("click", close);
 
+    // 모달 바깥을 누르면 닫기
     modal.addEventListener("click", event => {
-
         if (event.target === modal) {
             close();
         }
-
     });
 
-    submitButton?.addEventListener("click", () => {
-
+    // 신고 제출
+    submitButton?.addEventListener("click", async () => {
         const selected =
             document.querySelector(
                 'input[name="reportReason"]:checked'
             );
 
         if (!selected) {
-
-            alert(
+            showBasebotModal(
+                "신고 사유 선택",
                 "신고 사유를 선택해주세요."
             );
-
             return;
         }
 
-        alert(
-            "신고가 접수되었습니다. 실제 저장은 추후 FastAPI와 연결합니다."
-        );
+        const postId = new URLSearchParams(
+            window.location.search
+        ).get("postId");
 
-        close();
+        if (!postId) {
+            showBasebotModal(
+                "신고 실패",
+                "게시글 정보를 찾을 수 없습니다."
+            );
+            return;
+        }
+
+        const token =
+            sessionStorage.getItem("access_token");
+
+        if (!token) {
+            showBasebotModal(
+                "로그인 필요",
+                "신고 기능은 로그인 후 이용할 수 있습니다."
+            );
+            return;
+        }
+
+        // 중복 클릭 방지
+        if (submitButton.disabled) return;
+
+        submitButton.disabled = true;
+
+        const reportData = {
+            reason: selected.value,
+            content: reportContent.value.trim() || null
+        };
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/report`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(reportData)
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                showBasebotModal(
+                    "신고 실패",
+                    data.detail || "신고 처리 중 오류가 발생했습니다."
+                );
+                return;
+            }
+
+            // 신고 성공 후 입력값 초기화
+            document.querySelectorAll(
+                'input[name="reportReason"]'
+            ).forEach(input => {
+                input.checked = false;
+            });
+
+            reportContent.value = "";
+
+            close();
+
+            showBasebotModal(
+                "신고 접수 완료",
+                data.message || "신고가 접수되었습니다."
+            );
+
+        } catch (error) {
+            console.error("게시글 신고 오류:", error);
+
+            showBasebotModal(
+                "오류",
+                "서버와 통신할 수 없습니다. 잠시 후 다시 시도해주세요."
+            );
+
+        } finally {
+            submitButton.disabled = false;
+        }
     });
 }
 
 setupReportModal();
+
 
 
 /* =========================================
@@ -3127,11 +3517,12 @@ function setupShare() {
 
             await navigator.clipboard.writeText(url);
 
-            alert(
+            close();
+
+            showBasebotModal(
+                "링크 복사",
                 "게시글 링크가 복사되었습니다."
             );
-
-            close();
 
         } catch (error) {
 
@@ -3148,21 +3539,22 @@ function setupShare() {
 
             temp.remove();
 
-            alert(
+            close();
+
+            showBasebotModal(
+                "링크 복사",
                 "게시글 링크가 복사되었습니다."
             );
-
-            close();
         }
     });
-
     nativeButton?.addEventListener("click", async () => {
 
         const data = getShareData();
 
         if (!navigator.share) {
 
-            alert(
+            showBasebotModal(
+                "공유",
                 "현재 브라우저에서는 기기 공유를 지원하지 않습니다. '링크 복사'를 이용해주세요."
             );
 
@@ -3179,7 +3571,8 @@ function setupShare() {
 
             if (error.name !== "AbortError") {
 
-                alert(
+                showBasebotModal(
+                    "공유",
                     "공유하는 중 문제가 발생했습니다."
                 );
             }
@@ -3208,7 +3601,8 @@ commentForm?.addEventListener("submit", async event => {
 
     if (!content) {
 
-        alert(
+        showBasebotModal(
+            "댓글 작성",
             "댓글 내용을 입력해주세요."
         );
 
@@ -3226,7 +3620,8 @@ commentForm?.addEventListener("submit", async event => {
 
     if (!postId) {
 
-        alert(
+        showBasebotModal(
+            "댓글 작성",
             "게시글 번호를 찾을 수 없습니다."
         );
 
@@ -3277,7 +3672,8 @@ commentForm?.addEventListener("submit", async event => {
             error
         );
 
-        alert(
+        showBasebotModal(
+            "댓글 작성 오류",
             error.message ||
             "댓글 등록 중 오류가 발생했습니다."
         );
@@ -3324,10 +3720,10 @@ document
             comment.dataset.commentId;
 
         if (!commentId) {
-            alert(
+            showBasebotModal(
+                "댓글 좋아요",
                 "댓글 번호를 찾을 수 없습니다."
             );
-
             return;
         }
 
@@ -3411,11 +3807,13 @@ document
 
                 if (!content) {
 
-                    alert(
+                    showBasebotModal(
+                        "답글 작성",
                         "답글 내용을 입력해주세요."
                     );
 
                     return;
+                }
                 }
 
                 try {
@@ -3461,7 +3859,8 @@ document
                         error
                     );
 
-                    alert(
+                    showBasebotModal(
+                        "답글 작성 오류",
                         error.message ||
                         "답글 등록 중 오류가 발생했습니다."
                     );
@@ -3605,8 +4004,14 @@ function setupEditorImage() {
         }
 
         if (!file.type.startsWith("image/")) {
-            alert("이미지 파일만 첨부할 수 있습니다.");
+
+            showBasebotModal(
+                "이미지 첨부",
+                "이미지 파일만 첨부할 수 있습니다."
+            );
+
             imageInput.value = "";
+
             return;
         }
 
@@ -3677,7 +4082,10 @@ function setupEditorImage() {
 
         } catch (error) {
             console.error("이미지 업로드 오류:", error);
-            alert("이미지 업로드에 실패했습니다. 다시 시도해 주세요.");
+            showBasebotModal(
+                "이미지 업로드 오류",
+                "이미지 업로드에 실패했습니다. 다시 시도해 주세요."
+            );
         } finally {
             imageInput.value = "";
         }

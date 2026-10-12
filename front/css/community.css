@@ -1696,3 +1696,48 @@
 .comment-cancel-button:hover {
     background: #f5f6f8;
 }
+
+
+/* =========================================
+   게시글 스크랩 버튼
+========================================= */
+
+#postScrapButton {
+    padding: 9px 16px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #344054;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+/* 마우스를 올렸을 때 */
+#postScrapButton:hover {
+    background: #f2f4f7;
+    border-color: #98a2b3;
+}
+
+/* 스크랩 완료 상태 */
+#postScrapButton.scrapped {
+    background: #e5f0ff;
+    color: #175cd3;
+    border-color: #84adff;
+}
+
+/* 스크랩 완료 상태에서 마우스를 올렸을 때 */
+#postScrapButton.scrapped:hover {
+    background: #d1e4ff;
+    border-color: #528bff;
+}
+
+/* 처리 중 버튼 */
+#postScrapButton:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

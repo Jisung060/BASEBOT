@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from schemas.community import (CommunityPostCreate, CommunityPostUpdate )
+from schemas.community import CommunityPostCreate, CommunityPostUpdate
+from pydantic import BaseModel
 import os
 import re
 from urllib.parse import urlparse
 from database.db_connection import get_session
+
 
 
 from models.community import CommunityPost
@@ -15,6 +17,9 @@ from models.post_like import PostLike
 from models.comment import Comment
 from models.comment_like import CommentLike
 from models.community_image import CommunityImage
+from models.post_scrap import PostScrap
+from models.post_report import PostReport
+
 
 
 
@@ -23,6 +28,76 @@ router = APIRouter(
     tags=["Community"]
 )
 
+# =========================================
+# 게시글 신고 요청 데이터
+# =========================================
+
+class PostReportRequest(BaseModel):
+    reason: str
+    content: str | None = None
+
+# =========================================
+# 인기 게시글 조회
+# =========================================
+
+@router.get("/posts/popular")
+def get_popular_posts(
+    session: Session = Depends(get_session)
+):
+    posts = (
+        session.query(
+            CommunityPost,
+            User.nickname,
+            Team.team_name,
+            Team.team_code,
+            Team.league,
+            Team.division
+        )
+        .join(
+            User,
+            CommunityPost.user_id == User.user_id
+        )
+        .outerjoin(
+            Team,
+            CommunityPost.related_team_id == Team.team_id
+        )
+        .order_by(
+            CommunityPost.like_count.desc(),
+            CommunityPost.view_count.desc(),
+            CommunityPost.created_at.desc()
+        )
+        .limit(3)
+        .all()
+    )
+
+    result = []
+
+    for post, nickname, team_name, team_code, league, division in posts:
+
+        result.append({
+            "post_id": post.post_id,
+            "user_id": post.user_id,
+            "nickname": nickname,
+
+            "category": post.category,
+
+            "related_team_id": post.related_team_id,
+            "team_name": team_name,
+            "team_code": team_code,
+            "league": league,
+            "division": division,
+
+            "title": post.title,
+            "content": post.content,
+
+            "view_count": post.view_count,
+            "like_count": post.like_count,
+            "comment_count": post.comment_count,
+
+            "created_at": post.created_at
+        })
+
+    return result
 
 @router.get("/posts")
 def get_posts(
@@ -532,7 +607,6 @@ def increase_view_count(
     }
 
 # 좋아요
-
 # 게시글 좋아요 등록 / 취소
 @router.post("/posts/{post_id}/like")
 def toggle_post_like(
@@ -845,11 +919,6 @@ def delete_comment(
     }
 
 # =========================================
-# 댓글 좋아요
-# =========================================
-
-
-# =========================================
 # 댓글 좋아요 등록 / 취소
 # =========================================
 
@@ -917,8 +986,6 @@ def toggle_comment_like(
         "like_count": comment.like_count
     }
 
-
-
 # =========================================
 # 댓글 좋아요 상태 조회
 # =========================================
@@ -961,6 +1028,192 @@ def get_comment_like(
         "comment_id": comment_id,
         "liked": existing_like is not None,
         "like_count": comment.like_count
+    }
+
+
+# =========================================
+# 게시글 스크랩 상태 조회
+# =========================================
+
+@router.get("/posts/{post_id}/scrap")
+def get_post_scrap(
+    post_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.user_id
+
+    post = (
+        session.query(CommunityPost)
+        .filter(CommunityPost.post_id == post_id)
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
+    existing_scrap = (
+        session.query(PostScrap)
+        .filter(
+            PostScrap.post_id == post_id,
+            PostScrap.user_id == user_id
+        )
+        .first()
+    )
+
+    return {
+        "post_id": post_id,
+        "scrapped": existing_scrap is not None
+    }
+
+
+# =========================================
+# 게시글 스크랩 등록 / 취소
+# =========================================
+
+@router.post("/posts/{post_id}/scrap")
+def toggle_post_scrap(
+    post_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.user_id
+
+    post = (
+        session.query(CommunityPost)
+        .filter(CommunityPost.post_id == post_id)
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
+    existing_scrap = (
+        session.query(PostScrap)
+        .filter(
+            PostScrap.post_id == post_id,
+            PostScrap.user_id == user_id
+        )
+        .first()
+    )
+
+    if existing_scrap:
+        session.delete(existing_scrap)
+        session.commit()
+
+        return {
+            "post_id": post_id,
+            "scrapped": False,
+            "message": "스크랩이 취소되었습니다."
+        }
+
+    new_scrap = PostScrap(
+        post_id=post_id,
+        user_id=user_id
+    )
+
+    session.add(new_scrap)
+    session.commit()
+
+    return {
+        "post_id": post_id,
+        "scrapped": True,
+        "message": "게시글을 스크랩했습니다."
+    }
+
+
+# =========================================
+# 게시글 신고 등록
+# =========================================
+
+@router.post("/posts/{post_id}/report")
+def create_post_report(
+    post_id: int,
+    report_data: PostReportRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.user_id
+
+    # 허용된 신고 사유인지 확인
+    allowed_reasons = [
+        "ABUSE",
+        "AD",
+        "SPAM",
+        "INAPPROPRIATE",
+        "ETC"
+    ]
+
+    if report_data.reason not in allowed_reasons:
+        raise HTTPException(
+            status_code=400,
+            detail="올바른 신고 사유를 선택해주세요."
+        )
+
+    # 게시글 존재 여부 확인
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == post_id
+        )
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
+    # 본인이 작성한 게시글은 신고할 수 없음
+    if post.user_id == user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="본인이 작성한 게시글은 신고할 수 없습니다."
+        )
+
+    # 동일 사용자의 미처리 중복 신고 확인
+    existing_report = (
+        session.query(PostReport)
+        .filter(
+            PostReport.post_id == post_id,
+            PostReport.user_id == user_id,
+            PostReport.status == "PENDING"
+        )
+        .first()
+    )
+
+    if existing_report:
+        raise HTTPException(
+            status_code=409,
+            detail="이미 신고한 게시글입니다."
+        )
+
+    # 신고 정보 생성
+    new_report = PostReport(
+        post_id=post_id,
+        user_id=user_id,
+        reason=report_data.reason,
+        content=report_data.content
+    )
+
+    # DB 저장
+    session.add(new_report)
+    session.commit()
+    session.refresh(new_report)
+
+    return {
+        "message": "신고가 접수되었습니다.",
+        "report_id": new_report.report_id,
+        "post_id": post_id,
+        "reason": new_report.reason,
+        "status": new_report.status
     }
 
 
