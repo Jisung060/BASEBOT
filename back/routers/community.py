@@ -1,20 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
+from schemas.community import (CommunityPostCreate, CommunityPostUpdate )
 import os
 import re
 from urllib.parse import urlparse
-
 from database.db_connection import get_session
+
+
 from models.community import CommunityPost
 from models.user import User
+from auth.dependencies import get_current_user
 from models.team import Team
 from models.post_like import PostLike
 from models.comment import Comment
 from models.comment_like import CommentLike
 from models.community_image import CommunityImage
 
-from schemas.community import (
-    CommunityPostCreate, CommunityPostUpdate )
+
 
 router = APIRouter(
     prefix="/community",
@@ -80,18 +82,19 @@ def get_posts(
 
 @router.post("/posts")
 def create_post(
-    post: CommunityPostCreate,
-    session: Session = Depends(get_session)
+    post_data: CommunityPostCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     related_team_id = None
 
     # 팀을 선택한 경우
-    if post.related_team_code:
+    if post_data.related_team_code:
 
         team = (
             session.query(Team)
             .filter(
-                Team.team_code == post.related_team_code
+                Team.team_code == post_data.related_team_code
             )
             .first()
         )
@@ -105,13 +108,12 @@ def create_post(
         related_team_id = team.team_id
 
     new_post = CommunityPost(
-        user_id=1,
-        category=post.category,
+        user_id=current_user.user_id,
+        category=post_data.category,
         related_team_id=related_team_id,
-        title=post.title,
-        content=post.content
+        title=post_data.title,
+        content=post_data.content
     )
-
 
     session.add(new_post)
     session.commit()
@@ -124,9 +126,10 @@ def create_post(
 
     image_urls = re.findall(
         r'<img[^>]+src=["\']([^"\']+)["\']',
-        post.content,
+        post_data.content,
         re.IGNORECASE
     )
+
 
     # 이미지 정보를 community_images 테이블에 저장
     for image_url in image_urls:
@@ -170,7 +173,8 @@ def create_post(
 def update_post(
     post_id: int,
     post: CommunityPostUpdate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     # 1. 수정할 게시글 찾기
     existing_post = (
@@ -185,6 +189,13 @@ def update_post(
         raise HTTPException(
             status_code=404,
             detail="게시글을 찾을 수 없습니다."
+        )
+
+    # 게시글 작성자 확인
+    if existing_post.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="본인이 작성한 게시글만 수정할 수 있습니다."
         )
 
     # 2. 관련 팀 찾기
@@ -343,7 +354,8 @@ def update_post(
 @router.delete("/posts/{post_id}")
 def delete_post(
     post_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     # 1. 삭제할 게시글 찾기
     post = (
@@ -358,6 +370,12 @@ def delete_post(
         raise HTTPException(
             status_code=404,
             detail="게시글을 찾을 수 없습니다."
+        )
+    # 게시글 작성자 확인
+    if post.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="본인이 작성한 게시글만 삭제할 수 있습니다."
         )
 
     # 2. 게시글에 연결된 이미지 정보 가져오기
@@ -514,13 +532,16 @@ def increase_view_count(
     }
 
 # 좋아요
+
+# 게시글 좋아요 등록 / 취소
 @router.post("/posts/{post_id}/like")
 def toggle_post_like(
     post_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    # 실제 로그인한 사용자 ID
+    user_id = current_user.user_id
 
     # 게시글 확인
     post = (
@@ -545,7 +566,7 @@ def toggle_post_like(
         .first()
     )
 
-    # 이미 좋아요를 눌렀다면 → 좋아요 취소
+    # 이미 좋아요를 눌렀다면 취소
     if existing_like:
         session.delete(existing_like)
 
@@ -554,7 +575,7 @@ def toggle_post_like(
 
         liked = False
 
-    # 좋아요를 누르지 않았다면 → 좋아요 등록
+    # 좋아요를 누르지 않았다면 등록
     else:
         new_like = PostLike(
             post_id=post_id,
@@ -575,14 +596,17 @@ def toggle_post_like(
         "like_count": post.like_count
     }
 
-# 좋아요 상태
+
+
+# 게시글 좋아요 상태 조회
 @router.get("/posts/{post_id}/like")
 def get_post_like(
     post_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    # 실제 로그인한 사용자 ID
+    user_id = current_user.user_id
 
     # 게시글 확인
     post = (
@@ -597,7 +621,7 @@ def get_post_like(
             detail="게시글을 찾을 수 없습니다."
         )
 
-    # 현재 사용자가 좋아요를 눌렀는지 확인
+    # 현재 로그인한 사용자의 좋아요 확인
     existing_like = (
         session.query(PostLike)
         .filter(
@@ -612,6 +636,7 @@ def get_post_like(
         "liked": existing_like is not None,
         "like_count": post.like_count
     }
+
 
 # 댓글 조회 API
 @router.get("/posts/{post_id}/comments")
@@ -654,10 +679,10 @@ def create_comment(
     post_id: int,
     content: str,
     parent_comment_id: int | None = None,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 테스트용으로 user_id=1 사용
-    user_id = 1
+    user_id = current_user.user_id
 
     # 게시글 확인
     post = (
@@ -711,15 +736,14 @@ def create_comment(
 # =========================================
 # 댓글 수정
 # =========================================
-
 @router.put("/comments/{comment_id}")
 def update_comment(
     comment_id: int,
     content: str,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    user_id = current_user.user_id
 
     # 댓글 확인
     comment = (
@@ -769,10 +793,10 @@ def update_comment(
 @router.delete("/comments/{comment_id}")
 def delete_comment(
     comment_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    user_id = current_user.user_id
 
     # 댓글 확인
     comment = (
@@ -824,13 +848,19 @@ def delete_comment(
 # 댓글 좋아요
 # =========================================
 
+
+# =========================================
+# 댓글 좋아요 등록 / 취소
+# =========================================
+
 @router.post("/comments/{comment_id}/like")
 def toggle_comment_like(
     comment_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    # 실제 로그인한 사용자 ID
+    user_id = current_user.user_id
 
     # 댓글 확인
     comment = (
@@ -857,7 +887,7 @@ def toggle_comment_like(
         .first()
     )
 
-    # 이미 좋아요를 눌렀다면 → 좋아요 취소
+    # 이미 좋아요를 눌렀다면 취소
     if existing_like:
         session.delete(existing_like)
 
@@ -866,7 +896,7 @@ def toggle_comment_like(
 
         liked = False
 
-    # 좋아요를 누르지 않았다면 → 좋아요 등록
+    # 좋아요를 누르지 않았다면 등록
     else:
         new_like = CommentLike(
             comment_id=comment_id,
@@ -888,14 +918,19 @@ def toggle_comment_like(
     }
 
 
-# 댓글 좋아요 상태
+
+# =========================================
+# 댓글 좋아요 상태 조회
+# =========================================
+
 @router.get("/comments/{comment_id}/like")
 def get_comment_like(
     comment_id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
-    # 현재 로그인 사용자는 일단 테스트용으로 user_id=1 사용
-    user_id = 1
+    # 실제 로그인한 사용자 ID
+    user_id = current_user.user_id
 
     # 댓글 확인
     comment = (
@@ -912,7 +947,7 @@ def get_comment_like(
             detail="댓글을 찾을 수 없습니다."
         )
 
-    # 현재 사용자가 좋아요를 눌렀는지 확인
+    # 현재 로그인한 사용자의 좋아요 확인
     existing_like = (
         session.query(CommentLike)
         .filter(
@@ -927,6 +962,7 @@ def get_comment_like(
         "liked": existing_like is not None,
         "like_count": comment.like_count
     }
+
 
 # =========================================
 # 게시글 이미지 업로드

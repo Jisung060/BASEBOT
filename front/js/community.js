@@ -1303,10 +1303,14 @@ async function loadPostDetail() {
             //          현재 좋아요 상태 확인
             // =================================
             try {
-
                 const likeStatusResponse =
                     await fetch(
-                        `${API_BASE_URL}/community/posts/${post.post_id}/like`
+                        `${API_BASE_URL}/community/posts/${post.post_id}/like`,
+                        {
+                            headers: {
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                            }
+                        }
                     );
 
                 console.log("좋아요 상태 API 응답:",
@@ -1369,12 +1373,14 @@ async function loadPostDetail() {
             likeButton.onclick = async function () {
 
                 try {
-
                     const likeResponse =
                         await fetch(
                             `${API_BASE_URL}/community/posts/${post.post_id}/like`,
                             {
-                                method: "POST"
+                                method: "POST",
+                                headers: {
+                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                                }
                             }
                         );
 
@@ -1436,9 +1442,10 @@ async function loadPostDetail() {
 
         await loadComments(post.post_id);
 
+
         /* =================================
-           수정 버튼
-        ================================= */
+                  수정 버튼
+           ================================= */
 
         const editButton =
             postDetail.querySelector(
@@ -1447,9 +1454,71 @@ async function loadPostDetail() {
 
         if (editButton) {
 
-            editButton.href =
-                `community-edit.html?postId=${post.post_id}`;
+            // 수정 페이지로 바로 이동하지 않도록 설정
+            editButton.href = "#";
+
+            editButton.addEventListener("click", function (event) {
+
+                // 링크의 기본 이동 동작 막기
+                event.preventDefault();
+
+                // 로그인 토큰 가져오기
+                const accessToken =
+                    sessionStorage.getItem("access_token");
+
+                // 로그인하지 않은 경우
+                if (!accessToken) {
+                    showBasebotModal(
+                        "로그인 필요",
+                        "로그인 후 이용할 수 있습니다."
+                    );
+                    return;
+                }
+
+                // 토큰에서 로그인 사용자 ID 확인
+                let currentUserId = null;
+
+                try {
+                    const payload = JSON.parse(
+                        atob(
+                            accessToken.split(".")[1]
+                                .replace(/-/g, "+")
+                                .replace(/_/g, "/")
+                        )
+                    );
+
+                    currentUserId = Number(payload.user_id);
+
+                } catch (error) {
+                    console.error(
+                        "로그인 사용자 정보 확인 오류:",
+                        error
+                    );
+
+                    showBasebotModal(
+                        "인증 오류",
+                        "로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요."
+                    );
+                    return;
+                }
+
+                // 게시글 작성자와 로그인 사용자 비교
+                if (
+                    Number(post.user_id) !== currentUserId
+                ) {
+                    showBasebotModal(
+                        "수정 권한 없음",
+                        "본인이 작성한 게시글만 수정할 수 있습니다."
+                    );
+                    return;
+                }
+
+                // 본인이 작성한 글인 경우에만 수정 페이지로 이동
+                window.location.href =
+                    `community-edit.html?postId=${post.post_id}`;
+            });
         }
+
 
 
     } catch (error) {
@@ -1663,7 +1732,10 @@ document
                 await fetch(
                     `${API_BASE_URL}/community/comments/${commentId}/like`,
                     {
-                        method: "POST"
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                        }
                     }
                 );
 
@@ -1877,14 +1949,16 @@ document
                 }
 
                 try {
-
-                    const response =
-                        await fetch(
-                            `${API_BASE_URL}/community/comments/${commentId}?content=${encodeURIComponent(content)}`,
-                            {
-                                method: "PUT"
+                    const response = await fetch(
+                        `${API_BASE_URL}/community/comments/${commentId}?content=${encodeURIComponent(content)}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                             }
-                        );
+                        }
+                    );
+
 
                     if (!response.ok) {
 
@@ -1993,12 +2067,14 @@ document
         async function () {
 
             try {
-
                 const response =
                     await fetch(
                         `${API_BASE_URL}/community/comments/${commentId}`,
                         {
-                            method: "DELETE"
+                            method: "DELETE",
+                            headers: {
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                            }
                         }
                     );
 
@@ -2057,6 +2133,31 @@ function createCommentElement(
     depth = 0
 ) {
 
+    const accessToken =
+        sessionStorage.getItem("access_token");
+
+    let currentUserId = null;
+
+    if (accessToken) {
+        try {
+            const payload = JSON.parse(
+                atob(
+                    accessToken.split(".")[1]
+                        .replace(/-/g, "+")
+                        .replace(/_/g, "/")
+                )
+            );
+
+            currentUserId = Number(payload.user_id);
+
+        } catch (error) {
+            console.error(
+                "로그인 사용자 정보를 확인할 수 없습니다.",
+                error
+            );
+        }
+    }
+
     const commentItem =
         document.createElement("div");
 
@@ -2104,10 +2205,9 @@ function createCommentElement(
             data-comment-id="${comment.comment_id}"
         >
             ♥ 좋아요
-            <strong>
-                ${comment.like_count}
-            </strong>
+            <strong>${Number(comment.like_count || 0)}</strong>
         </button>
+
     
         <button
             type="button"
@@ -2117,7 +2217,7 @@ function createCommentElement(
         </button>
     
         ${
-            comment.user_id === 1
+            Number(comment.user_id) === currentUserId
                 ? `
                     <button
                         type="button"
@@ -2150,9 +2250,79 @@ function createCommentElement(
             `${Math.min(depth * 28, 140)}px`;
     }
 
+    // 댓글 좋아요 상태 조회
+    loadCommentLikeStatus(commentItem, comment);
 
     return commentItem;
+
 }
+
+
+/* =========================================
+   댓글 좋아요 상태 조회
+========================================= */
+async function loadCommentLikeStatus(commentItem, comment) {
+
+    const likeButton =
+        commentItem.querySelector(".comment-like-button");
+
+    if (!likeButton) {
+        return;
+    }
+
+    const accessToken =
+        sessionStorage.getItem("access_token");
+
+    // 로그인하지 않은 경우 상태 조회를 하지 않음
+    if (!accessToken) {
+        likeButton.classList.remove("active");
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/community/comments/${comment.comment_id}/like`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            console.error(
+                "댓글 좋아요 상태 조회 실패:",
+                response.status,
+                await response.text()
+            );
+            return;
+        }
+
+        const result = await response.json();
+
+        // 서버가 반환한 좋아요 상태 반영
+        likeButton.classList.toggle(
+            "active",
+            Boolean(result.liked)
+        );
+
+        // 서버가 반환한 좋아요 개수 반영
+        const count =
+            likeButton.querySelector("strong");
+
+        if (count && result.like_count !== undefined) {
+            count.textContent =
+                Number(result.like_count).toLocaleString();
+        }
+
+    } catch (error) {
+        console.error(
+            "댓글 좋아요 상태 조회 오류:",
+            error
+        );
+    }
+}
+
 
 function getPostId() {
 
@@ -2311,7 +2481,6 @@ function setupWriteForm() {
 
 
             try {
-
                 const response =
                     await fetch(
                         `${API_BASE_URL}/community/posts`,
@@ -2319,8 +2488,9 @@ function setupWriteForm() {
                             method: "POST",
 
                             headers: {
-                                "Content-Type":
-                                    "application/json"
+                                "Content-Type": "application/json",
+
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                             },
 
                             body:
@@ -2707,7 +2877,6 @@ async function setupEditForm() {
 
 
             try {
-
                 const response =
                     await fetch(
                         `${API_BASE_URL}/community/posts/${postId}`,
@@ -2715,8 +2884,8 @@ async function setupEditForm() {
                             method: "PUT",
 
                             headers: {
-                                "Content-Type":
-                                    "application/json"
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                             },
 
                             body:
@@ -2725,7 +2894,6 @@ async function setupEditForm() {
                                 )
                         }
                     );
-
 
                 if (!response.ok) {
 
@@ -2822,27 +2990,6 @@ function setupPostActions() {
                 : "🔖 스크랩";
     });
 
-    document.querySelectorAll(".comment-like-button").forEach(button => {
-
-        button.addEventListener("click", function () {
-
-            this.classList.toggle("active");
-
-            const count =
-                this.querySelector("strong");
-
-            if (count) {
-
-                const current =
-                    Number(count.textContent);
-
-                count.textContent =
-                    this.classList.contains("active")
-                        ? current + 1
-                        : current - 1;
-            }
-        });
-    });
 }
 
 setupPostActions();
@@ -3087,14 +3234,16 @@ commentForm?.addEventListener("submit", async event => {
     }
 
     try {
-
-        const response =
-            await fetch(
-                `${API_BASE_URL}/community/posts/${postId}/comments?content=${encodeURIComponent(content)}`,
-                {
-                    method: "POST"
+        const response = await fetch(
+            `${API_BASE_URL}/community/posts/${postId}/comments?content=${encodeURIComponent(content)}`,
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
                 }
-            );
+            }
+        );
+
 
         if (!response.ok) {
 
@@ -3270,12 +3419,14 @@ document
                 }
 
                 try {
-
                     const response =
                         await fetch(
                             `${API_BASE_URL}/community/posts/${getPostId()}/comments?content=${encodeURIComponent(content)}&parent_comment_id=${commentId}`,
                             {
-                                method: "POST"
+                                method: "POST",
+                                headers: {
+                                    "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                                }
                             }
                         );
 
@@ -3356,12 +3507,15 @@ async function deletePost() {
         async function () {
 
             try {
-
                 const response =
                     await fetch(
                         `${API_BASE_URL}/community/posts/${postId}`,
                         {
-                            method: "DELETE"
+                            method: "DELETE",
+
+                            headers: {
+                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+                            }
                         }
                     );
 
