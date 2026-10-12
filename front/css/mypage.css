@@ -559,3 +559,375 @@
         font-size: 12px;
     }
 }
+
+/* ==================================================
+   내가 쓴 댓글 - 활동 요약
+================================================== */
+
+.my-comments-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.my-comments-summary .summary-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid #e5e9f0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.my-comments-summary .summary-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #edf3ff;
+    color: #123f91;
+    font-size: 23px;
+}
+
+.my-comments-summary .summary-info {
+    min-width: 0;
+}
+
+.my-comments-summary .summary-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #777;
+    font-size: 13px;
+}
+
+.my-comments-summary .summary-value {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+}
+
+.my-comments-summary .summary-value strong {
+    color: #123f91;
+    font-size: 27px;
+    font-weight: 700;
+}
+
+.my-comments-summary .summary-value span {
+    color: #777;
+    font-size: 13px;
+}
+
+
+/* ==================================================
+   댓글 목록 제목
+================================================== */
+
+.my-comments-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.my-comments-list-header h2 {
+    margin: 0 0 7px;
+    color: #222;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.my-comments-list-header p {
+    margin: 0;
+    color: #888;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.my-comments-count {
+    flex-shrink: 0;
+    color: #777;
+    font-size: 13px;
+}
+
+.my-comments-count strong {
+    color: #123f91;
+    font-size: 16px;
+}
+
+
+/* ==================================================
+   댓글 목록 카드
+================================================== */
+
+#my-comments-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#my-comments-list .my-comment-item {
+    display: flex;
+    flex-direction: column;
+    gap: 17px;
+    padding: 24px 18px;
+    border-bottom: 1px solid #ededed;
+    background: #fff;
+    transition: background-color 0.2s ease;
+}
+
+#my-comments-list .my-comment-item:hover {
+    background: #fafbfe;
+}
+
+#my-comments-list .my-comment-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#my-comments-list .my-comment-tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+#my-comments-list .my-comment-category,
+#my-comments-list .my-comment-team {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#my-comments-list .my-comment-category {
+    background: #edf3ff;
+    color: #123f91;
+}
+
+#my-comments-list .my-comment-team {
+    background: #f3f4f6;
+    color: #555;
+}
+
+#my-comments-list .activity-date {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 12px;
+}
+
+
+/* ==================================================
+   원본 게시글
+================================================== */
+
+#my-comments-list .my-comment-post-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    color: #222;
+    text-decoration: none;
+}
+
+#my-comments-list .my-comment-post-label {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 12px;
+}
+
+#my-comments-list .my-comment-post-heading {
+    overflow: hidden;
+    color: #222;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.6;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#my-comments-list .my-comment-arrow {
+    flex-shrink: 0;
+    margin-left: auto;
+    color: #999;
+    font-size: 17px;
+}
+
+#my-comments-list .my-comment-post-title:hover .my-comment-post-heading,
+#my-comments-list .my-comment-post-title:hover .my-comment-arrow {
+    color: #123f91;
+}
+
+
+/* ==================================================
+   내가 작성한 댓글 내용
+================================================== */
+
+#my-comments-list .my-comment-text-box {
+    padding: 17px 18px;
+    border: 1px solid #e9edf3;
+    border-radius: 7px;
+    background: #f8f9fb;
+}
+
+#my-comments-list .my-comment-label {
+    display: block;
+    margin-bottom: 9px;
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#my-comments-list .my-comment-text {
+    margin: 0;
+    color: #444;
+    font-size: 14px;
+    line-height: 1.9;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+
+/* ==================================================
+   좋아요 및 게시글 통계
+================================================== */
+
+#my-comments-list .my-comment-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+#my-comments-list .my-comment-stats {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+#my-comments-list .my-comment-stats > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #777;
+    font-size: 12px;
+}
+
+#my-comments-list .comment-stat-icon {
+    color: #123f91;
+    font-size: 14px;
+}
+
+#my-comments-list .my-comment-stats strong {
+    color: #444;
+    font-weight: 700;
+}
+
+#my-comments-list .my-comment-view-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    color: #123f91;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#my-comments-list .my-comment-view-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ==================================================
+   댓글 없음 / 오류 메시지
+================================================== */
+
+#my-comments-list .empty-comment {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+    padding: 55px 15px;
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+}
+
+#my-comments-list .empty-comment-icon {
+    color: #123f91;
+    font-size: 30px;
+}
+
+#my-comments-list .empty-comment strong {
+    color: #444;
+    font-size: 15px;
+}
+
+#my-comments-list .empty-comment p {
+    margin: 0;
+    color: #999;
+    font-size: 13px;
+}
+
+#my-comments-list .empty-comment.error {
+    color: #b33;
+}
+
+
+/* ==================================================
+   반응형
+================================================== */
+
+@media (max-width: 600px) {
+    .my-comments-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .my-comments-summary .summary-card {
+        padding: 17px;
+    }
+
+    .my-comments-list-header {
+        align-items: flex-start;
+    }
+
+    #my-comments-list .my-comment-item {
+        gap: 14px;
+        padding: 20px 4px;
+    }
+
+    #my-comments-list .my-comment-post-heading {
+        font-size: 14px;
+    }
+
+    #my-comments-list .my-comment-text-box {
+        padding: 14px;
+    }
+
+    #my-comments-list .my-comment-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #my-comments-list .my-comment-stats {
+        gap: 10px 14px;
+    }
+}

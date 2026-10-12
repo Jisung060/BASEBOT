@@ -1,9 +1,4 @@
-
-# =========================================================
-# 마이페이지 - 내가 쓴 댓글
-# =========================================================
-
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -32,31 +27,58 @@ def get_my_comments(
     offset = (page - 1) * page_size
     user_id = current_user.user_id
 
-    # 전체 댓글 수
-    count_sql = text("""
-        SELECT COUNT(*) AS total
+    # -----------------------------------------------------
+    # 전체 댓글 수 및 댓글 좋아요 합계
+    # -----------------------------------------------------
+
+    summary_sql = text("""
+        SELECT
+            COUNT(*) AS total_comments,
+            COALESCE(SUM(like_count), 0) AS total_likes
         FROM comments
         WHERE user_id = :user_id
     """)
 
-    total = db.execute(
-        count_sql,
+    summary = db.execute(
+        summary_sql,
         {"user_id": user_id}
-    ).scalar_one()
+    ).mappings().one()
 
-    # 현재 페이지 댓글 5개
+    total = summary["total_comments"]
+
+    # -----------------------------------------------------
+    # 댓글 목록
+    # -----------------------------------------------------
+
     comments_sql = text("""
         SELECT
             c.comment_id,
             c.post_id,
             c.content,
+            c.like_count AS comment_like_count,
             c.created_at,
-            p.title AS post_title
+
+            p.title AS post_title,
+            p.category AS post_category,
+            p.like_count AS post_like_count,
+            p.comment_count AS post_comment_count,
+
+            t.team_name AS team_name
+
         FROM comments c
-        JOIN community_posts p
+
+        INNER JOIN community_posts p
             ON c.post_id = p.post_id
+
+        LEFT JOIN teams t
+            ON p.related_team_id = t.team_id
+
         WHERE c.user_id = :user_id
-        ORDER BY c.created_at DESC, c.comment_id DESC
+
+        ORDER BY
+            c.created_at DESC,
+            c.comment_id DESC
+
         LIMIT :page_size OFFSET :offset
     """)
 
@@ -69,23 +91,38 @@ def get_my_comments(
         }
     ).mappings().all()
 
+    comments = []
+
+    for row in rows:
+        comments.append({
+            "comment_id": row["comment_id"],
+            "post_id": row["post_id"],
+            "post_title": row["post_title"],
+            "post_category": row["post_category"],
+            "team_name": row["team_name"],
+            "content": row["content"],
+            "comment_like_count": row["comment_like_count"] or 0,
+            "post_like_count": row["post_like_count"] or 0,
+            "post_comment_count": row["post_comment_count"] or 0,
+            "created_at": (
+                row["created_at"].isoformat()
+                if row["created_at"]
+                else None
+            )
+        })
+
+    # -----------------------------------------------------
+    # 응답
+    # -----------------------------------------------------
+
     return {
-        "comments": [
-            {
-                "comment_id": row["comment_id"],
-                "post_id": row["post_id"],
-                "post_title": row["post_title"],
-                "content": row["content"],
-                "created_at": (
-                    row["created_at"].isoformat()
-                    if row["created_at"]
-                    else None
-                )
-            }
-            for row in rows
-        ],
+        "comments": comments,
         "page": page,
         "page_size": page_size,
         "total": total,
-        "total_pages": (total + page_size - 1) // page_size
+        "total_pages": (total + page_size - 1) // page_size,
+        "summary": {
+            "total_comments": total,
+            "total_likes": summary["total_likes"] or 0
+        }
     }
