@@ -264,6 +264,7 @@ def collect_batters_comprehensive(season: int = 2024):
         upsert_sql = text("""
             INSERT INTO player_season_stats (
                 player_id, season, is_pitcher, games, batting_avg, hits, home_runs, rbi,
+                strikeouts, walks,
                 bwar, fwar, wrc_plus,
                 avg_exit_velocity, barrel_percentage, hard_hit_percentage,
                 xba, xslg, xwoba, launch_angle_avg, sweet_spot_percentage,
@@ -271,6 +272,7 @@ def collect_batters_comprehensive(season: int = 2024):
                 exit_velo_percentile, barrel_percentile, hard_hit_percentile, xwoba_percentile
             ) VALUES (
                 :player_id, :season, FALSE, :games, :batting_avg, :hits, :home_runs, :rbi,
+                :strikeouts, :walks, 
                 :bwar, :fwar, :wrc_plus,
                 :avg_exit_velocity, :barrel_percentage, :hard_hit_percentage,
                 :xba, :xslg, :xwoba, :launch_angle_avg, :sweet_spot_percentage,
@@ -283,6 +285,8 @@ def collect_batters_comprehensive(season: int = 2024):
                 hits = VALUES(hits),
                 home_runs = VALUES(home_runs),
                 rbi = VALUES(rbi),
+                strikeouts = VALUES(strikeouts),
+                walks = VALUES(walks),
                 bwar = VALUES(bwar),
                 fwar = VALUES(fwar),
                 wrc_plus = VALUES(wrc_plus),
@@ -311,6 +315,8 @@ def collect_batters_comprehensive(season: int = 2024):
                 'hits': int(row['hits']),
                 'home_runs': int(row['home_runs']),
                 'rbi': int(row['rbi']),
+                "strikeouts": int(row["strikeouts"]) if pd.notna(row.get("strikeouts")) else 0,
+                "walks": int(row["walks"]) if pd.notna(row.get("walks")) else 0,
                 'bwar': float(row['bwar']) if row.get('bwar') is not None else None,
                 'fwar': float(row['fwar']) if row.get('fwar') is not None else None,
                 'wrc_plus': int(row['wrc_plus']) if row.get('wrc_plus') is not None else None,

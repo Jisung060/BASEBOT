@@ -457,7 +457,7 @@
 }
 
 /* ==================================================
-   Savant Percentile Rankings 카드 본체
+   Baseball Savant Percentile Rankings 원본 스타일
 ================================================== */
 .savant-card-box {
     background: #ffffff;
@@ -474,7 +474,7 @@
     align-items: center;
     border-bottom: 2px solid #1e293b;
     padding-bottom: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .savant-card-top h3 {
@@ -482,33 +482,53 @@
     font-size: 18px;
     font-weight: 800;
     color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 }
 
-/* 상단 벤치마크 눈금 기준선 여백 정돈 */
+.savant-card-top .savant-logo-text {
+    font-size: 14px;
+    font-weight: 800;
+    color: #b91c1c;
+    letter-spacing: 0.5px;
+}
+
 .savant-benchmark-scale {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
     font-weight: 700;
     color: #64748b;
-    padding: 0 85px 6px 175px;
+    padding: 0 80px 8px 180px;
     border-bottom: 1px dashed #e2e8f0;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 .savant-benchmark-scale .poor { color: #2563eb; }
 .savant-benchmark-scale .average { color: #64748b; }
 .savant-benchmark-scale .great { color: #dc2626; }
 
-/* 행 그리드: 라벨(160px) / 슬라이더 트랙(1fr) / 실측 수치(75px) */
+/* 카테고리 헤더 (Value, Batting, Fielding, Running 등) */
+.savant-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 18px 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.savant-group-header:first-of-type {
+    margin-top: 0;
+}
+
+/* 슬라이더 행 레이아웃 */
 .savant-bar-row {
     display: grid;
-    grid-template-columns: 160px 1fr 75px;
+    grid-template-columns: 170px 1fr 75px;
     align-items: center;
     gap: 16px;
-    padding: 6px 0;
+    padding: 5px 0;
 }
 
 .savant-bar-label {
@@ -519,7 +539,7 @@
     white-space: nowrap;
 }
 
-/* 슬라이더 트랙 바 (높이를 18px로 확장하여 볼륨감 확보) */
+/* 18px 높이 트랙 */
 .savant-bar-track {
     width: 100%;
     height: 18px;
@@ -527,10 +547,10 @@
     border-radius: 9px;
     position: relative;
     border: 1px solid #dce3eb;
-    overflow: visible !important; /* 배지가 바깥으로 나가도 절대 잘리지 않도록 허용 */
+    overflow: visible !important;
 }
 
-/* 중앙 50% 기준선 */
+/* 중앙 50 기준선 */
 .savant-midline {
     position: absolute;
     left: 50%;
@@ -541,7 +561,7 @@
     z-index: 1;
 }
 
-/* 채워지는 바 */
+/* 채워지는 게이지 바 */
 .savant-bar-fill {
     height: 100%;
     border-radius: 9px;
@@ -551,13 +571,12 @@
     overflow: visible !important;
 }
 
-/* 슬라이더 캡슐 뱃지 (Thumb 형태) */
+/* 슬라이더 원형/캡슐 배지 */
 .savant-badge-num {
     position: absolute;
     right: 0;
     top: 50%;
-    /* 뱃지의 중심점이 채워진 바의 맨 끝에 정확히 위치하도록 중앙 정렬 */
-    transform: translate(50%, -50%); 
+    transform: translate(50%, -50%);
     min-width: 24px;
     height: 24px;
     padding: 0 4px;
@@ -575,26 +594,45 @@
     white-space: nowrap;
 }
 
-/* ★ 100일 때 전용 스타일: 타원 캡슐 확장 및 폰트 미세 조정 ★ */
+/* 100 백분위수 전용 캡슐 */
 .savant-badge-num.is-hundred {
     min-width: 32px;
-    height: 24px;
     padding: 0 5px;
     font-size: 10.5px;
     letter-spacing: -0.6px;
 }
 
-/* 우측 실측 수치 텍스트 */
+/* Not Qualified (사선 패턴 트랙) */
+.savant-bar-track.is-nq {
+    background: repeating-linear-gradient(
+        -45deg,
+        #f1f5f9,
+        #f1f5f9 6px,
+        #e2e8f0 6px,
+        #e2e8f0 12px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.savant-nq-text {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+}
+
 .savant-bar-actual {
     font-size: 13px;
     font-weight: 700;
     color: #475569;
     text-align: left;
     white-space: nowrap;
-    padding-left: 8px; /* 뱃지가 100% 위치에 와도 겹치지 않게 여백 추가 */
+    padding-left: 6px;
 }
 
-/* WAR 표시용 동일 굵기 스타일 */
+/* WAR 강조 */
 .war-divider {
     font-size: 20px;
     font-weight: 700;
