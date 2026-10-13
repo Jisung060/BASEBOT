@@ -133,23 +133,34 @@ def root():
     )
 
 # HTML 페이지
-@app.get("/{page_name}.html")
-def pages(page_name: str):
 
-    file_path = Path(
-        "../front/pages"
-    ) / f"{page_name}.html"
+# HTML 페이지
+@app.get("/{page_path:path}.html")
+def pages(page_path: str):
 
+    # HTML 파일 경로
+    pages_dir = (
+        Path(__file__).resolve().parent.parent
+        / "front"
+        / "pages"
+    ).resolve()
 
-    # 페이지가 존재하지 않는 경우
-    if not file_path.exists():
+    file_path = (
+        pages_dir / f"{page_path}.html"
+    ).resolve()
 
+    # pages 폴더 바깥의 파일 접근 차단
+    if not file_path.is_relative_to(pages_dir):
         raise HTTPException(
             status_code=404,
             detail="페이지를 찾을 수 없습니다."
         )
 
+    # 페이지가 존재하지 않는 경우
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="페이지를 찾을 수 없습니다."
+        )
 
-    return FileResponse(
-        file_path
-    )
+    return FileResponse(file_path)

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시스템 및 수집 상태 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="system-status">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+            <div class="admin-content">
+
+<section class="page-intro"><p>MLB 데이터 수집 작업과 주요 서비스의 상태를 확인합니다.</p></section>
+<section class="stat-grid stat-grid-4">
+    <article class="stat-card"><span>API 상태</span><strong>—</strong><small>헬스 체크 API 연동 필요</small></article>
+    <article class="stat-card"><span>최근 데이터 수집</span><strong>—</strong><small>마지막 실행 시각</small></article>
+    <article class="stat-card"><span>수집 실패</span><strong>—</strong><small>선택 기간 기준</small></article>
+    <article class="stat-card"><span>데이터 검증 오류</span><strong>—</strong><small>누락·중복 등</small></article>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>데이터 수집 작업</h2><p>작업별 실행 시각과 처리 결과를 확인합니다.</p></div><button class="button button-primary" type="button">수집 실행</button></div>
+    <div class="table-wrap"><table><thead><tr><th>작업명</th><th>대상 데이터</th><th>마지막 실행</th><th>처리 건수</th><th>결과</th><th>상세</th></tr></thead><tbody><tr><td colspan="6" class="table-empty">수집 작업 로그가 없습니다.</td></tr></tbody></table></div>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>오류 기록</h2><p>데이터 수집 및 서비스 처리 중 발생한 오류</p></div></div>
+    <div class="table-wrap"><table><thead><tr><th>발생 시각</th><th>서비스</th><th>오류 유형</th><th>메시지 요약</th><th>상태</th></tr></thead><tbody><tr><td colspan="5" class="table-empty">오류 기록이 없습니다.</td></tr></tbody></table></div>
+</section>
+<div class="notice-box"><strong>주의</strong><p>수집 실행 버튼은 실제 백엔드 작업 API를 연결한 후에만 동작하도록 구현해야 합니다. 운영 환경에서는 중복 실행과 권한 검사를 추가하세요.</p></div>
+            </div>
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>

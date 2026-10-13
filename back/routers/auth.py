@@ -147,6 +147,14 @@ def login(
         )
     )
 
+    # 2. 회원 조회 결과 및 권한 확인
+    if user:
+        print("===== ADMIN LOGIN DEBUG =====")
+        print("username:", user.username)
+        print("DB role:", repr(user.role))
+        print("=============================")
+
+
     # 2. 아이디가 없거나 비밀번호가 틀린 경우
     if not user or not verify_password(
         request_model.password,
@@ -169,7 +177,8 @@ def login(
         token_type="bearer",
         user_id=user.user_id,
         username=user.username,
-        nickname=user.nickname
+        nickname=user.nickname,
+        role=user.role
     )
 
 @router.post(

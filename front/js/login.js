@@ -133,8 +133,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     JSON.stringify({
                         user_id: data.user_id,
                         username: data.username,
-                        nickname: data.nickname
+                        nickname: data.nickname,
+                        role: data.role
                     })
+                );
+                console.log(
+                    "로그인 사용자 정보:",
+                    JSON.parse(sessionStorage.getItem("user"))
                 );
 
                 /* ==================================================

@@ -40,7 +40,27 @@ function updateHeader() {
     const loginLink = document.getElementById("loginLink");
     const signupArea = document.getElementById("signupArea");
     const mypageArea = document.getElementById("mypageArea");
+    const adminLink = document.getElementById("adminLink");
 
+    // 로그인 사용자 정보
+    let user = null;
+
+    try {
+        user = JSON.parse(
+            sessionStorage.getItem("user") || "null"
+        );
+    } catch (error) {
+        console.error("사용자 정보 파싱 실패:", error);
+    }
+
+    // 관리자 메뉴 표시
+    if (adminLink) {
+        if (accessToken && user && user.role === "ADMIN") {
+            adminLink.style.display = "inline-block";
+        } else {
+            adminLink.style.display = "none";
+        }
+    }
 
     /* ==================================================
        로그인하지 않은 상태
@@ -391,7 +411,6 @@ async function sendChatMessage() {
         }
 
         const data = await response.json();
-
         /* 세션 ID 저장 */
         chatbotSessionId =
             data.session_id;

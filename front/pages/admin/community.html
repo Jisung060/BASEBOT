@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>커뮤니티 관리 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="community">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+            <div class="admin-content">
+
+<section class="page-intro"><p>게시글, 댓글 및 신고 내역을 확인하고 커뮤니티 운영 정책에 따라 처리합니다.</p></section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>콘텐츠 검색</h2><p>게시글 제목 또는 작성자 기준으로 검색합니다.</p></div></div>
+    <form class="filter-form" action="#" method="get">
+        <label>콘텐츠 유형<select name="type"><option value="all">전체</option><option value="post">게시글</option><option value="comment">댓글</option><option value="report">신고</option></select></label>
+        <label>신고 상태<select name="report_status"><option value="">전체 상태</option><option value="PENDING">처리 대기</option><option value="APPROVED">조치 완료</option><option value="REJECTED">반려</option></select></label>
+        <label class="grow">검색어<input type="search" name="keyword" placeholder="제목 / 작성자 / 신고 사유"></label>
+        <button class="button button-primary" type="submit">검색</button>
+    </form>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>게시글 및 댓글</h2><p>community_posts, comments 데이터 연동 영역</p></div><span class="count-label">총 —건</span></div>
+    <div class="table-wrap"><table><thead><tr><th>유형</th><th>제목 / 내용</th><th>작성자</th><th>작성일</th><th>신고 수</th><th>상태</th><th>관리</th></tr></thead><tbody><tr><td colspan="7" class="table-empty">표시할 콘텐츠가 없습니다.</td></tr></tbody></table></div>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>신고 처리</h2><p>신고 사유를 확인한 뒤 조치 또는 반려 결과를 기록합니다.</p></div><span class="tag tag-warning">처리 대기 —건</span></div>
+    <div class="table-wrap"><table><thead><tr><th>신고 번호</th><th>대상</th><th>신고 사유</th><th>신고자</th><th>접수일</th><th>상태</th><th>처리</th></tr></thead><tbody><tr><td colspan="7" class="table-empty">신고 데이터가 없습니다.</td></tr></tbody></table></div>
+    <p class="table-note">삭제·숨김·신고 처리 버튼은 실제 API 및 처리 이력 기록과 연결한 뒤 활성화하세요.</p>
+</section>
+            </div>
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>

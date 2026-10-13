@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 운영 설정 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="settings">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+            <div class="admin-content">
+
+<section class="page-intro"><p>공지 노출과 서비스 운영 옵션을 관리합니다. 실제 설정 저장은 백엔드 API 연결 후 활성화됩니다.</p></section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>서비스 기본 설정</h2><p>서비스 표시 정보와 운영 상태</p></div></div>
+    <form class="form-grid" action="#" method="post">
+        <label>서비스 이름<input type="text" name="service_name" value="BASEBOT"></label>
+        <label>운영 상태<select name="service_status"><option value="NORMAL">정상 운영</option><option value="MAINTENANCE">점검 중</option></select></label>
+        <label class="full-width">점검 안내 문구<textarea name="maintenance_message" rows="4" placeholder="점검 시 사용자에게 표시할 안내 문구"></textarea></label>
+        <div class="full-width button-row"><button class="button button-primary" type="submit">설정 저장</button><button class="button button-secondary" type="reset">변경 취소</button></div>
+    </form>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>기능 운영 옵션</h2><p>각 기능의 사용 여부를 제어하는 설정 영역</p></div></div>
+    <div class="setting-row"><div><strong>커뮤니티 게시글 작성</strong><p>사용자의 신규 게시글 작성을 허용합니다.</p></div><label class="switch-label"><input type="checkbox" name="community_enabled" checked> 사용</label></div>
+    <div class="setting-row"><div><strong>경기 예측 참여</strong><p>경기 예측 참여 기능을 허용합니다.</p></div><label class="switch-label"><input type="checkbox" name="prediction_enabled" checked> 사용</label></div>
+    <div class="setting-row"><div><strong>AI 챗봇</strong><p>AI 챗봇 질의 기능을 허용합니다.</p></div><label class="switch-label"><input type="checkbox" name="chatbot_enabled" checked> 사용</label></div>
+    <p class="table-note">이 화면의 옵션은 예시입니다. 체크 상태만으로 실제 서비스 기능이 변경되지는 않습니다.</p>
+</section>
+            </div>
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>

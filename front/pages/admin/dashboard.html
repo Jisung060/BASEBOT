@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="dashboard">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+            <div class="admin-content">
+
+<section class="welcome-panel">
+    <div><p class="eyebrow">OVERVIEW</p><h2>BASEBOT 운영 현황</h2><p>서비스의 주요 지표와 최근 활동을 확인합니다.</p></div>
+    <span class="tag tag-info">관리자 전용</span>
+</section>
+<section class="stat-grid">
+    <article class="stat-card"><span>전체 회원 수</span><strong>—</strong><small>users 데이터 연동 필요</small></article>
+    <article class="stat-card"><span>오늘 가입자</span><strong>—</strong><small>오늘 가입한 회원</small></article>
+    <article class="stat-card"><span>전체 게시글</span><strong>—</strong><small>community_posts 데이터 연동 필요</small></article>
+    <article class="stat-card"><span>미처리 신고</span><strong>—</strong><small>처리 대기 중인 신고</small></article>
+    <article class="stat-card"><span>오늘 경기</span><strong>—</strong><small>games 데이터 연동 필요</small></article>
+    <article class="stat-card"><span>예측 참여</span><strong>—</strong><small>prediction_votes 데이터 연동 필요</small></article>
+</section>
+<section class="content-grid">
+    <article class="panel">
+        <div class="panel-heading"><div><h2>최근 활동</h2><p>회원 및 운영 관련 최근 작업</p></div><a class="text-link" href="activity-logs.html">활동 이력 보기 →</a></div>
+        <div class="empty-state"><span class="empty-icon">◷</span><strong>활동 내역이 없습니다.</strong><p>백엔드 활동 로그 API를 연결하면 이곳에 표시됩니다.</p></div>
+    </article>
+    <article class="panel">
+        <div class="panel-heading"><div><h2>빠른 메뉴</h2><p>자주 사용하는 관리자 기능</p></div></div>
+        <div class="quick-links">
+            <a href="users.html"><span>♙</span><div><strong>회원 관리</strong><small>회원 검색 및 상태 확인</small></div><b>→</b></a>
+            <a href="community.html"><span>▤</span><div><strong>커뮤니티 관리</strong><small>게시글 및 신고 확인</small></div><b>→</b></a>
+            <a href="baseball-data.html"><span>⚾</span><div><strong>야구 데이터 관리</strong><small>팀·선수·경기 데이터 확인</small></div><b>→</b></a>
+            <a href="chatbot.html"><span>✧</span><div><strong>AI 챗봇 관리</strong><small>오류 및 지식 문서 확인</small></div><b>→</b></a>
+        </div>
+    </article>
+</section>
+<div class="notice-box"><strong>연동 안내</strong><p>현재 HTML은 화면 구조 템플릿입니다. 숫자와 목록은 실제 DB/API를 연결하기 전까지 표시용 빈 값(—)으로 둡니다.</p></div>
+            </div>
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>
