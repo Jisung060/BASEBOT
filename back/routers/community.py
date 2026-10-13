@@ -1328,6 +1328,63 @@ def create_post_report(
     }
 
 
+# ========================================
+# 내가 신고한 게시글 내역 조회
+# ========================================
+
+@router.get("/my-reports")
+def get_my_reports(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.user_id
+
+    reports = (
+        session.query(
+            PostReport.report_id,
+            PostReport.post_id,
+            PostReport.reason,
+            PostReport.content.label("report_content"),
+            PostReport.status,
+            PostReport.created_at.label("reported_at"),
+            CommunityPost.title,
+            CommunityPost.category,
+            User.nickname
+        )
+        .join(
+            CommunityPost,
+            PostReport.post_id == CommunityPost.post_id
+        )
+        .join(
+            User,
+            CommunityPost.user_id == User.user_id
+        )
+        .filter(
+            PostReport.user_id == user_id
+        )
+        .order_by(
+            PostReport.created_at.desc()
+        )
+        .all()
+    )
+
+    result = []
+
+    for report in reports:
+        result.append({
+            "report_id": report.report_id,
+            "post_id": report.post_id,
+            "title": report.title,
+            "category": report.category,
+            "nickname": report.nickname,
+            "reason": report.reason,
+            "report_content": report.report_content,
+            "status": report.status,
+            "reported_at": report.reported_at
+        })
+
+    return result
+
 # =========================================
 # 게시글 이미지 업로드
 # =========================================

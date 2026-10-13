@@ -1,0 +1,101 @@
+/* ========================================
+   BASEBOT 신고 내역 페이지
+   기존 마이페이지 공통 스타일 유지
+======================================== */
+
+/* 신고 목록 */
+.my-reports-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* 신고 항목 */
+.my-reports-list .activity-item {
+    padding: 20px 0;
+    border-bottom: 1px solid #e9edf2;
+}
+
+.my-reports-list .activity-item:first-child {
+    padding-top: 8px;
+}
+
+.my-reports-list .activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 8px;
+}
+
+/* 게시글 링크 */
+.my-reports-list .activity-link {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* 게시글 제목 */
+.my-reports-list .activity-title {
+    color: #202938;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+    transition: color 0.2s ease;
+}
+
+/* 제목에 마우스를 올렸을 때 */
+.my-reports-list .activity-link:hover .activity-title {
+    color: #2563eb;
+}
+
+/* 작성자, 신고 사유, 상태, 신고 날짜 */
+.my-reports-list .activity-meta {
+    display: block;
+    color: #687386;
+    font-size: 13px;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+}
+
+/* 신고 상세 내용 */
+.my-report-content {
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    background: #f7f9fc;
+    border-radius: 8px;
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+/* 신고 내역이 없거나 오류가 발생했을 때 */
+#my-reports-empty {
+    padding: 36px 16px;
+    margin: 0;
+    color: #687386;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* 모바일 화면 */
+@media (max-width: 768px) {
+    .my-reports-list .activity-item {
+        padding: 16px 0;
+    }
+
+    .my-reports-list .activity-title {
+        font-size: 15px;
+    }
+
+    .my-reports-list .activity-meta {
+        font-size: 12px;
+    }
+
+    .my-report-content {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+}
