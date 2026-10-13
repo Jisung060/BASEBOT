@@ -1,0 +1,239 @@
+/* ==================================================
+   예측 랭킹 리더보드 스타일 (rankings.css)
+================================================== */
+
+.my-status-section {
+    margin-bottom: 24px;
+}
+
+.my-status-card {
+    background: linear-gradient(135deg, #102d63 0%, #1e3a8a 100%);
+    border-radius: 8px;
+    padding: 22px 28px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    box-shadow: 0 4px 14px rgba(16, 45, 99, 0.12);
+}
+
+.my-avatar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 130px;
+    border-right: 1px solid rgba(255, 255, 255, 0.16);
+    padding-right: 24px;
+}
+
+.grade-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.grade-badge.BRONZE { background: #b45309; color: #fff; }
+.grade-badge.SILVER { background: #64748b; color: #fff; }
+.grade-badge.GOLD { background: #f59e0b; color: #fff; }
+.grade-badge.PLATINUM { background: #0284c7; color: #fff; }
+.grade-badge.DIAMOND { background: #7c3aed; color: #fff; }
+
+.my-nickname {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #f8fafc;
+}
+
+.my-metric-list {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.my-metric-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.my-metric-box .m-label {
+    font-size: 12px;
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+.my-metric-box .m-val {
+    font-size: 17px;
+    font-weight: 800;
+    color: #f8fafc;
+}
+
+.my-metric-box .m-val.highlight {
+    color: #38bdf8;
+}
+
+.my-metric-box .m-val.point {
+    color: #fde047;
+}
+
+/* 탭 버튼 메뉴 */
+.leaderboard-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.tab-btn {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    background: #f8fafc;
+    border-color: #102d63;
+    color: #102d63;
+}
+
+.tab-btn.active {
+    background: #102d63;
+    border-color: #102d63;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(16, 45, 99, 0.25);
+}
+
+.tab-info-banner {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    font-size: 13px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+/* 테이블 레이아웃 */
+.table-container {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.leaderboard-table th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 700;
+    padding: 13px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+}
+
+.leaderboard-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.leaderboard-table tr:hover {
+    background: #f8fafc;
+}
+
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+
+/* 순위 뱃지 */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.rank-badge.rank-1 {
+    background: #fef3c7;
+    color: #b45309;
+    box-shadow: 0 0 0 1px #fcd34d;
+}
+
+.rank-badge.rank-2 {
+    background: #f1f5f9;
+    color: #475569;
+    box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.rank-badge.rank-3 {
+    background: #ffedd5;
+    color: #9a3412;
+    box-shadow: 0 0 0 1px #fdba74;
+}
+
+.rank-num {
+    font-weight: 700;
+    color: #64748b;
+    display: inline-block;
+    text-align: center;
+    width: 26px;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: #102d63;
+}
+
+.team-tag {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.primary-metric-val {
+    font-weight: 800;
+    font-size: 15px;
+    color: #102d63;
+}
+
+.streak-highlight {
+    font-weight: 800;
+    color: #dc2626;
+}
+
+.loading-text {
+    padding: 40px !important;
+    color: #94a3b8;
+}
