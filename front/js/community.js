@@ -124,145 +124,254 @@ function showBasebotConfirm(
     };
 }
 
-const teams = {
-    AL: {
-        EAST: [
-            ["BAL", "볼티모어 오리올스"],
-            ["BOS", "보스턴 레드삭스"],
-            ["NYY", "뉴욕 양키스"],
-            ["TB", "탬파베이 레이스"],
-            ["TOR", "토론토 블루제이스"]
-        ],
-        CENTRAL: [
-            ["CWS", "시카고 화이트삭스"],
-            ["CLE", "클리블랜드 가디언스"],
-            ["DET", "디트로이트 타이거스"],
-            ["KC", "캔자스시티 로열스"],
-            ["MIN", "미네소타 트윈스"]
-        ],
-        WEST: [
-            ["HOU", "휴스턴 애스트로스"],
-            ["LAA", "LA 에인절스"],
-            ["ATH", "애슬레틱스"],
-            ["SEA", "시애틀 매리너스"],
-            ["TEX", "텍사스 레인저스"]
-        ]
-    },
+/* =========================================
+   팀 정보
+   DB의 teams 테이블에서 가져온다.
+========================================= */
 
-    NL: {
-        EAST: [
-            ["ATL", "애틀랜타 브레이브스"],
-            ["MIA", "마이애미 말린스"],
-            ["NYM", "뉴욕 메츠"],
-            ["PHI", "필라델피아 필리스"],
-            ["WSH", "워싱턴 내셔널스"]
-        ],
-        CENTRAL: [
-            ["CHC", "시카고 컵스"],
-            ["CIN", "신시내티 레즈"],
-            ["MIL", "밀워키 브루어스"],
-            ["PIT", "피츠버그 파이리츠"],
-            ["STL", "세인트루이스 카디널스"]
-        ],
-        WEST: [
-            ["ARI", "애리조나 다이아몬드백스"],
-            ["COL", "콜로라도 로키스"],
-            ["LAD", "LA 다저스"],
-            ["SD", "샌디에이고 파드리스"],
-            ["SF", "샌프란시스코 자이언츠"]
-        ]
+let teams = [];
+let teamNamesByCode = {};
+
+const koreanTeamNames = {
+    BAL: "볼티모어 오리올스",
+    BOS: "보스턴 레드삭스",
+    NYY: "뉴욕 양키스",
+    TB: "탬파베이 레이스",
+    TOR: "토론토 블루제이스",
+
+    CWS: "시카고 화이트삭스",
+    CLE: "클리블랜드 가디언스",
+    DET: "디트로이트 타이거스",
+    KC: "캔자스시티 로열스",
+    MIN: "미네소타 트윈스",
+
+    HOU: "휴스턴 애스트로스",
+    LAA: "LA 에인절스",
+    ATH: "애슬레틱스",
+    SEA: "시애틀 매리너스",
+    TEX: "텍사스 레인저스",
+
+    ATL: "애틀랜타 브레이브스",
+    MIA: "마이애미 말린스",
+    NYM: "뉴욕 메츠",
+    PHI: "필라델피아 필리스",
+    WSH: "워싱턴 내셔널스",
+
+    CHC: "시카고 컵스",
+    CIN: "신시내티 레즈",
+    MIL: "밀워키 브루어스",
+    PIT: "피츠버그 파이리츠",
+    STL: "세인트루이스 카디널스",
+
+    ARI: "애리조나 다이아몬드백스",
+    COL: "콜로라도 로키스",
+    LAD: "LA 다저스",
+    SD: "샌디에이고 파드리스",
+    SF: "샌프란시스코 자이언츠"
+};
+
+/* =========================================
+   DB에서 팀 목록 가져오기
+========================================= */
+
+async function loadTeams() {
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/teams`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `팀 목록 조회 실패: ${response.status}`
+            );
+        }
+
+        teams = await response.json();
+
+        console.log("DB에서 가져온 팀 목록:", teams);
+
+        // 팀 코드 → 팀 이름
+        teamNamesByCode = {};
+
+        teams.forEach(team => {
+            teamNamesByCode[team.team_code] =
+                team.team_name;
+        });
+
+    } catch (error) {
+
+        console.error(
+            "팀 목록을 불러오는 중 오류:",
+            error
+        );
+
+        teams = [];
+        teamNamesByCode = {};
     }
-};
-
-const divisionNames = {
-    EAST: "동부",
-    CENTRAL: "중부",
-    WEST: "서부"
-};
+}
 
 
 /* =========================================
-   팀 코드 → 한글 팀 이름
-   예: NYY → 뉴욕 양키스
+   리그 → 지구 → 팀 선택
 ========================================= */
 
-const teamNamesByCode = {};
+function updateTeamSelect(
+    leagueSelectId,
+    divisionSelectId,
+    teamSelectId
+) {
 
-Object.values(teams).forEach(league => {
-    Object.values(league).forEach(division => {
-        division.forEach(([code, name]) => {
-            teamNamesByCode[code] = name;
-        });
-    });
-});
+    const leagueSelect =
+        document.getElementById(leagueSelectId);
+
+    const divisionSelect =
+        document.getElementById(divisionSelectId);
+
+    const teamSelect =
+        document.getElementById(teamSelectId);
 
 
-function updateTeamSelect(leagueSelectId, divisionSelectId, teamSelectId) {
-    const leagueSelect = document.getElementById(leagueSelectId);
-    const divisionSelect = document.getElementById(divisionSelectId);
-    const teamSelect = document.getElementById(teamSelectId);
-
-    if (!leagueSelect || !divisionSelect || !teamSelect) {
+    if (
+        !leagueSelect ||
+        !divisionSelect ||
+        !teamSelect
+    ) {
         return;
     }
 
+
+    /* -----------------------------------------
+       팀 초기화
+    ----------------------------------------- */
+
     function resetTeams() {
-        teamSelect.innerHTML = '<option value="">전체 팀</option>';
+
+        teamSelect.innerHTML =
+            '<option value="">전체 팀</option>';
+
         teamSelect.value = "";
         teamSelect.disabled = true;
     }
 
+
+    /* -----------------------------------------
+       지구 목록 표시
+    ----------------------------------------- */
+
     function renderDivisions() {
+
         const league = leagueSelect.value;
 
         divisionSelect.innerHTML = `
             <option value="">전체 지구</option>
-            <option value="EAST">동부</option>
-            <option value="CENTRAL">중부</option>
-            <option value="WEST">서부</option>
+            <option value="East">동부</option>
+            <option value="Central">중부</option>
+            <option value="West">서부</option>
         `;
 
         divisionSelect.value = "";
+
         divisionSelect.disabled = !league;
+
         resetTeams();
     }
 
+
+    /* -----------------------------------------
+       팀 목록 표시
+    ----------------------------------------- */
+
     function renderTeams() {
+
         const league = leagueSelect.value;
         const division = divisionSelect.value;
 
         resetTeams();
 
+
         if (!league || !division) {
             return;
         }
 
-        const list = teams[league]?.[division] || [];
 
-        list.forEach(([code, name]) => {
-            const option = document.createElement("option");
-            option.value = code;
-            option.textContent = name;
+        const list = teams.filter(team =>
+
+            team.league === league &&
+            team.division === division
+
+        );
+
+
+        list.forEach(team => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = team.team_code;
+
+            option.textContent =
+            koreanTeamNames[team.team_code] ||
+            team.team_name;
+
             teamSelect.appendChild(option);
+
         });
 
-        teamSelect.disabled = false;
+
+        teamSelect.disabled = list.length === 0;
     }
 
-    leagueSelect.addEventListener("change", renderDivisions);
-    divisionSelect.addEventListener("change", renderTeams);
+
+    leagueSelect.addEventListener(
+        "change",
+        renderDivisions
+    );
+
+
+    divisionSelect.addEventListener(
+        "change",
+        renderTeams
+    );
+
 
     if (leagueSelect.value) {
+
         renderDivisions();
+
     } else {
+
         divisionSelect.disabled = true;
+
         resetTeams();
     }
 }
 
-updateTeamSelect("leagueSelect", "divisionSelect", "teamSelect");
-updateTeamSelect("writeLeagueSelect", "writeDivisionSelect", "writeTeamSelect");
 
+/* =========================================
+   팀 데이터 로드 후 선택창 초기화
+========================================= */
+
+async function initializeTeamSelects() {
+
+    await loadTeams();
+
+    updateTeamSelect(
+        "leagueSelect",
+        "divisionSelect",
+        "teamSelect"
+    );
+
+    updateTeamSelect(
+        "writeLeagueSelect",
+        "writeDivisionSelect",
+        "writeTeamSelect"
+    );
+}
+
+
+initializeTeamSelects();
 
 // =========================================
 // 커뮤니티 필터 상태
@@ -418,6 +527,12 @@ async function loadPopularPosts() {
         `;
     }
 }
+
+// =========================================
+// 게시판 페이지네이션
+// =========================================
+const POSTS_PER_PAGE = 15;
+let currentPage = 1;
 
 // =========================================
 // 게시글 필터링 + 정렬
@@ -653,20 +768,54 @@ function updateCommunityBoard() {
     });
 
 
-    // -----------------------------------------
-    // 정렬
+   // -----------------------------------------
+    // 정렬 + 페이지네이션
     // -----------------------------------------
     if (board) {
 
         const sortedRows =
             sortRows(matchedRows);
 
-        sortedRows.forEach(row => {
+        // 전체 페이지 수 계산
+        const totalPages =
+            Math.ceil(
+                sortedRows.length / POSTS_PER_PAGE
+            );
 
+        // 현재 페이지가 전체 페이지보다 커졌다면
+        // 마지막 페이지로 이동
+        if (
+            totalPages > 0 &&
+            currentPage > totalPages
+        ) {
+            currentPage = totalPages;
+        }
+
+        // 현재 페이지에서 보여줄 시작 위치
+        const startIndex =
+            (currentPage - 1) * POSTS_PER_PAGE;
+
+        // 현재 페이지에서 보여줄 게시글
+        const pageRows =
+            sortedRows.slice(
+                startIndex,
+                startIndex + POSTS_PER_PAGE
+            );
+
+        // 모든 게시글 숨기기
+        boardRows.forEach(row => {
+            row.hidden = true;
+        });
+
+        // 현재 페이지 게시글만 표시
+        pageRows.forEach(row => {
+            row.hidden = false;
             board.appendChild(row);
         });
-    }
 
+        // 페이지 버튼 생성
+        renderPagination(totalPages);
+    }
 
 
     // -----------------------------------------
@@ -777,6 +926,127 @@ function updateCommunityBoard() {
     }
 }
 
+// =========================================
+// 게시판 페이지네이션
+// =========================================
+function renderPagination(totalPages) {
+
+    const pagination =
+        document.querySelector(".pagination");
+
+    if (!pagination) {
+        return;
+    }
+
+    // 기존 페이지 버튼 삭제
+    pagination.innerHTML = "";
+
+    // 페이지가 없거나 1페이지뿐이면 버튼 표시 안 함
+    if (totalPages <= 1) {
+        return;
+    }
+
+
+    // 이전 버튼
+    if (currentPage > 1) {
+
+        const prevButton =
+            document.createElement("a");
+
+        prevButton.href = "#";
+        prevButton.textContent = "‹";
+
+        prevButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                currentPage--;
+
+                updateCommunityBoard();
+            }
+        );
+
+        pagination.appendChild(
+            prevButton
+        );
+    }
+
+
+    // 페이지 번호
+    for (
+        let page = 1;
+        page <= totalPages;
+        page++
+    ) {
+
+        const pageButton =
+            document.createElement("a");
+
+        pageButton.href = "#";
+
+        pageButton.textContent = page;
+
+
+        // 현재 페이지
+        if (page === currentPage) {
+
+            pageButton.classList.add(
+                "active"
+            );
+        }
+
+
+        pageButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                currentPage = page;
+
+                updateCommunityBoard();
+            }
+        );
+
+
+        pagination.appendChild(
+            pageButton
+        );
+    }
+
+
+    // 다음 버튼
+    if (currentPage < totalPages) {
+
+        const nextButton =
+            document.createElement("a");
+
+        nextButton.href = "#";
+
+        nextButton.textContent = "›";
+
+
+        nextButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                currentPage++;
+
+                updateCommunityBoard();
+            }
+        );
+
+
+        pagination.appendChild(
+            nextButton
+        );
+    }
+}
+
 
 
 // =========================================
@@ -860,6 +1130,8 @@ function setupCommunityFilters() {
 
         // ⭐ 상단 조건 + 하단 검색 조건
         // 둘 다 적용
+        currentPage = 1;
+
         updateCommunityBoard();
     };
 
@@ -893,6 +1165,8 @@ function setupCommunityFilters() {
                     "active"
                 );
 
+                currentPage = 1;
+
                 updateCommunityBoard();
             }
         );
@@ -905,7 +1179,7 @@ function setupCommunityFilters() {
     sortSelect?.addEventListener(
         "change",
         () => {
-
+            currentPage = 1;
             updateCommunityBoard();
         }
     );
@@ -985,7 +1259,7 @@ function setupPostSearch() {
                     keyword
             };
 
-
+            currentPage = 1;
             // ⭐ 상단 필터와 하단 검색을
             // 동시에 적용
             updateCommunityBoard();
