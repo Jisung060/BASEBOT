@@ -1,4 +1,246 @@
-[33mcommit 369397ff2863c504706e903f721ea4378d64149e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/feature/game-page[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mfeature/game-page[m[33m)[m
+[33mcommit 0f5ef12b97778ead565196de175adbe5d556593e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Mon Oct 12 18:31:33 2026 +0900
+
+    scripts/database.py 를 parent.parent.parent로수정
+
+[33mcommit ff34dda4924d0aaa80886f66b3e167d62d7c6f91[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Mon Oct 12 17:42:10 2026 +0900
+
+    변경된 스키마 실행 후,경기결과가 사라진 원인 파악 중
+
+[33mcommit c4a4b52c95c9213e2dc4062723539e5932811e3d[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Mon Oct 12 17:08:42 2026 +0900
+
+    페이지 이동 정상화
+
+[33mcommit f7b7583c6dfa2a74738beb61e9d085df47c603c8[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 17:08:14 2026 +0900
+
+     로그인 필요 팝업 완료
+
+[33mcommit 4c7828748f1f57e62f172286a90eb2d62f0d768b[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 16:35:07 2026 +0900
+
+     기능 작동 확인
+
+[33mcommit 411fa004e68de4c40216cdd83857a8392058a4e3[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Mon Oct 12 16:22:15 2026 +0900
+
+    댓글 가져오기 보완
+
+[33mcommit ba260586d980221ba527816951191e59b072a2f9[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Mon Oct 12 15:37:58 2026 +0900
+
+    댓글 get
+
+[33mcommit 7d2a18f73a7d51545bbe9465691b050a9e45113f[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 15:11:40 2026 +0900
+
+     게시글 스크랩, 신고하기
+
+[33mcommit 22c500908a1d1fdc1d6bf94950c603f5abc73d13[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Mon Oct 12 15:06:54 2026 +0900
+
+    선수 상세 페이지 수정
+    
+    추가된 지표 표시 추가 및 Baseball Savant 스타일 막대 그래프 추가
+
+[33mcommit 8a9703671515655658daeb88dbadac8ec13ac88f[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Mon Oct 12 14:36:23 2026 +0900
+
+    메인 페이지 - 커뮤니티get
+
+[33mcommit 7b4eaf899ecd6bf93d5b8bb7ff595eedd8675456[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 13:06:01 2026 +0900
+
+     게시글, 댓글 로그인 연동
+
+[33mcommit 5ca6194a62b0e3e0102061f56830c5b40c83baeb[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Mon Oct 12 12:56:58 2026 +0900
+
+    팀 상세 페이지 수정
+    
+    타자/투수 구분 및 표시 지표 추가
+
+[33mcommit f44f10295c5a98164c8e24eef4503c40c69ba954[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Mon Oct 12 12:48:10 2026 +0900
+
+    community-get, favotite-get 완료
+
+[33mcommit 6677f49fff5a1cee85b06059fe797848138e6229[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Mon Oct 12 12:38:33 2026 +0900
+
+    경기결과-달력, 경기순서, 선호구단 결과 작업
+
+[33mcommit 57d1b9b5c43530ad175f046a0e9d347e58fd3992[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 11:04:16 2026 +0900
+
+     업로드폴더 자동 생성 추가
+
+[33mcommit 51221c7b42e8c67c6d5bb304e96f9582900e4b51[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Mon Oct 12 10:46:15 2026 +0900
+
+    투수/타자 데이터 수집 스크립트 업데이트
+    
+    반드시 SQL문 업데이트 후 사용(Notion 페이지 참조)
+
+[33mcommit 2a39c510daeeb1dc8e3a6a6983ada684ac144ece[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 10:28:11 2026 +0900
+
+    게시글 이미지업로드 수정
+
+[33mcommit 9543d1b84d0e22597ae2282e2241100b4d757d6f[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 10:08:18 2026 +0900
+
+    게시글 작성 수정중
+
+[33mcommit e75ebffeab2a5f8e5ee8584cd917c9e612baf3ec[m
+Author: Sita <imsj713@gmail.com>
+Date:   Mon Oct 12 09:52:25 2026 +0900
+
+    게시글 작성 서버 수정중
+
+[33mcommit d60c50080403f88fa0a047122a0518664beeee83[m
+Merge: e461a99 e9e7ed3
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Thu Oct 8 17:41:16 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit e461a99a76d889c8ccff1a940fcdbabfa711bec4[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Thu Oct 8 17:41:05 2026 +0900
+
+    경기결과, 상세페이지 수정
+
+[33mcommit e9e7ed3f530791b9ef9319e4b209920de0233817[m
+Author: Sita <imsj713@gmail.com>
+Date:   Thu Oct 8 17:40:39 2026 +0900
+
+     댓글 좋아요
+
+[33mcommit 12cac830350a4cb1bad8607ac16e57cfebf5595c[m
+Author: simone <jisung0628jisung@gmail.com>
+Date:   Thu Oct 8 17:24:02 2026 +0900
+
+    마이페이지 회원정보수정, 내정보 가져오기
+
+[33mcommit 29697e4d33990bee730526092cd95c8c940a4d17[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Thu Oct 8 17:08:26 2026 +0900
+
+    경기결과 페이지 왼쪽 패널 지움, 시각화
+
+[33mcommit f6e2b212b7f98a7b0519adce748a445bc377b6ed[m
+Author: Sita <imsj713@gmail.com>
+Date:   Thu Oct 8 16:56:12 2026 +0900
+
+     댓글, 대댓글수정 삭제
+
+[33mcommit 4804eabecd07fb40a7981648d7591ea70d077055[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 15:48:05 2026 +0900
+
+    뉴스 30초 업데이트 기능삭제
+
+[33mcommit a113930534b82db5c8e692a713ff6834793b682f[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 15:40:04 2026 +0900
+
+    AI 요약 기능 적용
+
+[33mcommit 2169262c58620b00b0024e804df2cb6a61664b2a[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Thu Oct 8 15:18:11 2026 +0900
+
+    경기 박스스코어 및 라인스코어 가져오기 스크립트
+    
+    스키마 변경사항 있음: Notion 참조 - sql문
+
+[33mcommit 255da5a9206ebfe5d56e00bda2fd86b925012422[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 15:12:43 2026 +0900
+
+    뉴스 ai 적용
+
+[33mcommit d9adb7401580e7552aa736f19390bcd50f781980[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 14:56:06 2026 +0900
+
+    mlb_news.html 30초 본문 수정
+
+[33mcommit 03c64f80351104aeff949bfedb84d14ec60e0885[m
+Author: ybinchoi1130-dot <ybinchoi1130@gmail.com>
+Date:   Thu Oct 8 13:39:04 2026 +0900
+
+    뉴스 데이터베이스 구축 및 수정1
+
+[33mcommit 0d7e8885d36d648a34afb1fdd99e548df849fd39[m
+Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
+Date:   Thu Oct 8 13:18:03 2026 +0900
+
+    Update header.html
+    
+    removed faulty lines
+
+[33mcommit ec5c5673c1d9e1d0b06498aaf67cf65d0ceaaf30[m
+Author: Sita <imsj713@gmail.com>
+Date:   Thu Oct 8 12:50:05 2026 +0900
+
+     테스트
+
+[33mcommit 2030b8ef3d60bfd323b6b48fc1e3accb85c26643[m
+Merge: 9b25f7a bc7df39
+Author: Sita <imsj713@gmail.com>
+Date:   Thu Oct 8 12:45:01 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit 9b25f7a5fae7ce2d5686182339450f07d0146397[m
+Merge: d633670 f47e3e1
+Author: Sita <imsj713@gmail.com>
+Date:   Thu Oct 8 12:21:14 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit bc7df39a5186e18e4daef585f8912aa3aa5efdea[m
+Merge: d633670 f47e3e1
+Author: Sita <imsj713@gamil.com>
+Date:   Thu Oct 8 12:21:14 2026 +0900
+
+    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
+
+[33mcommit d6336706a5d775968fbd7d1a7acff07b6b092ede[m
+Author: Sita <imsj713@gamil.com>
+Date:   Thu Oct 8 12:19:35 2026 +0900
+
+     좋아요 댓글 기능 작업완료
+
+[33mcommit f47e3e18c2a65064029dbabcd1faec5ee7465a38[m
+Author: hongjaesung97 <hongjaesung97@gmail.com>
+Date:   Thu Oct 8 12:16:47 2026 +0900
+
+    경기결과 측면 패널 추가
+
+[33mcommit 369397ff2863c504706e903f721ea4378d64149e[m[33m ([m[1;31morigin/feature/game-page[m[33m, [m[1;32mfeature/game-page[m[33m)[m
 Author: simone <jisung0628jisung@gmail.com>
 Date:   Thu Oct 8 11:40:12 2026 +0900
 
@@ -246,127 +488,3 @@ Date:   Wed Oct 7 09:37:51 2026 +0900
     경기 결과 가져오기
     
     collector_games.py 실행 필수.
-
-[33mcommit bde29cd000c9ca6e3d1b10a4b245bcd4aa8d199a[m
-Author: Sita <imsj713@gamil.com>
-Date:   Tue Oct 6 17:45:22 2026 +0900
-
-     커뮤니티 수정중
-
-[33mcommit 1e80ff0df9eb60c8e0b30544885ca54feeee8db5[m
-Author: 홍제성 <hongjaesung97@gmail.com>
-Date:   Tue Oct 6 17:43:36 2026 +0900
-
-    game, game-detail 작업
-
-[33mcommit c442e9d41d9a60ef4758a01dfa3f541b8eeffaba[m
-Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
-Date:   Tue Oct 6 17:23:02 2026 +0900
-
-    팀 정보(팀 목록) 및 선수, 상세 페이지 + 헤더 링크 추가
-
-[33mcommit 5a042ae8031cc521a240f611823091bfd989a9e3[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Tue Oct 6 17:19:54 2026 +0900
-
-    AI 챗봇 위치 변경
-
-[33mcommit a1f4ce1c3bc695fe89ca6812f342bfed13e40716[m
-Author: Jae-Hong Park <48243825+Windintosh@users.noreply.github.com>
-Date:   Tue Oct 6 16:03:07 2026 +0900
-
-    Scripts for collecting data(teams, player stats)
-    
-    - Baseball Reference 및 FanGraphs의 외부 호출 차단으로 MLB(statsapi.mlb.com) 및 Baseball Savant(https://baseballsavant.mlb.com/leaderboard/custom?csv=true) 데이터 활용, 추후 방법 모색
-    - 팀 데이터는 고정 데이터 사용
-
-[33mcommit 8e5e6ef38e678c8a30ffe15593bef04c5dd3f488[m
-Merge: 5e4dcc1 9530a3e
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Tue Oct 6 14:52:35 2026 +0900
-
-    Merge branch 'main' of https://github.com/Jisung060/BASEBOT
-
-[33mcommit 5e4dcc1187a61097df2c73085ca61950c288bab2[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Tue Oct 6 14:51:51 2026 +0900
-
-    아이디 찾기, 비밀번호 변경 완료
-
-[33mcommit 9530a3edbe085440e4a6dcb39f86772be73d7b17[m
-Author: 홍제성 <hongjaesung97@gmail.com>
-Date:   Tue Oct 6 13:58:15 2026 +0900
-
-    game.htlm, game-detail.html 페이지 생성
-
-[33mcommit 7cb64dd58ec7a885c3c8b566d3074fc41e980798[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Tue Oct 6 12:52:16 2026 +0900
-
-    login success
-
-[33mcommit e47b78e20526c808211a40303d06f3454accd236[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Tue Oct 6 11:20:13 2026 +0900
-
-    sginup success
-
-[33mcommit c51069c07c827f76fe2766cf2e893597d0e671e3[m
-Author: Sita <imsj713@gamil.com>
-Date:   Tue Oct 6 10:45:19 2026 +0900
-
-    커뮤니티 html, css, js
-
-[33mcommit 4051079bc9369edc9bb90afe61206ad3fcf8adae[m
-Author: Sita <imsj713@gamil.com>
-Date:   Tue Oct 6 10:37:12 2026 +0900
-
-    커뮤니티 html, css, js
-
-[33mcommit 3c5481353df71b11d95877dd97c4f2ff352482c0[m[33m ([m[1;31morigin/feature/community[m[33m)[m
-Author: Sita <imsj713@gamil.com>
-Date:   Tue Oct 6 09:56:23 2026 +0900
-
-     커뮤니티 css, html, js
-
-[33mcommit 1accb85d4556bace25e0ca9cf166ce8e51da5541[m
-Author: Sita <imsj713@gamil.com>
-Date:   Tue Oct 6 09:31:35 2026 +0900
-
-    커뮤니티 화면
-
-[33mcommit 91e57e03b6f5e888796f19cbbcd60a15f95e05a3[m
-Author: hongjaesung97 <hongjaesung97@gmail.com>
-Date:   Tue Oct 6 00:00:57 2026 +0900
-
-    front - pages 폴더 안에 'game.html', 'game-detail.html' 파일 생성
-
-[33mcommit 2893c47e56374834e1477ffaf1ac61ddce35f1dc[m
-Author: JiSung <jisung0628jisung@gmail.com>
-Date:   Mon Oct 5 21:13:39 2026 +0900
-
-    privacy, terms, find-password and id, siderbar connection, header connection
-
-[33mcommit 83863599648883f1c0727f7d231f16ba6a54c582[m
-Author: JiSung <jisung0628jisung@gmail.com>
-Date:   Mon Oct 5 00:09:50 2026 +0900
-
-    10-05 : main, header, footer, signup, login -> Create a page
-
-[33mcommit ddf676cc9dcc8b92d9b4770077a1459e5e8a7e1b[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Fri Oct 2 15:11:56 2026 +0900
-
-    간단한 back과 fornt를 만들어 DB와 연결되었는지 검토 (성공)
-
-[33mcommit 1274bc1825939e8474c59ed7fab51bd271e06ce0[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Fri Oct 2 12:33:35 2026 +0900
-
-    새 택스트 문서.txt 수정
-
-[33mcommit 6bf107c05607f1f14f7d32dec36697368166a843[m
-Author: simone <jisung0628jisung@gmail.com>
-Date:   Fri Oct 2 12:26:44 2026 +0900
-
-    Initial commit
