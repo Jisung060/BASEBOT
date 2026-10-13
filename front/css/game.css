@@ -65,28 +65,6 @@
 @media(max-width:700px){.game-day-cards{grid-template-columns:1fr}.game-day-cards .game-card:nth-child(2n){border-right:0}.game-day-cards .game-card{min-height:104px;padding:9px 11px}.league-tabs{padding-top:10px}}
 .game-page{padding-top:8px}.game-page .breadcrumb{margin-bottom:8px}.game-page .page-heading{padding:0 0 8px}.game-page .page-heading .eyebrow{display:none}.game-page .page-heading h1{margin:0;font-size:25px}.game-page .page-heading>p:last-child{display:none}.league-tabs{padding:2px 12px 6px}.league-tabs .league-tab{height:34px;min-height:34px}.date-picker-heading{min-height:45px;margin-top:0}.date-picker-heading>strong{font-size:24px}.month-option{height:39px;font-size:16px}.team-filter[hidden]{display:none!important}.team-filter{position:relative;min-height:0;margin:0;padding:5px 8px 7px}.team-filter .team-picker{order:2}.team-filter .favorite-filter-button{order:1;margin-left:0}.team-favorite-badge{position:absolute;top:1px;right:1px;z-index:2;padding:2px 4px;border:1px solid #f2c65e;border-radius:8px;background:#fff7df;color:#a66b00;font-size:7px;font-weight:800;line-height:1}.team-rail-option.is-favorite-team{position:relative}.team-rail-option.is-favorite-team .team-picker-logo{filter:drop-shadow(0 0 2px #e5a90066)}.team-rail-option.is-favorite-team .team-rail-name{color:#9b6900;font-weight:800}.favorite-filter-button[aria-pressed="true"]{border-color:#e4ac22;background:#fff6da;color:#8a5d00}.favorite-team-message{order:3;flex-basis:100%;color:#8390a2;font-size:10px}.selected-date{margin:8px 0 7px}.game-day-heading{min-height:38px}
 @media(max-width:760px){.game-page{padding-top:5px}.game-page .page-heading{padding-bottom:5px}.game-page .page-heading h1{font-size:22px}.league-tabs{padding:1px 8px 5px}.date-picker-heading{min-height:42px}.month-option{height:36px;font-size:14px}.team-rail{padding-top:5px;padding-bottom:5px}.team-rail-option{height:64px}.selected-date{margin:7px 0 6px}}
-/* 한 구단 선택 시: 날짜 박스를 2열로 배치 (전체 구단 보기에는 영향 없음) */
-.game-list.team-view{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr)); /* 한 줄에 날짜 박스 2개 */
-  gap:14px 12px;                                 /* 세로 간격 14px, 가로 간격 12px */
-  align-items:start;                             /* 박스 높이를 내용만큼만 */
-}
-.game-list.team-view .game-day-group{
-  min-width:0;                                   /* 내용이 길어도 칸 밖으로 넘치지 않게 */
-}
-/* 날짜 박스 안에서는 카드를 1열로 (박스가 절반 폭이라 2열이면 좁음) */
-.game-list.team-view .game-day-cards{
-  grid-template-columns:1fr;
-}
-.game-list.team-view .game-day-cards .game-card{
-  border-right:0;                                /* 2열용 오른쪽 선 제거 */
-}
-/* 휴대폰 화면(700px 이하)은 날짜 박스를 1열로 */
-@media(max-width:700px){
-  .game-list.team-view{grid-template-columns:1fr}
-}
-/* Compact schedule presentation and inline favorite-team shortcut. */
 .game-day-cards .game-card{min-height:88px;padding:6px 9px;gap:5px 5px}
 .game-day-heading{min-height:34px}
 .game-day-cards .game-time strong{font-size:12px}
@@ -166,4 +144,3 @@
 .game-day-cards .game-time strong{font-size:11px}
 .game-calendar{position:absolute;top:calc(100% - 1px);left:50%;z-index:20;width:280px;padding:12px;transform:translateX(-50%);border:1px solid #d7e1ef;border-radius:10px;background:#fff;box-shadow:0 10px 28px #1834572b}
 .game-calendar-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#233b5d}.game-calendar-heading button{width:28px;height:28px;border:0;border-radius:5px;background:#f2f6fb;color:#294d7b;font-size:20px;cursor:pointer}.game-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}.game-calendar-weekday{padding:3px 0;color:#7b8798;font-size:11px}.game-calendar-day{height:31px;border:0;border-radius:5px;background:transparent;color:#41526a;font:inherit;font-size:12px;cursor:pointer}.game-calendar-day:hover,.game-calendar-day.selected{background:#e7f0ff;color:#1f66c1}.game-calendar-day.has-games{font-weight:800;color:#173f7a}
-
