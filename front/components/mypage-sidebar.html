@@ -1,9 +1,6 @@
+
 <aside class="auth-sidebar">
-
-    <div class="auth-sidebar-title">
-        마이페이지
-    </div>
-
+    <div class="auth-sidebar-title">마이페이지</div>
     <div class="auth-sidebar-line"></div>
 
     <nav class="auth-sidebar-menu">
@@ -11,9 +8,28 @@
         <a href="prediction-history.html" data-page="prediction-history">예측 기록</a>
         <a href="points.html" data-page="points">포인트 / 등급</a>
         <a href="favorite-team.html" data-page="favorite-team">관심 팀</a>
-        <a href="my-posts.html" data-page="my-posts">내가 쓴 글</a>
-        <a href="my-comments.html" data-page="my-comments">내가 쓴 댓글</a>
+
+        <!-- 커뮤니티 접기 / 펼치기 메뉴 -->
+        <div class="mypage-menu-group" id="communityMenuGroup">
+            <button
+                type="button"
+                class="mypage-menu-group-title"
+                id="communityMenuToggle"
+                aria-expanded="false"
+                aria-controls="communitySubmenu"
+            >
+                <span>커뮤니티</span>
+                <span class="mypage-menu-arrow" aria-hidden="true"></span>
+            </button>
+
+            <div class="mypage-submenu" id="communitySubmenu">
+                <a href="my-posts.html" data-page="my-posts">내가 쓴 글</a>
+                <a href="my-comments.html" data-page="my-comments">내가 쓴 댓글</a>
+                <a href="my-scraps.html" data-page="my-scraps">스크랩한 게시글</a>
+                <a href="my-reports.html" data-page="my-reports">신고 내역</a>
+            </div>
+        </div>
+
         <a href="member-edit.html" data-page="member-edit">회원정보 수정</a>
     </nav>
-
 </aside>

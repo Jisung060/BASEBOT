@@ -6,60 +6,98 @@
 fetch("/components/mypage-sidebar.html")
     .then(response => response.text())
     .then(data => {
+        const sidebar = document.getElementById("mypage-sidebar");
 
-        const sidebar =
-            document.getElementById("mypage-sidebar");
-
-        if (!sidebar) {
-            return;
-        }
+        if (!sidebar) return;
 
         sidebar.innerHTML = data;
 
-        setActiveMypageMenu();
+        // 커뮤니티 접기 / 펼치기 기능 연결
+        setupCommunityMenu();
 
+        // 현재 페이지 메뉴 활성화
+        setActiveMypageMenu();
     })
     .catch(error => {
-
         console.error(
             "마이페이지 사이드바 불러오기 실패:",
             error
         );
-
     });
 
 
-/* ==================================================
-   현재 페이지 사이드바 active
-================================================== */
+/* 커뮤니티 메뉴 접기 / 펼치기 */
+function setupCommunityMenu() {
+    const menuGroup =
+        document.getElementById("communityMenuGroup");
 
+    const toggle =
+        document.getElementById("communityMenuToggle");
+
+    if (!menuGroup || !toggle) return;
+
+    toggle.addEventListener("click", () => {
+        const isOpen =
+            menuGroup.classList.toggle("is-open");
+
+        toggle.setAttribute(
+            "aria-expanded",
+            String(isOpen)
+        );
+    });
+}
+
+
+/* 현재 페이지 메뉴 활성화 */
 function setActiveMypageMenu() {
+    const currentPage = document.body.dataset.page;
 
-    const currentPage =
-        document.body.dataset.page;
-
-    if (!currentPage) {
-        return;
-    }
+    if (!currentPage) return;
 
     const menuLinks =
         document.querySelectorAll(
-            ".mypage-sidebar-menu a"
+            ".auth-sidebar-menu a[data-page]"
         );
 
-    menuLinks.forEach(link => {
+    const menuGroup =
+        document.getElementById("communityMenuGroup");
 
+    const toggle =
+        document.getElementById("communityMenuToggle");
+
+    // 모든 메뉴의 활성화 표시 제거
+    menuLinks.forEach(link => {
         link.classList.remove("active");
 
-        if (
-            link.dataset.page ===
-            currentPage
-        ) {
+        // 현재 페이지에 해당하는 메뉴 강조
+        if (link.dataset.page === currentPage) {
             link.classList.add("active");
         }
-
     });
+
+    // 커뮤니티 하위 페이지 목록
+    const communityPages = [
+        "my-posts",
+        "my-comments",
+        "my-scraps",
+        "my-reports"
+    ];
+
+    // 커뮤니티 페이지에 들어오면 메뉴 자동 펼치기
+    if (
+        communityPages.includes(currentPage) &&
+        menuGroup &&
+        toggle
+    ) {
+        menuGroup.classList.add("is-open");
+
+        toggle.setAttribute(
+            "aria-expanded",
+            "true"
+        );
+    }
 }
+
 
 
 /* ==================================================

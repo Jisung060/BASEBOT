@@ -1178,6 +1178,66 @@ def toggle_post_scrap(
         "message": "게시글을 스크랩했습니다."
     }
 
+# 내가 스크랩한 게시글 목록 조회
+@router.get("/my-scraps")
+def get_my_scraps(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.user_id
+
+    scraps = (
+        session.query(
+            PostScrap.scrap_id,
+            PostScrap.created_at.label("scrapped_at"),
+            CommunityPost.post_id,
+            CommunityPost.user_id,
+            User.nickname,
+            CommunityPost.title,
+            CommunityPost.content,
+            CommunityPost.category,
+            CommunityPost.created_at,
+            CommunityPost.view_count,
+            CommunityPost.like_count,
+            CommunityPost.comment_count
+        )
+        .join(
+            CommunityPost,
+            PostScrap.post_id == CommunityPost.post_id
+        )
+        .join(
+            User,
+            CommunityPost.user_id == User.user_id
+        )
+        .filter(
+            PostScrap.user_id == user_id
+        )
+        .order_by(
+            PostScrap.created_at.desc()
+        )
+        .all()
+    )
+
+    result = []
+
+    for scrap in scraps:
+        result.append({
+            "scrap_id": scrap.scrap_id,
+            "scrapped_at": scrap.scrapped_at,
+            "post_id": scrap.post_id,
+            "user_id": scrap.user_id,
+            "nickname": scrap.nickname,
+            "title": scrap.title,
+            "content": scrap.content,
+            "category": scrap.category,
+            "created_at": scrap.created_at,
+            "view_count": scrap.view_count,
+            "like_count": scrap.like_count,
+            "comment_count": scrap.comment_count
+        })
+
+    return result
+
 
 # =========================================
 # 게시글 신고 등록

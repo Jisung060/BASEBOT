@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>스크랩한 게시글 | BASEBOT</title>
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="/css/main.css">
+
+    <!-- 인증 페이지 공통 CSS -->
+    <link rel="stylesheet" href="/css/auth.css">
+
+    <!-- 마이페이지 공통 CSS -->
+    <link rel="stylesheet" href="/css/mypage.css">
+
+    <!-- 내가 쓴 글과 동일한 목록 스타일 재사용 -->
+    <link rel="stylesheet" href="/css/my-posts.css">
+</head>
+
+<body data-page="my-scraps">
+
+    <!-- Header -->
+    <div id="header"></div>
+
+    <!-- Main -->
+    <main class="auth-main">
+        <div class="auth-layout">
+
+            <!-- Sidebar -->
+            <div id="mypage-sidebar"></div>
+
+            <!-- Content -->
+            <section class="mypage-content">
+
+                <div class="mypage-title">
+                    <h1>스크랩한 게시글</h1>
+                    <p>관심 있는 게시글을 모아보고 다시 확인할 수 있습니다.</p>
+                </div>
+
+                <div class="mypage-box">
+
+                    <div class="mypage-box-title">
+                        스크랩 목록
+                        <span class="my-posts-total">총 0개</span>
+                    </div>
+
+                    <div class="mypage-box-body">
+
+                        <!-- 스크랩한 게시글 목록 -->
+                        <ul class="activity-list my-posts-list">
+                        </ul>
+
+                        <!-- 스크랩한 게시글이 없을 때 -->
+                        <p id="my-posts-empty" style="display: none;">
+                            스크랩한 게시글이 없습니다.
+                        </p>
+
+                    </div>
+                </div>
+
+                <!-- 페이지 이동 -->
+                <div id="my-posts-pagination"
+                     class="my-posts-pagination">
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <!-- 공통 JS -->
+    <script src="/js/main.js"></script>
+
+    <!-- 마이페이지 공통 JS -->
+    <script src="/js/mypage.js"></script>
+
+    <!-- 스크랩 목록 전용 JS -->
+    <script src="/js/my-scraps.js"></script>
+
+</body>
+</html>

@@ -931,3 +931,151 @@
         gap: 10px 14px;
     }
 }
+
+
+/* ========================================
+   마이페이지 - 커뮤니티 접기 / 펼치기
+======================================== */
+
+.mypage-menu-group {
+    margin: 4px 0;
+}
+
+.mypage-menu-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mypage-menu-group-title:hover {
+    background: #f5f7fb;
+}
+
+.mypage-menu-arrow {
+    display: inline-block;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.mypage-menu-group-title[aria-expanded="true"] .mypage-menu-arrow {
+    transform: rotate(90deg);
+}
+
+.mypage-submenu {
+    display: none;
+    padding: 4px 0 4px 15px;
+}
+
+.mypage-menu-group.is-open .mypage-submenu {
+    display: block;
+}
+
+.mypage-submenu a {
+    display: block;
+    padding: 10px 15px;
+    color: #555;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.mypage-submenu a:hover {
+    background: #f5f7fb;
+    color: #123f91;
+}
+
+.mypage-submenu a.active {
+    background: #edf3ff;
+    color: #123f91;
+    font-weight: 700;
+}
+
+
+
+/* ========================================
+   마이페이지 - 커뮤니티 메뉴 디자인 통일
+======================================== */
+
+/* 커뮤니티 버튼 글자와 크기 통일 */
+.auth-sidebar-menu .mypage-menu-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 12px 15px;
+    margin: 0;
+
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+
+    color: #333;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.auth-sidebar-menu .mypage-menu-group-title:hover {
+    background: #f5f7fb;
+}
+
+
+/* 커뮤니티 메뉴 화살표 */
+.auth-sidebar-menu .mypage-menu-arrow {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+
+    border-right: 2px solid #64748b;
+    border-bottom: 2px solid #64748b;
+
+    transform: rotate(45deg);
+    transition:
+        transform 0.25s ease,
+        border-color 0.2s ease;
+
+    margin: -5px 5px 0 0;
+}
+
+/* 마우스를 올리면 화살표 강조 */
+.auth-sidebar-menu
+.mypage-menu-group-title:hover
+.mypage-menu-arrow {
+    border-color: #123f91;
+}
+
+/* 펼쳐졌을 때 위쪽을 향하도록 회전 */
+.auth-sidebar-menu
+.mypage-menu-group-title[aria-expanded="true"]
+.mypage-menu-arrow {
+    transform: rotate(225deg);
+    border-color: #123f91;
+}
+
+
+/* 하위 메뉴 */
+.auth-sidebar-menu .mypage-submenu {
+    padding: 4px 0 4px 15px;
+}
+
+.auth-sidebar-menu .mypage-submenu a {
+    font-size: 14px;
+    font-weight: 400;
+    text-decoration: none;
+}
