@@ -1,6 +1,6 @@
 let currentSort = "win_rate";
+let myRanksData = null; // 백엔드에서 가져온 내 순위 맵 캐싱
 
-// prediction.js의 로그인 유저 판정 로직과 통일
 function getLoggedInUserId() {
     try {
         const userStr = sessionStorage.getItem("user") || localStorage.getItem("user");
@@ -11,7 +11,7 @@ function getLoggedInUserId() {
     } catch (e) {
         console.warn("유저 정보 파싱 실패:", e);
     }
-    return localStorage.getItem("test_user_id") || "1"; // 기본 1번 유저 fallback
+    return localStorage.getItem("test_user_id") || "1";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -33,7 +33,7 @@ function initTabs() {
 
             currentSort = tab.dataset.sort;
 
-            // 탭별 안내 문구 및 헤더 텍스트 전환
+            // 1. 탭별 안내 문구 및 헤더 전환
             if (currentSort === "win_rate") {
                 banner.style.display = "block";
                 thPrimary.textContent = "예측 승률";
@@ -53,16 +53,51 @@ function initTabs() {
             } else if (currentSort === "point") {
                 banner.style.display = "none";
                 thPrimary.textContent = "보유 포인트";
-                // 포인트 탭에서는 마지막 열의 중복을 피하고 '예측 승률'로 대체!
                 if (thLast) thLast.textContent = "예측 승률";
             }
 
+            // 2. 탭 전환에 따른 상단 카드 내 순위 라벨 및 수치 갱신
+            updateMyRankCard(currentSort);
+
+            // 3. TOP 10 리더보드 테이블 로드
             fetchLeaderboard(currentSort);
         });
     });
 }
 
-// 1. 내 통계 카드 바인딩
+// 상단 카드의 '내 순위' 영역 동적 변경 함수
+function updateMyRankCard(sortKey) {
+    const labelEl = document.getElementById("myRankLabel");
+    const valEl = document.getElementById("myRankValue");
+    if (!labelEl || !valEl || !myRanksData) return;
+
+    const rankLabels = {
+        "win_rate": "승률 순위",
+        "streak": "현재 연승 순위",
+        "max_streak": "최대 연승 순위",
+        "most_wins": "최다 적중 순위",
+        "point": "포인트 순위"
+    };
+
+    labelEl.textContent = rankLabels[sortKey] || "내 순위";
+    const rank = myRanksData[sortKey];
+
+    if (rank !== null && rank !== undefined) {
+        valEl.textContent = `${rank}위`;
+        valEl.style.color = "#f8fafc";
+    } else {
+        if (sortKey === "win_rate") {
+            valEl.textContent = "순위 외 (5경기 미달)";
+        } else if (sortKey === "streak" || sortKey === "max_streak" || sortKey === "most_wins") {
+            valEl.textContent = "순위 외 (기록 없음)";
+        } else {
+            valEl.textContent = "-";
+        }
+        valEl.style.color = "#94a3b8";
+    }
+}
+
+// 1. 내 프로필 및 통계 조회
 async function fetchMyStatus() {
     const userId = getLoggedInUserId();
     if (!userId) {
@@ -75,6 +110,7 @@ async function fetchMyStatus() {
         if (!res.ok) return;
         const data = await res.json();
         const user = data.user_info;
+        myRanksData = data.ranks; // 순위 객체 저장
 
         document.getElementById("myNickname").textContent = user.nickname || "분석관";
         
@@ -82,30 +118,33 @@ async function fetchMyStatus() {
         badge.textContent = user.grade || "BRONZE";
         badge.className = `grade-badge ${user.grade || 'BRONZE'}`;
 
-        document.getElementById("myWinRank").textContent = data.win_rate_rank ? `${data.win_rate_rank}위` : "순위 외 (미달)";
         document.getElementById("myWinRate").textContent = `${user.win_rate}%`;
         document.getElementById("myRecord").textContent = `${user.correct_predictions}승 / ${user.total_predictions}전`;
         document.getElementById("myStreak").textContent = `${user.prediction_streak}연승 (최고 ${user.max_prediction_streak})`;
         document.getElementById("myPoint").textContent = `${Number(user.point).toLocaleString()} P`;
+
+        // 현재 선택된 탭 기준으로 순위 표시
+        updateMyRankCard(currentSort);
 
     } catch (err) {
         console.error("내 랭킹 정보 조회 실패:", err);
     }
 }
 
-// 리더보드 테이블 렌더링
+// 2. 상위 10명 리더보드 테이블 렌더링
 async function fetchLeaderboard(sort) {
     const tbody = document.getElementById("leaderboardBody");
     tbody.innerHTML = `<tr><td colspan="8" class="text-center loading-text">집계 중입니다...</td></tr>`;
 
     try {
-        const res = await fetch(`http://127.0.0.1:8000/api/rankings?sort_by=${sort}&limit=50`);
+        // 상위 10명(limit=10)만 호출
+        const res = await fetch(`http://127.0.0.1:8000/api/rankings?sort_by=${sort}&limit=10`);
         if (!res.ok) throw new Error("리더보드를 가져오지 못했습니다.");
         const result = await res.json();
         const list = result.data;
 
         if (!list || list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center loading-text">해당 기준의 랭킹 기록이 아직 없습니다.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center loading-text">해당 기준의 TOP 10 랭킹 기록이 아직 없습니다.</td></tr>`;
             return;
         }
 
@@ -113,13 +152,11 @@ async function fetchLeaderboard(sort) {
         list.forEach(row => {
             const tr = document.createElement("tr");
 
-            // 순위 뱃지 (1~3위 메달)
             let rankHtml = `<span class="rank-num">${row.rank}</span>`;
             if (row.rank === 1) rankHtml = `<span class="rank-badge rank-1">🥇</span>`;
             else if (row.rank === 2) rankHtml = `<span class="rank-badge rank-2">🥈</span>`;
             else if (row.rank === 3) rankHtml = `<span class="rank-badge rank-3">🥉</span>`;
 
-            // 정렬 기준 대표 수치 포맷
             let primaryMetricHtml = "";
             if (sort === "win_rate") {
                 primaryMetricHtml = `<span class="primary-metric-val">${row.win_rate}%</span>`;
@@ -133,7 +170,6 @@ async function fetchLeaderboard(sort) {
                 primaryMetricHtml = `<span class="primary-metric-val" style="color:#d97706;">${row.point.toLocaleString()} P</span>`;
             }
 
-            // 마지막 열 내용: 포인트 탭일 때는 승률 표시, 그 외 탭에서는 보유 포인트 표시
             let lastMetricHtml = "";
             if (sort === "point") {
                 lastMetricHtml = `<strong>${row.win_rate}%</strong>`;

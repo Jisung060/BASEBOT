@@ -8,34 +8,25 @@ router = APIRouter(prefix="/api/rankings", tags=["Rankings"])
 
 @router.get("")
 def get_prediction_rankings(
-    sort_by: str = Query("win_rate", description="정렬 기준: win_rate(승률), streak(현재연승), max_streak(최대연승), most_wins(최다적중), point(포인트)"),
-    limit: int = Query(50, ge=1, le=100),
+    sort_by: str = Query("win_rate", description="정렬 기준: win_rate, streak, max_streak, most_wins, point"),
+    limit: int = Query(10, ge=1, le=50),  # 기본 상위 10명으로 설정
     db: Session = Depends(get_db)
 ):
-    """
-    승부예측 랭킹 리더보드 조회 API
-    """
-    # 1. 정렬 기준별 ORDER BY 및 WHERE 절 동적 구성
-    min_games = 5  # 승률 체리피킹 방지용 최소 참여 경기 수
+    min_games = 5
     
     if sort_by == "win_rate":
-        # 승률 순: 최소 5회 이상 참여자 한정, 승률 동률 시 적중 수 많은 순
         where_clause = f"WHERE u.total_predictions >= {min_games}"
         order_clause = "ORDER BY win_rate DESC, u.correct_predictions DESC, u.total_predictions DESC"
     elif sort_by == "streak":
-        # 현재 진행 중인 연승 순
         where_clause = "WHERE u.prediction_streak > 0"
         order_clause = "ORDER BY u.prediction_streak DESC, u.max_prediction_streak DESC"
     elif sort_by == "max_streak":
-        # 역대 최대 연승 순
         where_clause = "WHERE u.max_prediction_streak > 0"
         order_clause = "ORDER BY u.max_prediction_streak DESC, u.correct_predictions DESC"
     elif sort_by == "most_wins":
-        # 누적 적중 횟수 순
         where_clause = "WHERE u.correct_predictions > 0"
         order_clause = "ORDER BY u.correct_predictions DESC, win_rate DESC"
     elif sort_by == "point":
-        # 보유 포인트 순
         where_clause = ""
         order_clause = "ORDER BY u.point DESC, u.correct_predictions DESC"
     else:
@@ -99,9 +90,6 @@ def get_my_ranking(
     user_id: int = Query(..., description="조회할 유저 ID"),
     db: Session = Depends(get_db)
 ):
-    """
-    로그인한 유저 자신의 현재 순위 및 통계 요약 조회 API
-    """
     sql = text("""
         SELECT 
             user_id,
@@ -124,27 +112,85 @@ def get_my_ranking(
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    # 승률 기준 전체 순위 계산
-    rank_sql = text("""
-        SELECT COUNT(*) + 1 AS my_rank
-        FROM users
-        WHERE total_predictions >= 5 
-          AND (
-              ROUND((correct_predictions / total_predictions) * 100, 1) > :win_rate
-              OR (
-                  ROUND((correct_predictions / total_predictions) * 100, 1) = :win_rate 
-                  AND correct_predictions > :corrects
+    # 1. 승률 순위 (최소 5경기 이상 참여자 기준)
+    win_rate_rank = None
+    if user["total_predictions"] >= 5:
+        rank_sql = text("""
+            SELECT COUNT(*) + 1 
+            FROM users
+            WHERE total_predictions >= 5 
+              AND (
+                  ROUND((correct_predictions / total_predictions) * 100, 1) > :win_rate
+                  OR (
+                      ROUND((correct_predictions / total_predictions) * 100, 1) = :win_rate 
+                      AND correct_predictions > :corrects
+                  )
               )
-          )
-    """)
-    rank_res = db.execute(rank_sql, {
-        "win_rate": float(user["win_rate"]),
+        """)
+        win_rate_rank = db.execute(rank_sql, {
+            "win_rate": float(user["win_rate"]),
+            "corrects": user["correct_predictions"]
+        }).scalar()
+
+    # 2. 현재 연승 순위
+    streak_rank = None
+    if user["prediction_streak"] > 0:
+        streak_rank = db.execute(text("""
+            SELECT COUNT(*) + 1 
+            FROM users 
+            WHERE prediction_streak > :streak
+               OR (prediction_streak = :streak AND max_prediction_streak > :max_streak)
+        """), {
+            "streak": user["prediction_streak"],
+            "max_streak": user["max_prediction_streak"]
+        }).scalar()
+
+    # 3. 최대 연승 순위
+    max_streak_rank = None
+    if user["max_prediction_streak"] > 0:
+        max_streak_rank = db.execute(text("""
+            SELECT COUNT(*) + 1 
+            FROM users 
+            WHERE max_prediction_streak > :max_streak
+               OR (max_prediction_streak = :max_streak AND correct_predictions > :corrects)
+        """), {
+            "max_streak": user["max_prediction_streak"],
+            "corrects": user["correct_predictions"]
+        }).scalar()
+
+    # 4. 최다 적중 순위
+    most_wins_rank = None
+    if user["correct_predictions"] > 0:
+        most_wins_rank = db.execute(text("""
+            SELECT COUNT(*) + 1 
+            FROM users 
+            WHERE correct_predictions > :corrects
+               OR (correct_predictions = :corrects AND (correct_predictions / GREATEST(total_predictions, 1)) > :rate)
+        """), {
+            "corrects": user["correct_predictions"],
+            "rate": float(user["win_rate"])
+        }).scalar()
+
+    # 5. 보유 포인트 순위
+    point_rank = db.execute(text("""
+        SELECT COUNT(*) + 1 
+        FROM users 
+        WHERE point > :point
+           OR (point = :point AND correct_predictions > :corrects)
+    """), {
+        "point": user["point"],
         "corrects": user["correct_predictions"]
     }).scalar()
 
     return {
         "status": "success",
         "user_info": dict(user),
-        "win_rate_rank": rank_res if user["total_predictions"] >= 5 else None,
+        "ranks": {
+            "win_rate": win_rate_rank,
+            "streak": streak_rank,
+            "max_streak": max_streak_rank,
+            "most_wins": most_wins_rank,
+            "point": point_rank
+        },
         "is_qualified": user["total_predictions"] >= 5
     }
