@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예측 적중률 랭킹 - BASEBOT</title>
+    <!-- 공통 및 서브페이지 CSS -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/player-detail.css">
+    <link rel="stylesheet" href="../css/prediction.css">
+    <link rel="stylesheet" href="../css/rankings.css">
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="sub-container">
+        <!-- 좌측 사이드바 (prediction.html과 통일) -->
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-title">경기 예측</div>
+            <div class="sub-sidebar-line"></div>
+            <nav class="sub-sidebar-menu">
+                <a href="prediction.html">AI 승부예측 & 투표</a>
+                <a href="rankings.html" class="active">예측 적중률 랭킹</a>
+                <a href="game.html">경기 일정 및 결과</a>
+            </nav>
+        </aside>
+
+        <!-- 우측 본문 -->
+        <section class="sub-content">
+            <!-- 브레드크럼 -->
+            <div class="breadcrumb">
+                <a href="../main.html">홈</a> &gt; <a href="prediction.html">경기 예측</a> &gt; <span>예측 적중률 랭킹</span>
+            </div>
+
+            <div class="content-header">
+                <h2>🏅 승부예측 명예의 전당</h2>
+                <p>MLB 경기 결과를 가장 날카롭게 예측한 분석관들의 순위와 승률을 확인하세요.</p>
+            </div>
+
+            <!-- 내 예측 프로필 및 현황 카드 (User Summary) -->
+            <section class="my-status-section" id="myStatusSection">
+                <div class="my-status-card">
+                    <div class="my-avatar-col">
+                        <div class="grade-badge BRONZE" id="myGradeBadge">BRONZE</div>
+                        <h2 class="my-nickname" id="myNickname">로그인 필요</h2>
+                    </div>
+                    <div class="my-metric-list">
+                        <div class="my-metric-box">
+                            <span class="m-label">승률 순위</span>
+                            <span class="m-val" id="myWinRank">-</span>
+                        </div>
+                        <div class="my-metric-box">
+                            <span class="m-label">예측 승률</span>
+                            <span class="m-val highlight" id="myWinRate">0.0%</span>
+                        </div>
+                        <div class="my-metric-box">
+                            <span class="m-label">적중 / 총 참여</span>
+                            <span class="m-val" id="myRecord">0 / 0</span>
+                        </div>
+                        <div class="my-metric-box">
+                            <span class="m-label">현재 / 최다 연승</span>
+                            <span class="m-val" id="myStreak">0연승 (최고 0)</span>
+                        </div>
+                        <div class="my-metric-box">
+                            <span class="m-label">보유 포인트</span>
+                            <span class="m-val point" id="myPoint">- P</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 리더보드 탭 컨트롤 -->
+            <div class="leaderboard-tabs">
+                <button type="button" class="tab-btn active" data-sort="win_rate">🎯 승률 랭킹</button>
+                <button type="button" class="tab-btn" data-sort="streak">🔥 현재 연승 랭킹</button>
+                <button type="button" class="tab-btn" data-sort="max_streak">⚡ 역대 최다 연승</button>
+                <button type="button" class="tab-btn" data-sort="most_wins">🏆 최다 적중 랭킹</button>
+                <button type="button" class="tab-btn" data-sort="point">💰 포인트 부자 랭킹</button>
+            </div>
+
+            <!-- 안내 배너 (승률 탭일 때 노출) -->
+            <div class="tab-info-banner" id="tabInfoBanner">
+                ℹ️ 승률 랭킹은 <strong>최소 5경기 이상 참여한 분석관</strong>만을 대상으로 공정하게 집계됩니다.
+            </div>
+
+            <!-- 리더보드 테이블 헤더 부분 교체 -->
+            <div class="table-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px; text-align: center;">순위</th>
+                            <th>분석관 (닉네임)</th>
+                            <th style="width: 100px; text-align: center;">등급</th>
+                            <th style="width: 110px; text-align: center;">선호 구단</th>
+                            <th id="thPrimaryMetric" class="text-right" style="width: 140px;">예측 승률</th>
+                            <th class="text-right" style="width: 130px;">적중/참여</th>
+                            <th class="text-right" style="width: 140px;">연속 적중</th>
+                            <th id="thLastMetric" class="text-right" style="width: 130px;">보유 포인트</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <tr>
+                            <td colspan="8" class="text-center loading-text">리더보드 데이터를 집계하는 중입니다...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+
+    <!-- 스크립트 로드: main.js(공통 헤더/푸터 주입) -> rankings.js 순서 -->
+    <script src="../js/main.js"></script>
+    <script src="../js/rankings.js"></script>
+</body>
+</html>

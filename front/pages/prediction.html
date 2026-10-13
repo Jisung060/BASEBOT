@@ -18,7 +18,7 @@
             <div class="sub-sidebar-line"></div>
             <nav class="sub-sidebar-menu">
                 <a href="prediction.html" class="active">AI 승부예측 & 투표</a>
-                <a href="prediction-history.html">예측 적중률 랭킹</a>
+                <a href="rankings.html">예측 적중률 랭킹</a>
                 <a href="game.html">경기 일정 및 결과</a>
             </nav>
         </aside>
@@ -91,6 +91,20 @@
                 </div>
             </div>
 
+            <!-- 경기 최종 결과 및 승부예측 정산 배너 (종료된 경기일 때 동적 노출) -->
+            <div class="game-result-banner" id="gameResultBanner" style="display: none;">
+                <div class="result-badge-col">
+                    <span class="game-status-pill final">경기 종료 (FINAL)</span>
+                    <div class="game-score-display" id="gameScoreDisplay">0 : 0</div>
+                    <div class="winning-team-announcement" id="winningTeamText">승리팀 확정</div>
+                </div>
+                <div class="prediction-outcome-col" id="predictionOutcomeBox">
+                    <!-- 유저 적중 여부 및 포인트 획득 카드 -->
+                    <div class="outcome-badge" id="outcomeBadge">결과 판정</div>
+                    <div class="outcome-detail" id="outcomeDetailText">-</div>
+                </div>
+            </div>
+
             <!-- 유저 투표 현황 바 -->
             <div class="user-vote-section">
                 <div class="vote-title-row">
@@ -101,8 +115,8 @@
                     <div class="vote-bar-away" id="userVoteAwayBar" style="width: 50%;">50%</div>
                     <div class="vote-bar-home" id="userVoteHomeBar" style="width: 50%;">50%</div>
                 </div>
-                <!-- 나의 투표 결과 뱃지 -->
-                <div id="myVoteStatusBox" style="margin-top: 15px; font-size: 13px; text-align: center; color: #102d63; font-weight: 700;"></div>
+                <!-- 나의 투표 상태 뱃지 (미투표/투표완료 안내) -->
+                <div id="myVoteStatusBox" style="margin-top: 15px; font-size: 13.5px; text-align: center; color: #102d63; font-weight: 700;"></div>
             </div>
 
             <!-- 세이버메트릭스 핵심 지표 비교 표 -->

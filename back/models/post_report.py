@@ -25,13 +25,21 @@ class PostReport(Base):
 
     post_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("community_posts.post_id"),
+        ForeignKey(
+            "community_posts.post_id",
+            onupdate="CASCADE",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
     user_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey(
+            "users.user_id",
+            onupdate="CASCADE",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 

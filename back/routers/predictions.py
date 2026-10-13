@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from database.db_connection import get_session
+from database.db_connection import get_session, get_db
 from services.prediction_service import predictor
 
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
@@ -256,4 +256,99 @@ def get_user_points(user_id: int, db: Session = Depends(get_session)):
         "username": user_row.get("username", "회원"),
         "point": user_row.get("point", 0),
         "favorite_team_id": user_row.get("favorite_team_id")
+    }
+
+    # Test APIs
+class SettleGameRequest(BaseModel):
+    game_id: int
+    winning_team_id: int
+    home_score: int = 5
+    away_score: int = 3
+
+@router.post("/test-settle")
+def test_settle_game(
+    req: SettleGameRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    [테스트 전용] 특정 경기 결과 확정, 승패 판정 및 랭킹/연승 정확 반영
+    """
+    # 1. 대상 경기의 미판정(is_correct IS NULL) 투표 내역 조회
+    sql_votes = text("""
+        SELECT vote_id, user_id, selected_team_id, bet_point
+        FROM prediction_votes
+        WHERE game_id = :gid AND is_correct IS NULL
+    """)
+    votes = db.execute(sql_votes, {"gid": req.game_id}).mappings().all()
+
+    # 2. games 테이블에 경기 결과(FINAL), 스코어, 승리팀 ID 반영
+    db.execute(text("""
+        UPDATE games
+        SET status = 'FINAL',
+            winning_team_id = :winner_id,
+            home_score = :h_score,
+            away_score = :a_score
+        WHERE game_id = :gid
+    """), {
+        "winner_id": req.winning_team_id,
+        "h_score": req.home_score,
+        "a_score": req.away_score,
+        "gid": req.game_id
+    })
+
+    settled_users = []
+
+    for vote in votes:
+        is_win = (int(vote["selected_team_id"]) == int(req.winning_team_id))
+        reward = (vote["bet_point"] * 2) if is_win else 0
+
+        # prediction_votes 결과 판정 기록
+        db.execute(text("""
+            UPDATE prediction_votes
+            SET is_correct = :is_win,
+                reward_point = :reward
+            WHERE vote_id = :vid
+        """), {
+            "is_win": is_win,
+            "reward": reward,
+            "vid": vote["vote_id"]
+        })
+
+        # users 테이블 통계 반영 (연승 버그 완벽 수정)
+        if is_win:
+            db.execute(text("""
+                UPDATE users
+                SET total_predictions = total_predictions + 1,
+                    correct_predictions = correct_predictions + 1,
+                    point = point + :reward,
+                    prediction_streak = prediction_streak + 1,
+                    max_prediction_streak = GREATEST(max_prediction_streak, prediction_streak)
+                WHERE user_id = :uid
+            """), {
+                "reward": reward,
+                "uid": vote["user_id"]
+            })
+        else:
+            db.execute(text("""
+                UPDATE users
+                SET total_predictions = total_predictions + 1,
+                    prediction_streak = 0
+                WHERE user_id = :uid
+            """), {
+                "uid": vote["user_id"]
+            })
+
+        settled_users.append({
+            "user_id": vote["user_id"],
+            "result": "WIN" if is_win else "LOSE",
+            "reward": reward
+        })
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"경기({req.game_id}) 정상 정산 완료",
+        "settled_count": len(settled_users),
+        "details": settled_users
     }

@@ -1,6 +1,11 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.orm import Base
@@ -8,6 +13,14 @@ from database.orm import Base
 
 class PostLike(Base):
     __tablename__ = "post_likes"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "post_id",
+            "user_id",
+            name="uq_post_likes_post_user"
+        ),
+    )
 
     post_like_id: Mapped[int] = mapped_column(
         BigInteger,

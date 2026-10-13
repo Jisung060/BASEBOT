@@ -289,3 +289,108 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
     letter-spacing: -0.3px;
 }
+
+/* ==================================================
+   경기 종료 최종 결과 및 적중/포인트 정산 카드
+================================================== */
+.game-result-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 2px solid #102d63;
+    border-radius: 8px;
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 14px rgba(16, 45, 99, 0.08);
+}
+
+.result-badge-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.game-status-pill.final {
+    background: #334155;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.game-score-display {
+    font-size: 26px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 1px;
+}
+
+.winning-team-announcement {
+    font-size: 15px;
+    font-weight: 800;
+    color: #102d63;
+}
+
+.prediction-outcome-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.outcome-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+}
+
+.outcome-badge.win {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.outcome-badge.lose {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+}
+
+.outcome-badge.none {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
+
+.outcome-detail {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+}
+
+/* 승리한 팀 카드 테두리 및 뱃지 하이라이트 */
+.team-predict-side.is-winner {
+    position: relative;
+    border: 2px solid #22c55e !important;
+    border-radius: 10px;
+    padding: 12px;
+    background: #f0fdf4 !important;
+}
+
+.winner-badge {
+    position: absolute;
+    top: -12px;
+    background: #16a34a;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}

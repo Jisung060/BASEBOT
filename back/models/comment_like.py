@@ -1,6 +1,11 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.orm import Base
@@ -8,6 +13,14 @@ from database.orm import Base
 
 class CommentLike(Base):
     __tablename__ = "comment_likes"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "comment_id",
+            "user_id",
+            name="uq_comment_likes_comment_user"
+        ),
+    )
 
     comment_like_id: Mapped[int] = mapped_column(
         BigInteger,

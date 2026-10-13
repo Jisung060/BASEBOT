@@ -773,6 +773,23 @@ def create_comment(
             detail="게시글을 찾을 수 없습니다."
         )
 
+    # 부모 댓글 확인
+    if parent_comment_id is not None:
+        parent_comment = (
+            session.query(Comment)
+            .filter(
+                Comment.comment_id == parent_comment_id,
+                Comment.post_id == post_id
+            )
+            .first()
+        )
+
+        if not parent_comment:
+            raise HTTPException(
+                status_code=404,
+                detail="답글을 작성할 댓글을 찾을 수 없습니다."
+            )
+
     # 댓글 내용 확인
     if not content.strip():
         raise HTTPException(
@@ -894,6 +911,7 @@ def delete_comment(
             detail="댓글을 삭제할 권한이 없습니다."
         )
 
+
     # 게시글 찾기
     post = (
         session.query(CommunityPost)
@@ -903,12 +921,45 @@ def delete_comment(
         .first()
     )
 
+    # 삭제할 댓글과 그 아래에 연결된 모든 대댓글 찾기
+    comment_rows = (
+        session.query(
+            Comment.comment_id,
+            Comment.parent_comment_id
+        )
+        .filter(
+            Comment.post_id == comment.post_id
+        )
+        .all()
+    )
+
+    # 처음에는 선택한 댓글만 삭제 대상에 포함
+    deleted_comment_ids = {comment.comment_id}
+
+    # 대댓글이 여러 단계로 연결되어 있어도 모두 찾기
+    while True:
+        previous_count = len(deleted_comment_ids)
+
+        for row in comment_rows:
+            if row.parent_comment_id in deleted_comment_ids:
+                deleted_comment_ids.add(row.comment_id)
+
+        # 더 이상 삭제 대상이 늘어나지 않으면 종료
+        if len(deleted_comment_ids) == previous_count:
+            break
+
+    # 실제로 삭제될 댓글 수
+    deleted_count = len(deleted_comment_ids)
+
     # 댓글 삭제
     session.delete(comment)
 
-    # 게시글 댓글 수 감소
-    if post and post.comment_count > 0:
-        post.comment_count -= 1
+    # 게시글의 댓글 수를 실제 삭제 개수만큼 감소
+    if post:
+        post.comment_count = max(
+            0,
+            post.comment_count - deleted_count
+        )
 
     session.commit()
 

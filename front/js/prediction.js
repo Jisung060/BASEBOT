@@ -207,15 +207,18 @@ function renderPredictionUI(pred, voteStatus) {
     }
 
     // ==================================================
-    // ★ 선호 구단(MY 구단) 뱃지 & 테두리 렌더링
+    // 1. 선호 구단 및 승리팀 하이라이트 초기화
     // ==================================================
     const awaySideEl = document.querySelector(".away-side");
     const homeSideEl = document.querySelector(".home-side");
 
-    // 이전 뱃지 및 하이라이트 클래스 초기화
-    document.querySelectorAll(".fav-side-badge").forEach(b => b.remove());
-    if (awaySideEl) awaySideEl.classList.remove("is-my-team");
-    if (homeSideEl) homeSideEl.classList.remove("is-my-team");
+    document.querySelectorAll(".fav-side-badge, .winner-badge").forEach(b => b.remove());
+    if (awaySideEl) {
+        awaySideEl.classList.remove("is-my-team", "is-winner");
+    }
+    if (homeSideEl) {
+        homeSideEl.classList.remove("is-my-team", "is-winner");
+    }
 
     const homeId = Number(pred.home_team_id);
     const awayId = Number(pred.away_team_id);
@@ -227,29 +230,110 @@ function renderPredictionUI(pred, voteStatus) {
             const badge = document.createElement("div");
             badge.className = "fav-side-badge";
             badge.textContent = "★ MY 구단";
-            if (awayLogo) awaySideEl.insertBefore(badge, awayLogo);
-            else awaySideEl.prepend(badge);
+            awaySideEl.prepend(badge);
         }
-
         if (homeId === favId && homeSideEl) {
             homeSideEl.classList.add("is-my-team");
             const badge = document.createElement("div");
             badge.className = "fav-side-badge";
             badge.textContent = "★ MY 구단";
-            if (homeLogo) homeSideEl.insertBefore(badge, homeLogo);
-            else homeSideEl.prepend(badge);
+            homeSideEl.prepend(badge);
         }
     }
 
-    // 버튼 제어
+   // ==================================================
+    // 2. 경기 종료 결과 및 예측 적중/연승 포인트 배너 렌더링
+    // ==================================================
+    const resultBanner = document.getElementById("gameResultBanner");
+    const isGameFinal = (currentGameData && currentGameData.status === "FINAL");
+    const myVote = voteStatus.my_vote;
+
+    if (isGameFinal) {
+        resultBanner.style.display = "flex";
+
+        const awayScore = currentGameData.away_score ?? 0;
+        const homeScore = currentGameData.home_score ?? 0;
+        document.getElementById("gameScoreDisplay").textContent = `${awayScore} : ${homeScore}`;
+
+        // 승리팀 판별 (winning_team_id 우선 매칭)
+        let actualWinnerName = "경기 종료";
+        let actualWinnerId = currentGameData.winning_team_id ? Number(currentGameData.winning_team_id) : null;
+
+        if (!actualWinnerId) {
+            if (awayScore > homeScore) actualWinnerId = awayId;
+            else if (homeScore > awayScore) actualWinnerId = homeId;
+        }
+
+        if (actualWinnerId === homeId) {
+            actualWinnerName = pred.home_team_name;
+        } else if (actualWinnerId === awayId) {
+            actualWinnerName = pred.away_team_name;
+        } else if (awayScore === homeScore && awayScore > 0) {
+            actualWinnerName = "무승부";
+        }
+
+        document.getElementById("winningTeamText").textContent = `🏆 승리팀: ${actualWinnerName}`;
+
+        // 승리팀 카드 테두리 및 WINNER 뱃지
+        if (actualWinnerId === awayId && awaySideEl) {
+            awaySideEl.classList.add("is-winner");
+            const winBadge = document.createElement("div");
+            winBadge.className = "winner-badge";
+            winBadge.textContent = "🏆 WINNER";
+            awaySideEl.prepend(winBadge);
+        } else if (actualWinnerId === homeId && homeSideEl) {
+            homeSideEl.classList.add("is-winner");
+            const winBadge = document.createElement("div");
+            winBadge.className = "winner-badge";
+            winBadge.textContent = "🏆 WINNER";
+            homeSideEl.prepend(winBadge);
+        }
+
+        // 유저 예측 결과 판정 및 연승 표시
+        const badge = document.getElementById("outcomeBadge");
+        const detail = document.getElementById("outcomeDetailText");
+
+        if (myVote) {
+            const pickedTeamName = (Number(myVote.selected_team_id) === homeId) ? pred.home_team_name : pred.away_team_name;
+
+            const isCorrect = (myVote.is_correct === true || myVote.is_correct === 1 || String(myVote.is_correct).toLowerCase() === "true");
+            const isIncorrect = (myVote.is_correct === false || myVote.is_correct === 0 || String(myVote.is_correct).toLowerCase() === "false");
+
+            if (isCorrect) {
+                badge.className = "outcome-badge win";
+                badge.textContent = `🎉 예측 적중 성공! (+${myVote.reward_point || 200} P 획득)`;
+                
+                // 현재 연속 적중 횟수(streak) 추출 (myVote에 포함되어 있거나 1회 이상)
+                const currentStreak = myVote.current_streak || myVote.prediction_streak || 1;
+                
+                detail.innerHTML = `회원님의 선택: <strong>${pickedTeamName}</strong> <span style="color:#16a34a; font-weight:800; margin-left:8px;">🔥 현재 ${currentStreak}회 연속 적중 달성 중!</span>`;
+            } else if (isIncorrect) {
+                badge.className = "outcome-badge lose";
+                badge.textContent = "😢 아쉬운 예측 실패 (0 P 획득)";
+                detail.innerHTML = `회원님의 선택: <strong>${pickedTeamName}</strong> <span style="color:#dc2626; margin-left:8px;">(연속 적중 초기화)</span>`;
+            } else {
+                badge.className = "outcome-badge none";
+                badge.textContent = "⏳ 경기 정산 대기 중";
+                detail.innerHTML = `회원님의 선택: <strong>${pickedTeamName}</strong> (경기 결과 판정 대기)`;
+            }
+        } else {
+            badge.className = "outcome-badge none";
+            badge.textContent = "미참여 경기";
+            detail.textContent = "이 경기에는 승부예측 투표를 진행하지 않았습니다.";
+        }
+    } else {
+        resultBanner.style.display = "none";
+    }
+
+    // ==================================================
+    // 3. 버튼 상태 및 안내 문구 제어
+    // ==================================================
     const btnAway = document.getElementById("btnVoteAway");
     const btnHome = document.getElementById("btnVoteHome");
     const myVoteBox = document.getElementById("myVoteStatusBox");
     if (!btnAway || !btnHome) return;
 
     const userId = getLoggedInUserId();
-    const isGameFinal = (currentGameData && currentGameData.status === "FINAL");
-    const myVote = voteStatus.my_vote;
 
     const disableBtn = (btn, text) => {
         btn.disabled = true;
@@ -274,12 +358,14 @@ function renderPredictionUI(pred, voteStatus) {
     if (isGameFinal) {
         disableBtn(btnAway, "투표 마감 (경기 종료)");
         disableBtn(btnHome, "투표 마감 (경기 종료)");
-        if (myVoteBox) myVoteBox.innerHTML = `<span style="color: #666;">종료된 경기입니다. 최종 결과 및 예측 지표를 확인하세요.</span>`;
+        if (myVoteBox) {
+            myVoteBox.innerHTML = `<span style="color: #64748b;">종료된 경기입니다. 상단의 최종 경기 결과와 예측 판정 내역을 확인하세요.</span>`;
+        }
         return;
     }
 
     if (myVote) {
-        if (myVote.selected_team_id === currentGameData.away_team_id) {
+        if (myVote.selected_team_id === awayId) {
             disableBtn(btnAway, "✔ 투표 완료 (원정팀)");
             disableBtn(btnHome, "투표 마감");
         } else {
@@ -287,17 +373,10 @@ function renderPredictionUI(pred, voteStatus) {
             disableBtn(btnHome, "✔ 투표 완료 (홈팀)");
         }
 
-        const selectedTeamName = (myVote.selected_team_id === currentGameData.home_team_id)
-            ? pred.home_team_name 
-            : pred.away_team_name;
-
-        let resultMsg = "";
-        if (myVote.is_correct === true) {
-            resultMsg = ` <span style="color:#2e7d32;">(적중! +${myVote.reward_point}P 지급)</span>`;
-        } else if (myVote.is_correct === false) {
-            resultMsg = ` <span style="color:#d32f2f;">(미적중)</span>`;
+        const selectedTeamName = (myVote.selected_team_id === homeId) ? pred.home_team_name : pred.away_team_name;
+        if (myVoteBox) {
+            myVoteBox.innerHTML = `✔ 회원님은 <strong>${selectedTeamName}</strong>에 투표하셨습니다. (경기 종료 후 자동 정산)`;
         }
-        if (myVoteBox) myVoteBox.innerHTML = `✔ 회원님은 <strong>${selectedTeamName}</strong>에 투표하셨습니다.${resultMsg}`;
         return;
     }
 
