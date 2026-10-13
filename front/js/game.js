@@ -1,7 +1,7 @@
 const API_BASE = "";                                   // API 주소 앞부분 (같은 서버면 빈 문자열)
 const DEFAULT_DATE = "2024-04-01";                     // 처음 보여 줄 날짜
 const MONTH_ORDER = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8]; // 월 버튼 순서
-const STATUS_LABELS = { FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" };
+const STATUS_LABELS = { FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" }; // 상태 영어를 한글로
 
 const $ = id => document.getElementById(id);           // id로 요소를 찾는 짧은 함수
 const dateInput = $("game-date-picker");               // 날짜 입력칸
@@ -73,18 +73,31 @@ function setupEvents() {
     });
     $("btn-prev-year").addEventListener("click", () => moveYear(-1));
     $("btn-next-year").addEventListener("click", () => moveYear(1));
-    $("btn-today").addEventListener("click", () => {   // '최근' 버튼: 기본 날짜로
-        dateInput.value = DEFAULT_DATE;
-        selectedDay = null;
-        renderMonthStrip();
-        loadGames();
-    });
+    $("btn-today").addEventListener("click", goToRecentGame); // '최근' 버튼: 가장 최근 경기 날짜로 이동
     $("btn-calendar").addEventListener("click", toggleCalendar);
 
     const topButton = $("scroll-to-top");              // 280px 이상 내려가면 맨 위로 버튼 보이기
     window.addEventListener("scroll", () => { topButton.hidden = window.scrollY < 280; }, { passive: true });
     topButton.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
     renderMonthStrip();
+}
+
+/* ---------- 최근 경기로 이동 ---------- */
+
+async function goToRecentGame() {
+    const games = await fetchMonthGames(dateInput.value);             // 지금 보고 있는 달의 경기
+    const pool = teamSelect.value === "ALL"
+        ? games
+        : games.filter(g => involvesTeam(g, teamSelect.value));       // 구단을 골랐으면 그 구단 경기만
+    const finished = pool.filter(g => g.status === "FINAL" || g.status === "IN_PROGRESS"); // 끝났거나 진행 중인 경기만
+    if (finished.length === 0) return;                                // 최근 경기가 없으면 아무것도 하지 않음
+
+    finished.sort((a, b) =>                                           // 날짜와 시작 시간 순으로 정렬
+        `${a.display_date} ${a.scheduled_at || ""}`.localeCompare(`${b.display_date} ${b.scheduled_at || ""}`));
+    const latest = finished[finished.length - 1];                     // 맨 뒤가 가장 최근 경기
+    selectedDay = Number(latest.display_date.slice(-2));              // 그 경기의 '일'을 선택
+    renderMonthStrip();
+    loadGames();                                                      // 선택한 날짜로 목록 다시 그리기 (강조와 스크롤 포함)
 }
 
 /* ---------- 날짜 선택 ---------- */
@@ -264,22 +277,27 @@ async function loadGames() {
     gameList.replaceChildren();
     emptyMessage.hidden = true;
     try {
-        let games = await fetchMonthGames(dateInput.value);   // 선택한 달 전체 경기
-        if (teamSelect.value !== "ALL") games = games.filter(g => involvesTeam(g, teamSelect.value));
-        if (selectedDay !== null) {                           // 날짜를 골랐으면 그 날만
-            const target = `${dateInput.value.slice(0, 7)}-${pad(selectedDay)}`;
-            games = games.filter(g => g.display_date === target);
+        const isTeamView = teamSelect.value !== "ALL";                    // 구단을 골랐는지
+        const highlightDate = selectedDay !== null                        // 강조할 날짜 (예: "2024-04-02")
+            ? `${dateInput.value.slice(0, 7)}-${pad(selectedDay)}`
+            : null;
+
+        let games = await fetchMonthGames(dateInput.value);               // 선택한 달 전체 경기
+        if (isTeamView) {
+            games = games.filter(g => involvesTeam(g, teamSelect.value)); // 구단 경기만 남기고 달 전체 유지
+        } else if (highlightDate) {
+            games = games.filter(g => g.display_date === highlightDate);  // 전체 구단일 때는 그 날만
         }
+
         if (games.length === 0) {
-            emptyMessage.textContent = selectedDay === null
-                ? "선택한 달에 MLB 경기 데이터가 없습니다."
-                : "선택한 날짜에 MLB 경기 데이터가 없습니다.";
+            emptyMessage.textContent = "선택한 조건에 맞는 MLB 경기 데이터가 없습니다.";
             emptyMessage.hidden = false;
             return;
         }
-        // 한 구단을 골랐을 때만 team-view 클래스 (CSS에서 날짜 박스를 2열로 배치)
-        gameList.classList.toggle("team-view", teamSelect.value !== "ALL");
-        gameList.replaceChildren(...createDayGroups(games));
+
+        gameList.classList.toggle("team-view", isTeamView);               // 구단 선택 시에만 2열 CSS 적용
+        gameList.replaceChildren(...createDayGroups(games, highlightDate)); // 모든 구단 보기에서 선택한 날짜 강조
+        gameList.querySelector(".is-selected-day")?.scrollIntoView({ behavior: "smooth", block: "center" }); // 선택한 날짜 박스로 이동
     } catch (error) {
         console.error(error);
         emptyMessage.textContent = "MLB 경기 데이터를 불러오지 못했습니다. FastAPI 서버를 확인해 주세요.";
@@ -287,7 +305,7 @@ async function loadGames() {
     }
 }
 
-function createDayGroups(games) {                      // 날짜별로 묶어서 박스 만들기
+function createDayGroups(games, highlightDate = null) {                  // 날짜별 박스 만들기 (highlightDate: 강조할 날짜)
     const grouped = new Map();
     games.forEach(game => {
         if (!grouped.has(game.display_date)) grouped.set(game.display_date, []);
@@ -300,10 +318,12 @@ function createDayGroups(games) {                      // 날짜별로 묶어서
             month: "long", day: "numeric", weekday: "long"     // "4월 2일 화요일"
         });
         const heading = el("header", "game-day-heading");
-        heading.append(el("h3", "", title), el("span", "", `${dayGames.length}경기`));
+        heading.append(el("h3", "", title));
+        if (date === highlightDate) heading.append(el("span", "selected-day-badge", "선택한 날")); // 선택한 날 표시
         const cards = el("div", "game-day-cards");
         cards.append(...dayGames.map(createGameCard));
         const group = el("section", "game-day-group");
+        if (date === highlightDate) group.classList.add("is-selected-day"); // 선택한 날짜 박스 강조
         group.append(heading, cards);
         return group;
     });
