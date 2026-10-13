@@ -23,3 +23,16 @@ SessionFactory = sessionmaker(
 def get_session():
     with SessionFactory() as session:
         yield session
+
+from sqlalchemy.orm import sessionmaker
+
+# 기존에 SessionLocal이 없다면 선언
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# FastAPI 의존성 주입(Depends)용 함수
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

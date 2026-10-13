@@ -24,7 +24,7 @@ from routers.my_comments import router as my_comments_router
 from routers.community import router as community_router
 
 
-from routers import players, teams, games, predictions
+from routers import players, teams, games, predictions, rankings
 from routers.news import router as news_router # 뉴스추가
 
 
@@ -67,6 +67,7 @@ app.include_router(teams.router)
 app.include_router(games.router)
 app.include_router(predictions.router)
 app.include_router(chat_router)
+app.include_router(rankings.router)
 
 app.include_router(news_router) # 뉴스
 
