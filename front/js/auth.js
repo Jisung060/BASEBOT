@@ -650,7 +650,7 @@ if (loginButton) {
 
 
             const data = await response.json();
-
+            console.log("로그인 API 응답:", data);
 
             if (!response.ok) {
 
@@ -661,20 +661,25 @@ if (loginButton) {
 
 
             // JWT 저장
-            localStorage.setItem(
+            sessionStorage.setItem(
                 "access_token",
                 data.access_token
             );
 
-
             // 로그인 사용자 정보 저장
-            localStorage.setItem(
+            sessionStorage.setItem(
                 "user",
                 JSON.stringify({
                     user_id: data.user_id,
                     username: data.username,
-                    nickname: data.nickname
+                    nickname: data.nickname,
+                    role: data.role
                 })
+            );
+
+            console.log(
+                "로그인 사용자 정보:",
+                sessionStorage.getItem("user")
             );
 
 

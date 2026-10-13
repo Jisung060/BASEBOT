@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원 관리 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="users">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+
+            <div class="admin-content">
+
+<section class="page-intro">
+    <p>회원 정보를 검색하고 계정 상태 및 권한을 관리합니다.</p>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <h2>회원 검색</h2>
+            <p>아이디, 닉네임 또는 이메일로 검색할 수 있습니다.</p>
+        </div>
+    </div>
+
+    <form class="filter-form" action="#" method="get">
+        <label>
+            검색어
+            <input
+                type="search"
+                name="keyword"
+                placeholder="아이디 / 닉네임 / 이메일"
+            >
+        </label>
+
+        <label>
+            권한
+            <select name="role">
+                <option value="">전체 권한</option>
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+        </label>
+
+        <label>
+            계정 상태
+            <select name="status">
+                <option value="">전체 상태</option>
+                <option value="ACTIVE">정상</option>
+                <option value="RESTRICTED">활동 정지</option>
+                <option value="WITHDRAWN">탈퇴</option>
+            </select>
+        </label>
+
+        <button class="button button-primary" type="submit">
+            검색
+        </button>
+
+        <button class="button button-secondary" type="reset">
+            초기화
+        </button>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <h2>회원 목록</h2>
+            <p>회원 정보 및 계정 상태를 확인하고 관리합니다.</p>
+        </div>
+
+        <span class="count-label">총 —명</span>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>회원 ID</th>
+                    <th>아이디</th>
+                    <th>닉네임</th>
+                    <th>이메일</th>
+                    <th>권한</th>
+                    <th>등급</th>
+                    <th>계정 상태</th>
+                    <th>가입일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td colspan="9" class="table-empty">
+                        표시할 회원 데이터가 없습니다. API를 연결해 주세요.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-note">
+        활동 정지 및 해제, 회원 삭제, 탈퇴 처리는 실제 API와 연결해야 합니다.
+        삭제 및 탈퇴 처리 시에는 관련 게시글, 댓글, 예측 기록 등 연관 데이터의
+        처리 정책도 확인해야 합니다.
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <h2>회원 상세 정보</h2>
+            <p>목록에서 회원을 선택하면 상세 정보를 표시하도록 연결합니다.</p>
+        </div>
+    </div>
+
+    <div class="detail-placeholder">
+        회원 선택 전입니다.
+    </div>
+</section>
+
+            </div>
+
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>

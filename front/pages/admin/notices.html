@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항 관리 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="../../css/admin/admin.css">
+</head>
+<body class="admin-page" data-page="notices">
+    <div class="admin-layout">
+        <aside
+            class="admin-sidebar"
+            id="admin-sidebar-container"
+        ></aside>
+
+        <main class="admin-main">
+            <header
+                class="admin-topbar"
+                id="admin-topbar-container"
+            ></header>
+            <div class="admin-content">
+
+<section class="page-intro"><p>일반 사용자 화면에 노출되는 공지사항을 등록하고 수정·삭제합니다.</p><a class="button button-secondary" href="../notices.html">사용자 공지사항 화면 보기 ↗</a></section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>공지사항 작성</h2><p>제목과 내용을 입력하고 공개 여부 및 상단 고정을 설정합니다.</p></div></div>
+    <form class="form-grid" action="#" method="post">
+        <label class="full-width">제목<input type="text" name="title" placeholder="공지사항 제목을 입력하세요." required></label>
+        <label>공개 상태<select name="is_published"><option value="1">공개</option><option value="0">비공개</option></select></label>
+        <label>상단 고정<select name="is_pinned"><option value="0">고정 안 함</option><option value="1">상단 고정</option></select></label>
+        <label class="full-width">공지 내용<textarea name="content" rows="8" placeholder="공지사항 내용을 입력하세요." required></textarea></label>
+        <div class="full-width button-row"><button class="button button-primary" type="submit">공지 등록</button><button class="button button-secondary" type="reset">초기화</button></div>
+    </form>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>공지사항 목록</h2><p>등록된 공지를 검색하고 관리합니다.</p></div><span class="count-label">총 —건</span></div>
+    <form class="filter-form" action="#" method="get">
+        <label class="grow">검색어<input type="search" name="keyword" placeholder="공지 제목"></label>
+        <label>공개 상태<select name="status"><option value="">전체</option><option value="PUBLISHED">공개</option><option value="HIDDEN">비공개</option></select></label>
+        <button class="button button-primary" type="submit">검색</button>
+    </form>
+    <div class="table-wrap"><table><thead><tr><th>번호</th><th>제목</th><th>고정</th><th>공개 상태</th><th>등록일</th><th>수정일</th><th>관리</th></tr></thead><tbody><tr><td colspan="7" class="table-empty">등록된 공지가 없습니다.</td></tr></tbody></table></div>
+</section>
+<div class="notice-box"><strong>DB 연동 필요</strong><p>현재 BASEBOT 스키마에 공지사항 테이블이 없다면 테이블과 관리자 전용 CRUD API를 먼저 추가해야 합니다. HTML 폼은 API 연결 전까지 실제로 저장하지 않습니다.</p></div>
+            </div>
+            <footer
+                class="admin-footer"
+                id="admin-footer-container"
+            ></footer>
+        </main>
+    </div>
+    <script src="/js/admin/admin-common.js"></script>
+</body>
+</html>

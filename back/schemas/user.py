@@ -32,6 +32,7 @@ class LoginResponse(BaseModel):
     user_id: int
     username: str
     nickname: str
+    role: str
 
 class FindIdRequest(BaseModel):
     nickname: str
