@@ -54,6 +54,16 @@ class User(Base):
         nullable=False
     )
 
+    status: Mapped[str] = mapped_column(
+        Enum(
+            "ACTIVE",
+            "RESTRICTED",
+            "WITHDRAWN",
+        ),
+        default="ACTIVE",
+        nullable=False
+    )
+
     point: Mapped[int] = mapped_column(
         Integer,
         default=1000,

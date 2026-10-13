@@ -20,8 +20,11 @@ from routers.my_posts import router as my_posts_router
 from routers import favorite_team
 from routers import home
 from routers.my_comments import router as my_comments_router
-
 from routers.community import router as community_router
+
+# admin
+from routers.admin_users import router as admin_users_router
+from routers.admin_dashboard import router as admin_dashboard_router
 
 
 from routers import players, teams, games, predictions, rankings
@@ -54,7 +57,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Router
+# 관리자 Router
+app.include_router(admin_users_router)
+app.include_router(admin_dashboard_router)
+
+# 사용자 Router
 app.include_router(my_comments_router)
 app.include_router(home.router)
 app.include_router(favorite_team.router)
@@ -68,7 +75,6 @@ app.include_router(games.router)
 app.include_router(predictions.router)
 app.include_router(chat_router)
 app.include_router(rankings.router)
-
 app.include_router(news_router) # 뉴스
 
 
