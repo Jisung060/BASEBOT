@@ -91,15 +91,14 @@
                 </div>
             </div>
 
-            <!-- 경기 최종 결과 및 승부예측 정산 배너 (종료된 경기일 때 동적 노출) -->
+            <!-- 경기 상태 및 결과 배너 -->
             <div class="game-result-banner" id="gameResultBanner" style="display: none;">
                 <div class="result-badge-col">
-                    <span class="game-status-pill final">경기 종료 (FINAL)</span>
+                    <span class="game-status-pill final" id="gameStatusPill">경기 종료 (FINAL)</span>
                     <div class="game-score-display" id="gameScoreDisplay">0 : 0</div>
                     <div class="winning-team-announcement" id="winningTeamText">승리팀 확정</div>
                 </div>
                 <div class="prediction-outcome-col" id="predictionOutcomeBox">
-                    <!-- 유저 적중 여부 및 포인트 획득 카드 -->
                     <div class="outcome-badge" id="outcomeBadge">결과 판정</div>
                     <div class="outcome-detail" id="outcomeDetailText">-</div>
                 </div>

@@ -133,12 +133,15 @@
     border-radius: 4px;
 }
 
+/* AI 머신러닝 배너 강조 */
 .verdict-text {
     font-size: 18px;
     font-weight: 800;
     color: #102d63;
     margin-top: 6px;
     text-align: center;
+    letter-spacing: -0.3px;
+    transition: color 0.3s ease;
 }
 
 .gauge-container {
@@ -393,4 +396,16 @@
     padding: 3px 10px;
     border-radius: 12px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+/* 경기 진행 중 (LIVE / IN_PROGRESS) 뱃지 */
+.game-status-pill.live {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
 }

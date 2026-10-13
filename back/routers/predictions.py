@@ -352,3 +352,116 @@ def test_settle_game(
         "settled_count": len(settled_users),
         "details": settled_users
     }
+
+class GameStatusSimulateRequest(BaseModel):
+    game_id: int
+    status: str = "FINAL"  # SCHEDULED, LIVE, FINAL
+    winning_team_id: Optional[int] = None
+    home_score: Optional[int] = None
+    away_score: Optional[int] = None
+
+@router.post("/test-settle-status")  # 또는 기존 엔드포인트명
+def test_settle_game_status(
+    req: GameStatusSimulateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    [테스트 전용] 경기 상태(SCHEDULED, LIVE, FINAL) 변경 및 경기 종료 시 자동 정산
+    """
+    # 0이나 유효하지 않은 ID가 들어오면 안전하게 None(NULL)으로 변환 (외래키 에러 방지)
+    w_id = req.winning_team_id if req.winning_team_id and req.winning_team_id > 0 else None
+
+    # 대상 경기 존재 여부 확인
+    game = db.execute(
+        text("SELECT game_id, home_team_id, away_team_id FROM games WHERE game_id = :gid"),
+        {"gid": req.game_id}
+    ).mappings().first()
+
+    if not game:
+        raise HTTPException(status_code=404, detail=f"game_id {req.game_id} 경기를 찾을 수 없습니다.")
+
+    # 1. FINAL(종료) 상태일 때 처리
+    if req.status == "FINAL":
+        # winning_team_id가 안 넘어왔고 스코어가 넘어온 경우 스코어로 자동 판별
+        if not w_id and req.home_score is not None and req.away_score is not None:
+            if req.home_score > req.away_score:
+                w_id = game["home_team_id"]
+            elif req.away_score > req.home_score:
+                w_id = game["away_team_id"]
+
+        db.execute(text("""
+            UPDATE games
+            SET status = 'FINAL',
+                winning_team_id = :winner_id,
+                home_score = COALESCE(:h_score, home_score),
+                away_score = COALESCE(:a_score, away_score)
+            WHERE game_id = :gid
+        """), {
+            "winner_id": w_id,
+            "h_score": req.home_score,
+            "a_score": req.away_score,
+            "gid": req.game_id
+        })
+
+        # 투표 판정 및 랭킹 정산 처리
+        votes = db.execute(text("""
+            SELECT vote_id, user_id, selected_team_id, bet_point
+            FROM prediction_votes
+            WHERE game_id = :gid AND is_correct IS NULL
+        """), {"gid": req.game_id}).mappings().all()
+
+        settled_users = []
+        for vote in votes:
+            is_win = (int(vote["selected_team_id"]) == int(w_id)) if w_id else False
+            reward = (vote["bet_point"] * 2) if is_win else 0
+
+            db.execute(text("""
+                UPDATE prediction_votes
+                SET is_correct = :is_win, reward_point = :reward
+                WHERE vote_id = :vid
+            """), {"is_win": is_win, "reward": reward, "vid": vote["vote_id"]})
+
+            if is_win:
+                db.execute(text("""
+                    UPDATE users
+                    SET total_predictions = total_predictions + 1,
+                        correct_predictions = correct_predictions + 1,
+                        point = point + :reward,
+                        prediction_streak = prediction_streak + 1,
+                        max_prediction_streak = GREATEST(max_prediction_streak, prediction_streak)
+                    WHERE user_id = :uid
+                """), {"reward": reward, "uid": vote["user_id"]})
+            else:
+                db.execute(text("""
+                    UPDATE users
+                    SET total_predictions = total_predictions + 1,
+                        prediction_streak = 0
+                    WHERE user_id = :uid
+                """), {"uid": vote["user_id"]})
+
+            settled_users.append({"user_id": vote["user_id"], "win": is_win, "reward": reward})
+
+        db.commit()
+        return {"status": "success", "game_status": "FINAL", "winning_team_id": w_id, "settled": settled_users}
+
+    # 2. LIVE 또는 SCHEDULED 상태일 때 처리
+    else:
+        db.execute(text("""
+            UPDATE games
+            SET status = :status,
+                winning_team_id = NULL,
+                home_score = COALESCE(:h_score, 0),
+                away_score = COALESCE(:a_score, 0)
+            WHERE game_id = :gid
+        """), {
+            "status": req.status,
+            "h_score": req.home_score,
+            "a_score": req.away_score,
+            "gid": req.game_id
+        })
+        db.commit()
+        return {
+            "status": "success",
+            "game_status": req.status,
+            "message": f"경기 상태가 {req.status}로 정상 변경되었습니다."
+        }
