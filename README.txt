@@ -45,7 +45,7 @@ git을 만들고 폴더를 만들었다면, 원격저장소인 GitHub에 저장�
 
 테스트 시 데이터 수집
 
-/back/scripts의 database.py를 제외하고 seed_teams(30개 팀), collector_games, collector_boxscores(경기 정보), collector_batters_integrated, collector_pitcher_integrated, collector_players_meta, collector_savant_value_repair(선수 정보) 스크립트를 실행하여 데이터를 가져와서 테스트
+/back/scripts의 database.py를 제외하고 seed_teams(30개 팀), collector_games(경기 정보), collector_players(선수 정보) 스크립트를 실행하여 데이터를 가져와서 테스트
 
 테스트용 데이터는 2024.04 한 달 간의 데이터로, 추후 변경될 수 있음
 

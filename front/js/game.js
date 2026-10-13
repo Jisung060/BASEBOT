@@ -133,7 +133,7 @@ async function renderCalendar() {
     const visibleGames = teamSelect.value === "ALL"
         ? games
         : games.filter(game => String(game.home_team_id) === teamSelect.value || String(game.away_team_id) === teamSelect.value);
-    const gameDays = new Set(visibleGames.map(game => String(game.game_date).slice(0, 10)));
+    const gameDays = new Set(visibleGames.map(getDisplayDate));
     const firstWeekday = new Date(year, month - 1, 1).getDay();
     const daysInMonth = new Date(year, month, 0).getDate();
     const heading = document.createElement("div");
@@ -287,7 +287,7 @@ async function loadGames() {
         }
         if (selectedScheduleDay !== null) {
             const selectedDate = dateInput.value.slice(0, 7) + `-${String(selectedScheduleDay).padStart(2, "0")}`;
-            games = games.filter(game => String(game.game_date).slice(0, 10) === selectedDate);
+            games = games.filter(game => getDisplayDate(game) === selectedDate);
         }
         if (games.length === 0) {
             list.replaceChildren();
@@ -316,14 +316,42 @@ function renderGamePage() {
 async function fetchAndEnrichMonthGames(date) {
     const cacheKey = `month:${date.slice(0, 7)}`;
     if (gameDataCache.has(cacheKey)) return gameDataCache.get(cacheKey);
-    const [startDate, endDate] = getMonthRange(date);
+    const [monthStart, monthEnd] = getMonthRange(date);
+    // UTC 원본 날짜와 한국 날짜의 경계가 다른 경기를 포함한다.
+    const startDate = shiftDate(monthStart, -1);
+    const endDate = shiftDate(monthEnd, 1);
     let games = await fetchMonthGames(startDate, endDate);
     if (games.length) {
         const scheduleInfo = await loadScheduleInfo(startDate, endDate);
-        games = games.map(game => ({ ...game, ...(scheduleInfo.get(String(game.game_id)) || {}) }));
+        games = games
+            .map(game => {
+                const enriched = { ...game, ...(scheduleInfo.get(String(game.game_id)) || {}) };
+                return { ...enriched, display_date: getKoreanGameDate(enriched.scheduled_at, enriched.game_date) };
+            })
+            .filter(game => game.display_date.startsWith(date.slice(0, 7)));
     }
     gameDataCache.set(cacheKey, games);
     return games;
+}
+
+function shiftDate(date, days) {
+    const shifted = new Date(`${date}T12:00:00`);
+    shifted.setDate(shifted.getDate() + days);
+    return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-${String(shifted.getDate()).padStart(2, "0")}`;
+}
+
+function getKoreanGameDate(scheduledAt, fallbackDate) {
+    if (!scheduledAt) return String(fallbackDate).slice(0, 10);
+    const date = new Date(scheduledAt);
+    if (Number.isNaN(date.getTime())) return String(fallbackDate).slice(0, 10);
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(date).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+    return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getDisplayDate(game) {
+    return game.display_date || getKoreanGameDate(game.scheduled_at, game.game_date);
 }
 
 async function fetchDayGames(date) {
@@ -356,7 +384,7 @@ async function fetchMonthGames(startDate, endDate) {
 function createMonthlyGroups(games) {
     const grouped = new Map();
     games.forEach(game => {
-        const date = String(game.game_date).slice(0, 10);
+        const date = getDisplayDate(game);
         if (!grouped.has(date)) grouped.set(date, []);
         grouped.get(date).push(game);
     });
@@ -420,11 +448,13 @@ function formatGameTime(dateTime) {
 function createGameCard(game) {
     const card = document.createElement("article");
     card.className = "game-card";
-    const isFavoriteGame = myFavoriteTeamId && (
+    const isFavoriteMatch = myFavoriteTeamId && (
         String(game.away_team_id) === String(myFavoriteTeamId) ||
         String(game.home_team_id) === String(myFavoriteTeamId)
     );
-    if (isFavoriteGame) card.classList.add("favorite-game-card");
+    // 선호 구단을 직접 선택한 경우에는 결과 카드 자체를 별도로 강조하지 않는다.
+    const shouldEmphasizeFavoriteGame = isFavoriteMatch && String(teamSelect.value) !== String(myFavoriteTeamId);
+    if (shouldEmphasizeFavoriteGame) card.classList.add("favorite-game-card");
     const statusLabels = { FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" };
     const statusLabel = statusLabels[game.status] || game.status || "상태 미정";
     const isFinal = game.status === "FINAL";
@@ -454,9 +484,9 @@ function createGameCard(game) {
         highlightsLink.rel = "noopener noreferrer";
     }
     matchup.append(
-        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFavoriteGame && String(game.away_team_id) === String(myFavoriteTeamId)),
+        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFavoriteMatch && String(game.away_team_id) === String(myFavoriteTeamId)),
         scoreNode,
-        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFavoriteGame && String(game.home_team_id) === String(myFavoriteTeamId))
+        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFavoriteMatch && String(game.home_team_id) === String(myFavoriteTeamId))
     );
 
     const venue = document.createElement("div");

@@ -137,6 +137,12 @@
 .team-rail-option.is-favorite-team .team-picker-logo{filter:none}
 .team-rail-option.is-favorite-team .team-rail-name{color:inherit;font-weight:inherit}
 .team-rail-option[aria-pressed=true] .team-rail-name{font-weight:inherit}
+.team-rail-option[aria-pressed=true]:not(.is-favorite-team){border:1px solid #347cff;background:#edf4ff;box-shadow:0 2px 7px #347cff22}
+.team-rail-option.is-favorite-team[aria-pressed=true]{position:relative;border:1px solid #e6a100;background:linear-gradient(180deg,#fffdf7 0%,#ffffff 100%);box-shadow:0 2px 7px #e6a10033}
+.team-rail-option.is-favorite-team[aria-pressed=true] .team-picker-logo{filter:drop-shadow(0 0 4px #e6a10099)}
+.team-rail-option.is-favorite-team .team-rail-name{font-weight:400}
+.team-rail-option .team-favorite-badge{top:-9px;right:4px;padding:2px 6px;border:0;border-radius:10px;background:linear-gradient(135deg,#e6a100,#ffb300);box-shadow:0 2px 4px #00000026;color:#fff;font-size:8px;letter-spacing:-.3px}
+.schedule-team-logo-link.favorite-game-logo .favorite-game-badge{top:-11px;right:auto;left:50%;transform:translateX(-50%)}
 .game-day-cards .game-time strong{font-size:11px}
 .game-calendar{position:absolute;top:calc(100% - 1px);left:50%;z-index:20;width:280px;padding:12px;transform:translateX(-50%);border:1px solid #d7e1ef;border-radius:10px;background:#fff;box-shadow:0 10px 28px #1834572b}
 .game-calendar-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#233b5d}.game-calendar-heading button{width:28px;height:28px;border:0;border-radius:5px;background:#f2f6fb;color:#294d7b;font-size:20px;cursor:pointer}.game-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}.game-calendar-weekday{padding:3px 0;color:#7b8798;font-size:11px}.game-calendar-day{height:31px;border:0;border-radius:5px;background:transparent;color:#41526a;font:inherit;font-size:12px;cursor:pointer}.game-calendar-day:hover,.game-calendar-day.selected{background:#e7f0ff;color:#1f66c1}.game-calendar-day.has-games{font-weight:800;color:#173f7a}
