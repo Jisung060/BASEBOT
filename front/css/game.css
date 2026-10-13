@@ -144,3 +144,46 @@
 .game-day-cards .game-time strong{font-size:11px}
 .game-calendar{position:absolute;top:calc(100% - 1px);left:50%;z-index:20;width:280px;padding:12px;transform:translateX(-50%);border:1px solid #d7e1ef;border-radius:10px;background:#fff;box-shadow:0 10px 28px #1834572b}
 .game-calendar-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#233b5d}.game-calendar-heading button{width:28px;height:28px;border:0;border-radius:5px;background:#f2f6fb;color:#294d7b;font-size:20px;cursor:pointer}.game-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}.game-calendar-weekday{padding:3px 0;color:#7b8798;font-size:11px}.game-calendar-day{height:31px;border:0;border-radius:5px;background:transparent;color:#41526a;font:inherit;font-size:12px;cursor:pointer}.game-calendar-day:hover,.game-calendar-day.selected{background:#e7f0ff;color:#1f66c1}.game-calendar-day.has-games{font-weight:800;color:#173f7a}
+
+/* 한 구단 선택 시: 날짜 박스를 2열로 배치 (전체 구단 보기에는 영향 없음) */
+.game-list.team-view{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));  /* 한 줄에 날짜 박스 2개 */
+  gap:14px 12px;                                  /* 세로 14px, 가로 12px 간격 */
+  align-items:start;                              /* 박스 높이는 내용만큼 */
+}
+.game-list.team-view .game-day-group{
+  min-width:0;                                    /* 긴 내용이 칸 밖으로 넘치지 않게 */
+}
+/* 날짜 박스 안의 경기 카드는 1열 (박스가 절반 폭이므로) */
+.game-list.team-view .game-day-cards{
+  grid-template-columns:1fr;
+}
+.game-list.team-view .game-day-cards .game-card{
+  border-right:0;                                 /* 2열용 오른쪽 선 제거 */
+}
+/* 휴대폰 화면(700px 이하)은 날짜 박스를 1열로 */
+@media(max-width:700px){
+  .game-list.team-view{grid-template-columns:1fr}
+}
+
+/* 선택한 날짜 박스 강조 (모든 구단 보기 공통, 선호 구단의 노란색·파란색과 구분되는 초록색) */
+.game-day-group.is-selected-day{
+  border:2px solid #2e9e6a;
+  box-shadow:0 0 0 3px #2e9e6a22;
+}
+.game-day-group.is-selected-day .game-day-heading{
+  background:#e8f7ef;
+}
+.game-day-group.is-selected-day .game-day-heading h3{
+  color:#1d6b47;
+}
+.selected-day-badge{
+  margin-left:auto;
+  padding:2px 8px;
+  border-radius:10px;
+  background:#2e9e6a;
+  color:#fff!important;
+  font-size:11px;
+  font-weight:700;
+}
