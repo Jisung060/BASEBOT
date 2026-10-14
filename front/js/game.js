@@ -368,6 +368,7 @@ function createGameCard(game) {
         const gameDate = String(game.game_date || dateInput.value).slice(0, 10);
         const detail = el("a", "detail-button", "박스스코어");
         detail.href = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
+        detail.addEventListener("click", saveState);           // 상세 페이지로 가기 전에 상태 저장
         const highlight = el("a", "highlight-button score-highlight-link", "하이라이트");
         highlight.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
         highlight.target = "_blank";
@@ -492,8 +493,38 @@ async function loadScheduleInfo(start, end) {          // MLB에서 시작 시�
 }
 
 /* ---------- 시작 ---------- */
+/* ---------- 목록 상태 저장·복원 ---------- */
 
-setupEvents();
-addTeamOption("ALL", "전체 구단", "", "MLB");          // 맨 앞의 "전체 구단" 버튼
-loadTeams();
-loadGames();
+const STATE_KEY = "gameListState";                     // 저장할 이름
+
+function saveState() {                                 // 지금 화면 상태를 저장
+    sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        date: dateInput.value,                         // 선택한 달·날짜
+        day: selectedDay,                              // 선택한 '일' (없으면 null)
+        team: teamSelect.value,                        // 선택한 구단
+        scrollY: window.scrollY                        // 스크롤 위치
+    }));
+}
+
+function takeSavedState() {                            // 저장한 상태를 꺼내고 지움
+    const text = sessionStorage.getItem(STATE_KEY);
+    sessionStorage.removeItem(STATE_KEY);              // 한 번만 쓰도록 지움
+    try { return text ? JSON.parse(text) : null; } catch { return null; }
+}
+async function init() {
+    setupEvents();
+    addTeamOption("ALL", "전체 구단", "", "MLB");
+    await loadTeams();                                 // 구단 목록이 먼저 만들어져야 구단을 복원할 수 있음
+    const saved = takeSavedState();                    // 저장된 상태 꺼내기 (없으면 null)
+    if (saved) {
+        dateInput.value = saved.date;                  // 달·날짜 복원
+        selectedDay = saved.day;                       // 선택한 일 복원
+        teamSelect.value = saved.team;                 // 구단 복원
+        updateTeamRail();                              // 구단 버튼 표시 갱신
+        renderMonthStrip();                            // 월 버튼 표시 갱신
+    }
+    await loadGames();                                 // 경기 목록 그리기
+    if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" }); // 스크롤 위치 복원
+}
+
+init();
