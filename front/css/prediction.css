@@ -164,12 +164,34 @@
 }
 
 .h2h-pill {
-    padding: 6px 16px;
+    padding: 12px 20px;
     background: #f0f3f8;
-    color: #444;
-    border-radius: 20px;
+    color: #334155;
+    border-radius: 12px;
     font-size: 13px;
     font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.4;
+    text-align: center;
+    width: fit-content;
+    min-width: 220px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.h2h-pill .meta-line {
+    white-space: nowrap;
+}
+
+.h2h-pill .meta-line.h2h-highlight {
+    color: #102d63;
+    font-weight: 800;
+    margin-top: 2px;
+    padding-top: 4px;
+    border-top: 1px dashed #cbd5e1;
+    width: 100%;
 }
 
 /* ==================================================
@@ -408,4 +430,56 @@
 @keyframes pulse-live {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.65; }
+}
+/* ==================================================
+   세이버메트릭스 지표 비교 테이블 고도화
+================================================== */
+.saber-compare-table td {
+    padding: 12px 16px;
+    vertical-align: middle;
+}
+
+.saber-category-row td {
+    background-color: #f1f5f9 !important;
+    font-weight: 800;
+    font-size: 13px;
+    color: #1e293b;
+    text-align: center;
+    letter-spacing: 0.3px;
+    padding: 8px 12px !important;
+    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.metric-label-cell {
+    font-weight: 700;
+    color: #334155;
+    font-size: 13.5px;
+    background: #fcfdfe;
+}
+
+.metric-sub-desc {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* 우세 팀 수치 하이라이트 */
+.metric-num.is-better {
+    color: #102d63;
+    font-weight: 900;
+    background-color: #eff6ff;
+    position: relative;
+}
+
+.better-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: #2563eb;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin: 0 6px;
 }

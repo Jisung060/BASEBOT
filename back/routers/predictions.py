@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from database.db_connection import get_session, get_db
 from services.prediction_service import predictor
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
@@ -63,7 +64,7 @@ def predict_teams_matchup(
     return pred_res
 
 # ----------------------------------------------------
-# 1. 특정 경기의 투표 현황 및 유저 투표 여부 조회
+# 1. 특정 경기의 투표 현황 및 경기 상세 메타데이터 조회
 # ----------------------------------------------------
 @router.get("/votes/status")
 def get_vote_status(
@@ -71,9 +72,18 @@ def get_vote_status(
     user_id: Optional[int] = Query(None),
     db: Session = Depends(get_session)
 ):
-    # 1) 경기 기본 정보 확인
+    # 1) 경기 기본 정보 확인 (game_date, game_time, stadium, winning_team_id 모두 포함!)
     game = db.execute(
-        text("SELECT game_id, home_team_id, away_team_id, status, home_score, away_score FROM games WHERE game_id = :gid"),
+        text("""
+            SELECT 
+                game_id, home_team_id, away_team_id, status, 
+                home_score, away_score, winning_team_id,
+                CAST(game_date AS CHAR) AS game_date,
+                CAST(game_time AS CHAR) AS game_time,
+                stadium
+            FROM games 
+            WHERE game_id = :gid
+        """),
         {"gid": game_id}
     ).mappings().first()
 
@@ -97,11 +107,16 @@ def get_vote_status(
     home_pct = round((home_votes / total_votes * 100), 1) if total_votes > 0 else 50.0
     away_pct = round((away_votes / total_votes * 100), 1) if total_votes > 0 else 50.0
 
-    # 3) 로그인 유저가 이미 투표했는지 확인
+    # 3) 로그인 유저 투표 여부 및 현재 연승(prediction_streak) 함께 조회
     my_vote = None
     if user_id:
         user_vote_row = db.execute(
-            text("SELECT selected_team_id, bet_point, is_correct, reward_point FROM prediction_votes WHERE game_id = :gid AND user_id = :uid"),
+            text("""
+                SELECT v.selected_team_id, v.bet_point, v.is_correct, v.reward_point, u.prediction_streak
+                FROM prediction_votes v
+                JOIN users u ON v.user_id = u.user_id
+                WHERE v.game_id = :gid AND v.user_id = :uid
+            """),
             {"gid": game_id, "uid": user_id}
         ).mappings().first()
         if user_vote_row:
@@ -109,11 +124,21 @@ def get_vote_status(
                 "selected_team_id": user_vote_row["selected_team_id"],
                 "bet_point": user_vote_row["bet_point"],
                 "is_correct": user_vote_row["is_correct"],
-                "reward_point": user_vote_row["reward_point"]
+                "reward_point": user_vote_row["reward_point"],
+                "prediction_streak": user_vote_row["prediction_streak"]
             }
 
     return {
         "game_id": game_id,
+        "game_info": {
+            "status": game["status"],
+            "home_score": game["home_score"],
+            "away_score": game["away_score"],
+            "winning_team_id": game["winning_team_id"],
+            "game_date": game["game_date"],
+            "game_time": game["game_time"],
+            "stadium": game["stadium"]
+        },
         "total_votes": total_votes,
         "home_votes": home_votes,
         "away_votes": away_votes,
@@ -122,26 +147,44 @@ def get_vote_status(
         "my_vote": my_vote
     }
 
+
 # ----------------------------------------------------
-# 2. 투표 등록 (중복 투표 차단 및 DB 저장)
+# 2. 투표 등록 (경기 시작 10분 전 마감 검증 포함)
 # ----------------------------------------------------
 @router.post("/votes")
 def cast_prediction_vote(
     vote: VoteRequest,
     db: Session = Depends(get_session)
 ):
-    # 1) 경기 상태 검증 (이미 끝난 경기는 투표 불가)
+    # 1) 경기 상태 및 시작 시각 검증
     game = db.execute(
-        text("SELECT status, home_team_id, away_team_id FROM games WHERE game_id = :gid"),
+        text("""
+            SELECT status, home_team_id, away_team_id,
+                   CAST(game_date AS CHAR) AS game_date,
+                   CAST(game_time AS CHAR) AS game_time
+            FROM games 
+            WHERE game_id = :gid
+        """),
         {"gid": vote.game_id}
     ).mappings().first()
 
     if not game:
         raise HTTPException(status_code=404, detail="존재하지 않는 경기입니다.")
-    if game["status"] == "FINAL":
-        raise HTTPException(status_code=400, detail="이미 종료된 경기에는 투표할 수 없습니다.")
+    if game["status"] != "SCHEDULED":
+        raise HTTPException(status_code=400, detail="이미 시작되었거나 종료된 경기에는 투표할 수 없습니다.")
     if vote.selected_team_id not in (game["home_team_id"], game["away_team_id"]):
         raise HTTPException(status_code=400, detail="해당 경기에 참여하는 팀만 선택할 수 있습니다.")
+
+    # ★ 경기 시작 10분 전 마감 체크
+    if game["game_date"] and game["game_time"]:
+        try:
+            time_str = game["game_time"][:8]  # "HH:MM:SS"
+            game_start_dt = datetime.strptime(f"{game['game_date']} {time_str}", "%Y-%m-%d %H:%M:%S")
+            deadline_dt = game_start_dt - timedelta(minutes=10)
+            if datetime.now() >= deadline_dt:
+                raise HTTPException(status_code=400, detail="경기 시작 10분 전부터는 투표가 마감됩니다.")
+        except ValueError:
+            pass
 
     # 2) 중복 투표 검사
     existing = db.execute(
@@ -152,7 +195,7 @@ def cast_prediction_vote(
     if existing:
         raise HTTPException(status_code=400, detail="이미 이 경기에 투표하셨습니다. 중복 투표는 불가능합니다.")
 
-    # 3) 유저 잔여 포인트 검사 및 차감 (users 테이블에 point 컬럼이 있는 경우 대응)
+    # 3) 유저 잔여 포인트 검사 및 차감
     user_row = db.execute(
         text("SELECT user_id, point FROM users WHERE user_id = :uid"),
         {"uid": vote.user_id}
@@ -165,13 +208,11 @@ def cast_prediction_vote(
     if user_points < vote.bet_point:
         raise HTTPException(status_code=400, detail="베팅 포인트가 부족합니다.")
 
-    # 포인트 차감
     db.execute(
         text("UPDATE users SET point = point - :bet WHERE user_id = :uid"),
         {"bet": vote.bet_point, "uid": vote.user_id}
     )
 
-    # 4) prediction_votes 테이블에 영구 INSERT
     db.execute(
         text("""
             INSERT INTO prediction_votes (game_id, user_id, selected_team_id, bet_point)

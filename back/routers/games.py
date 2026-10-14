@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/games", tags=["games"])
 @router.get("")
 def get_games(
     date: Optional[str] = Query(None, description="조회할 날짜 (YYYY-MM-DD 형식)"),
+    time: Optional[str] = Query(None, description="경기 시간 24h(hh:mm:ss) 형식"),
     status: Optional[str] = Query(None, description="경기 상태 (FINAL, SCHEDULED 등)"),
     order: str = Query("desc", description="정렬 순서 (desc: 최신순, asc: 과거순)"),
     limit: int = Query(50, ge=1, le=200),
@@ -29,6 +30,7 @@ def get_games(
         SELECT 
             g.game_id,
             g.game_date,
+            CAST(g.game_time AS CHAR) AS game_time,
             g.status,
             g.home_score,
             g.away_score,
@@ -50,6 +52,9 @@ def get_games(
     if date:
         query_str += " AND DATE(g.game_date) = :date"
         params["date"] = date
+    if time:
+        query_str += " AND TIME(g.game_time) = :time"
+        params["time"] = time
     if status:
         query_str += " AND g.status = :status"
         params["status"] = status

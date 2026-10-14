@@ -89,9 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-// ==================================================
-// 3. 경기 목록 불러오기 (최신순)
-// ==================================================
+// 3. 경기 목록 불러오기 (최신순 + 경기 시간 표시)
 async function loadGameList() {
     const select = document.getElementById("gameSelect");
     if (!select) return;
@@ -110,8 +108,9 @@ async function loadGameList() {
 
         games.forEach(g => {
             const dateStr = g.game_date ? g.game_date.substring(0, 10) : "";
+            // 경기 시간(HH:MM) 추출
+            const timeStr = g.game_time ? ` ${String(g.game_time).substring(0, 5)}` : "";
             
-            // 상태 라벨 세분화 (FINAL, IN_PROGRESS/LIVE, SCHEDULED)
             let statusLabel = "[예정]";
             if (g.status === "FINAL") {
                 statusLabel = "[종료]";
@@ -119,7 +118,10 @@ async function loadGameList() {
                 statusLabel = "[진행중]";
             }
 
-            const opt = new Option(`${statusLabel} ${dateStr} - ${g.away_team_name} vs ${g.home_team_name}`, g.game_id);
+            const opt = new Option(
+                `${statusLabel} ${dateStr}${timeStr} - ${g.away_team_name} vs ${g.home_team_name}`,
+                g.game_id
+            );
             select.add(opt);
         });
 
@@ -130,6 +132,37 @@ async function loadGameList() {
     } catch (e) {
         console.error("경기 목록 로드 실패:", e);
         select.innerHTML = `<option value="">경기 목록을 불러올 수 없습니다 (서버 확인 필요)</option>`;
+    }
+}
+
+// ==================================================
+// 경기 시작 10분 전 마감 여부 및 마감 시각 계산 헬퍼
+// ==================================================
+function checkVoteDeadline(gameDateStr, gameTimeStr) {
+    if (!gameDateStr || !gameTimeStr) {
+        return { isPastDeadline: false, deadlineText: "경기 시작 10분 전" };
+    }
+    try {
+        const cleanDate = gameDateStr.substring(0, 10);
+        const cleanTime = gameTimeStr.substring(0, 5); // "HH:MM"
+        const startDt = new Date(`${cleanDate}T${cleanTime}:00`);
+        if (isNaN(startDt.getTime())) {
+            return { isPastDeadline: false, deadlineText: "경기 시작 10분 전" };
+        }
+
+        // 10분 전 시각 계산
+        const deadlineDt = new Date(startDt.getTime() - 10 * 60 * 1000);
+        const now = new Date();
+
+        const dh = String(deadlineDt.getHours()).padStart(2, "0");
+        const dm = String(deadlineDt.getMinutes()).padStart(2, "0");
+
+        return {
+            isPastDeadline: now >= deadlineDt,
+            deadlineText: `${dh}:${dm}`
+        };
+    } catch (e) {
+        return { isPastDeadline: false, deadlineText: "경기 시작 10분 전" };
     }
 }
 
@@ -152,9 +185,14 @@ async function loadSelectedGame(gameId) {
         const thisGame = games.find(g => g.game_id == gameId);
 
         if (!thisGame) return;
-        currentGameData = thisGame;
 
-        const predRes = await fetch(`http://127.0.0.1:8000/api/predictions/matchup?home_team_id=${thisGame.home_team_id}&away_team_id=${thisGame.away_team_id}`);
+        // ★ 백엔드 voteStatus.game_info의 상세 정보(stadium, game_time, winning_team_id 등)를 병합!
+        currentGameData = {
+            ...thisGame,
+            ...(voteStatus.game_info || {})
+        };
+
+        const predRes = await fetch(`http://127.0.0.1:8000/api/predictions/matchup?home_team_id=${currentGameData.home_team_id}&away_team_id=${currentGameData.away_team_id}`);
         if (!predRes.ok) throw new Error("예측 API 호출 실패");
         const pred = await predRes.json();
 
@@ -204,12 +242,7 @@ function renderPredictionUI(pred, voteStatus) {
 
     safeSetText("thAwayName", pred.away_team_name);
     safeSetText("thHomeName", pred.home_team_name);
-    safeSetText("tdAwayVelo", `${pred.metrics_comparison?.away_avg_exit_velo || 0} mph`);
-    safeSetText("tdHomeVelo", `${pred.metrics_comparison?.home_avg_exit_velo || 0} mph`);
-    safeSetText("tdAwayBarrel", `${pred.metrics_comparison?.away_barrel_pct || 0}%`);
-    safeSetText("tdHomeBarrel", `${pred.metrics_comparison?.home_barrel_pct || 0}%`);
-    safeSetText("tdAwayWar", (pred.metrics_comparison?.away_avg_bwar || 0).toFixed(2));
-    safeSetText("tdHomeWar", (pred.metrics_comparison?.home_avg_bwar || 0).toFixed(2));
+    renderSaberComparisonTable(pred.metrics_comparison);
 
     safeSetText("voteCountText", `총 ${voteStatus.total_votes || 0}표 참여`);
     const awayBar = document.getElementById("userVoteAwayBar");
@@ -259,17 +292,27 @@ function renderPredictionUI(pred, voteStatus) {
     }
 
     // ==================================================
-    // 2. 경기 상태별 (FINAL / LIVE / SCHEDULED) 배너 및 승리팀 제어
+    // 2. 경기장, 경기 시작 시간 및 경기 상태별 배너 제어
     // ==================================================
     const resultBanner = document.getElementById("gameResultBanner");
     const statusPill = document.getElementById("gameStatusPill");
     const gameStatus = currentGameData ? currentGameData.status : "SCHEDULED";
     const myVote = voteStatus.my_vote;
 
-    // 경기장 및 시간 표시
+    // ★ 경기장 및 경기 날짜/시간 표시 포맷팅
     const stadium = currentGameData?.stadium || "경기장 미정";
-    const gameTime = currentGameData?.game_time ? currentGameData.game_time.substring(0, 5) : "";
-    safeSetText("h2hPill", `${stadium} ${gameTime ? `(\${gameTime})` : ''} | ${pred.head_to_head_summary || '상대전적 요약'}`);
+    const gameDate = currentGameData?.game_date ? currentGameData.game_date.substring(0, 10) : "";
+    const gameTime = currentGameData?.game_time ? currentGameData.game_time.substring(0, 5) : "시간 미정";
+    const h2hText = pred.head_to_head_summary || "맞대결 기록 없음";
+
+    const h2hPillEl = document.getElementById("h2hPill");
+    if (h2hPillEl) {
+        h2hPillEl.innerHTML = `
+            <div class="meta-line">🏟️ ${stadium}</div>
+            <div class="meta-line">🕒 ${gameDate} ${gameTime}</div>
+            <div class="meta-line h2h-highlight">⚔️ ${h2hText}</div>
+        `;
+    }
 
     if (gameStatus === "FINAL") {
         // [A] 경기 종료 상태
@@ -320,7 +363,7 @@ function renderPredictionUI(pred, voteStatus) {
             if (isCorrect) {
                 badge.className = "outcome-badge win";
                 badge.textContent = `🎉 예측 적중 성공! (+${myVote.reward_point || 200} P 획득)`;
-                const currentStreak = myVote.current_streak || myVote.prediction_streak || 1;
+                const currentStreak = myVote.prediction_streak || myVote.current_streak || 1;
                 detail.innerHTML = `회원님의 선택: <strong>${pickedTeamName}</strong> <span style="color:#16a34a; font-weight:800; margin-left:8px;">🔥 현재 ${currentStreak}회 연속 적중 달성 중!</span>`;
             } else if (isIncorrect) {
                 badge.className = "outcome-badge lose";
@@ -367,7 +410,7 @@ function renderPredictionUI(pred, voteStatus) {
     }
 
     // ==================================================
-    // 3. 버튼 상태 및 안내 문구 제어
+    // 3. 버튼 상태 및 '경기 시작 10분 전 마감' 안내 문구 제어
     // ==================================================
     const btnAway = document.getElementById("btnVoteAway");
     const btnHome = document.getElementById("btnVoteHome");
@@ -375,6 +418,8 @@ function renderPredictionUI(pred, voteStatus) {
     if (!btnAway || !btnHome) return;
 
     const userId = getLoggedInUserId();
+    const deadlineInfo = checkVoteDeadline(currentGameData?.game_date, currentGameData?.game_time);
+    const deadlineNoticeHtml = `<div style="margin-top: 6px; font-size: 12.5px; color: #d97706; font-weight: 700;">⏰ 경기 시작 10분 전(${deadlineInfo.deadlineText})까지 투표 가능합니다.</div>`;
 
     const disableBtn = (btn, text) => {
         btn.disabled = true;
@@ -410,6 +455,7 @@ function renderPredictionUI(pred, voteStatus) {
         return;
     }
 
+    // [예정 경기(SCHEDULED)일 때]
     if (myVote) {
         if (Number(myVote.selected_team_id) === awayId) {
             disableBtn(btnAway, "✔ 투표 완료 (원정팀)");
@@ -421,7 +467,17 @@ function renderPredictionUI(pred, voteStatus) {
 
         const selectedTeamName = (Number(myVote.selected_team_id) === homeId) ? pred.home_team_name : pred.away_team_name;
         if (myVoteBox) {
-            myVoteBox.innerHTML = `✔ 회원님은 <strong>${selectedTeamName}</strong>에 투표하셨습니다. (경기 종료 후 자동 정산)`;
+            myVoteBox.innerHTML = `✔ 회원님은 <strong>${selectedTeamName}</strong>에 투표하셨습니다. (경기 종료 후 자동 정산)${deadlineNoticeHtml}`;
+        }
+        return;
+    }
+
+    // 경기 시작 10분 전이 지난 경우 투표 마감 처리
+    if (deadlineInfo.isPastDeadline) {
+        disableBtn(btnAway, "투표 마감 (시작 임박)");
+        disableBtn(btnHome, "투표 마감 (시작 임박)");
+        if (myVoteBox) {
+            myVoteBox.innerHTML = `<span style="color: #dc2626; font-weight: 700;">⏰ 경기 시작 10분 전(${deadlineInfo.deadlineText})이 지나 투표가 마감되었습니다.</span>`;
         }
         return;
     }
@@ -429,21 +485,26 @@ function renderPredictionUI(pred, voteStatus) {
     if (!userId) {
         enableBtn(btnAway, "로그인 후 투표 (원정)");
         enableBtn(btnHome, "로그인 후 투표 (홈)");
-        if (myVoteBox) myVoteBox.innerHTML = `<span style="color: #777;">투표에 참여하시려면 먼저 <a href="login.html" style="color:#102d63; text-decoration:underline; font-weight:700;">로그인</a>해 주세요.</span>`;
+        if (myVoteBox) {
+            myVoteBox.innerHTML = `<span style="color: #777;">투표에 참여하시려면 먼저 <a href="login.html" style="color:#102d63; text-decoration:underline; font-weight:700;">로그인</a>해 주세요.</span>${deadlineNoticeHtml}`;
+        }
         return;
     }
 
     if (currentUserPoints < 100) {
         disableBtn(btnAway, "포인트 부족 (100P 필요)");
         disableBtn(btnHome, "포인트 부족 (100P 필요)");
-        if (myVoteBox) myVoteBox.innerHTML = `<span style="color: #d32f2f; font-weight: 700;">보유 포인트가 부족하여 투표할 수 없습니다. (현재: ${currentUserPoints} P / 필요: 100 P)</span>`;
+        if (myVoteBox) {
+            myVoteBox.innerHTML = `<span style="color: #d32f2f; font-weight: 700;">보유 포인트가 부족하여 투표할 수 없습니다. (현재: ${currentUserPoints} P / 필요: 100 P)</span>${deadlineNoticeHtml}`;
+        }
         return;
     }
 
     enableBtn(btnAway, "원정팀 승리 투표 (100P)");
     enableBtn(btnHome, "홈팀 승리 투표 (100P)");
-    if (myVoteBox) myVoteBox.innerHTML = "원하는 팀을 선택하여 승부예측 투표(100P)에 참여해 보세요!";
-}
+    if (myVoteBox) {
+        myVoteBox.innerHTML = `원하는 팀을 선택하여 승부예측 투표(100P)에 참여해 보세요!${deadlineNoticeHtml}`;
+    }
 
 // ==================================================
 // 6. 투표 실행
@@ -515,3 +576,153 @@ function getVerdictMessage(winnerName, maxProb) {
     }
 }
 
+// ==================================================
+// 세이버메트릭스 비교 표 동적 렌더링 (우세 팀 자동 하이라이트)
+// ==================================================
+function renderSaberComparisonTable(mc) {
+    const tbody = document.getElementById("saberComparisonBody");
+    if (!tbody || !mc) return;
+
+    const rows = [
+        { category: "⚾ 타격 생산력 및 타구질 (Batting & Statcast)" },
+        {
+            label: "wRC+ (조정 득점 창출력)",
+            desc: "리그 평균 100 기준 팀 타선 생산력",
+            away: mc.away_wrc_plus,
+            home: mc.home_wrc_plus,
+            format: v => `${v ?? '-'}`,
+            higherIsBetter: true
+        },
+        {
+            label: "xwOBA (기대 가중출루율)",
+            desc: "타구 속도와 발사각 기반 기대 출루 가치",
+            away: mc.away_xwoba,
+            home: mc.home_xwoba,
+            format: v => v ? Number(v).toFixed(3) : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "평균 타구속도 (Exit Velocity)",
+            desc: "타자가 타격한 공의 평균 속도",
+            away: mc.away_avg_exit_velo,
+            home: mc.home_avg_exit_velo,
+            format: v => v ? `${Number(v).toFixed(1)} mph` : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "배럴 타구 비율 (Barrel %)",
+            desc: "장타 확률이 극대화되는 이상적 타구 비율",
+            away: mc.away_barrel_pct,
+            home: mc.home_barrel_pct,
+            format: v => v ? `${Number(v).toFixed(1)}%` : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "하드힛 비율 (Hard-Hit %)",
+            desc: "95mph 이상의 강한 타구 비율",
+            away: mc.away_hard_hit_pct,
+            home: mc.home_hard_hit_pct,
+            format: v => v ? `${Number(v).toFixed(1)}%` : '-',
+            higherIsBetter: true
+        },
+        { category: "🔥 마운드 억제력 및 구위 (Pitching & Stuff)" },
+        {
+            label: "팀 평균 FIP (수비무관 자책점)",
+            desc: "삼진·볼넷·홈런만으로 평가한 투수 본연의 억제력 (낮을수록 우세)",
+            away: mc.away_fip,
+            home: mc.home_fip,
+            format: v => v ? Number(v).toFixed(2) : '-',
+            higherIsBetter: false
+        },
+        {
+            label: "팀 평균 ERA (평균자책점)",
+            desc: "9이닝당 평균 자책점 (낮을수록 우세)",
+            away: mc.away_era,
+            home: mc.home_era,
+            format: v => v ? Number(v).toFixed(2) : '-',
+            higherIsBetter: false
+        },
+        {
+            label: "포심 평균 구속 (Fastball Velo)",
+            desc: "투수진의 포심 패스트볼 평균 구속",
+            away: mc.away_fastball_velo,
+            home: mc.home_fastball_velo,
+            format: v => v ? `${Number(v).toFixed(1)} mph` : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "투수 탈삼진율 (Pitcher K%)",
+            desc: "상대 타자 대비 탈삼진 유도 비율",
+            away: mc.away_pit_k_pct,
+            home: mc.home_pit_k_pct,
+            format: v => v ? `${Number(v).toFixed(1)}%` : '-',
+            higherIsBetter: true
+        },
+        { category: "🧤 수비 · 주루 · 종합 기여도 (Fielding, Running & WAR)" },
+        {
+            label: "팀 수비 범위 (Team OAA)",
+            desc: "평균 대비 추가 아웃 카운트 처리 수",
+            away: mc.away_team_oaa,
+            home: mc.home_team_oaa,
+            format: v => (v !== null && v !== undefined) ? (v > 0 ? `+${v}` : `${v}`) : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "팀 평균 주루 속도 (Sprint Speed)",
+            desc: "초당 피트(ft/s) 기준 주루 능력",
+            away: mc.away_sprint_speed,
+            home: mc.home_sprint_speed,
+            format: v => v ? `${Number(v).toFixed(1)} ft/s` : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "선수단 평균 bWAR",
+            desc: "대체 선수 대비 평균 승리 기여도",
+            away: mc.away_avg_bwar,
+            home: mc.home_avg_bwar,
+            format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+            higherIsBetter: true
+        }
+    ];
+
+    let html = "";
+    rows.forEach(r => {
+        if (r.category) {
+            html += `<tr class="saber-category-row"><td colspan="3">${r.category}</td></tr>`;
+            return;
+        }
+
+        const aVal = Number(r.away);
+        const hVal = Number(r.home);
+        let awayBetter = false;
+        let homeBetter = false;
+
+        if (!isNaN(aVal) && !isNaN(hVal) && aVal !== hVal) {
+            if (r.higherIsBetter) {
+                awayBetter = aVal > hVal;
+                homeBetter = hVal > aVal;
+            } else {
+                awayBetter = aVal < hVal;
+                homeBetter = hVal < aVal;
+            }
+        }
+
+        html += `
+            <tr>
+                <td class="metric-num ${awayBetter ? 'is-better' : ''}">
+                    ${awayBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.away)}
+                </td>
+                <td class="metric-label-cell">
+                    ${r.label}
+                    <span class="metric-sub-desc">${r.desc}</span>
+                </td>
+                <td class="metric-num ${homeBetter ? 'is-better' : ''}">
+                    ${r.format(r.home)}${homeBetter ? '<span class="better-dot"></span>' : ''}
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+}
