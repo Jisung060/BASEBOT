@@ -6,73 +6,172 @@
 
     <title>신고 내역 | BASEBOT</title>
 
-    <!-- 공통 CSS -->
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/auth.css">
     <link rel="stylesheet" href="/css/mypage.css">
-
-    <!-- 기존 마이페이지 목록 스타일 재사용 -->
     <link rel="stylesheet" href="/css/my-posts.css">
-
-    <!-- 새로운 신고 CSS 스타일 적용 -->
     <link rel="stylesheet" href="/css/my-reports.css">
 </head>
 
 <body data-page="my-reports">
 
-    <!-- 공통 헤더 -->
     <div id="header"></div>
 
     <main class="auth-main">
+
         <div class="auth-layout">
 
             <!-- 마이페이지 사이드바 -->
             <div id="mypage-sidebar"></div>
 
             <!-- 본문 -->
-            <section class="mypage-content">
+            <section class="mypage-content my-reports-page">
 
-                <!-- 페이지 제목 -->
                 <div class="mypage-title">
                     <h1>신고 내역</h1>
                     <p>
-                        커뮤니티에서 신고한 게시글과 신고 처리 상태를 확인할 수 있습니다.
+                        내가 신고한 게시글과 신고 처리 상태를 확인할 수 있습니다.
                     </p>
                 </div>
 
-                <!-- 신고 내역 목록 -->
-                <div class="mypage-box">
+                <div class="mypage-box my-reports-box">
 
-                    <div class="mypage-box-title">
-                        신고 목록
-                        <span class="my-reports-total">총 0개</span>
+                    <div class="mypage-box-title my-reports-box-header">
+                        <div>
+                            <span>신고 목록</span>
+                            <p>신고한 게시글의 처리 상태를 확인해 보세요.</p>
+                        </div>
+
+                        <span class="my-posts-total">
+                            총 0개
+                        </span>
                     </div>
 
-                    <div class="mypage-box-body">
+                    <div class="mypage-box-body my-reports-body">
 
-                        <!-- JavaScript가 신고 내역을 표시하는 영역 -->
-                        <ul class="activity-list my-reports-list"></ul>
+                        <!-- 처리 상태 필터 -->
+                        <div class="my-reports-tabs"
+                             role="group"
+                             aria-label="신고 처리 상태 필터">
 
-                        <!-- 신고 내역이 없거나 조회할 수 없을 때 표시 -->
-                        <p id="my-reports-empty" style="display: none;">
-                            신고 내역이 없습니다.
-                        </p>
+                            <button type="button"
+                                    class="my-reports-tab active"
+                                    data-status="ALL"
+                                    aria-pressed="true">
+                                전체
+                            </button>
+
+                            <button type="button"
+                                    class="my-reports-tab"
+                                    data-status="PENDING"
+                                    aria-pressed="false">
+                                처리 대기
+                            </button>
+
+                            <button type="button"
+                                    class="my-reports-tab"
+                                    data-status="ACCEPTED"
+                                    aria-pressed="false">
+                                처리 완료
+                            </button>
+
+                            <button type="button"
+                                    class="my-reports-tab"
+                                    data-status="REJECTED"
+                                    aria-pressed="false">
+                                반려
+                            </button>
+
+                        </div>
+
+                        <!-- 검색 / 정렬 -->
+                        <div class="my-reports-toolbar">
+
+                            <label class="my-reports-search">
+                                <span class="sr-only">
+                                    신고한 게시글 제목 검색
+                                </span>
+
+                                <span class="my-reports-search-icon"
+                                      aria-hidden="true">
+                                    ⌕
+                                </span>
+
+                                <input type="search"
+                                       id="myReportsSearchInput"
+                                       placeholder="신고한 게시글 제목 검색..."
+                                       autocomplete="off">
+                            </label>
+
+                            <label class="my-reports-sort">
+                                <span class="sr-only">
+                                    신고 내역 정렬
+                                </span>
+
+                                <select id="myReportsSort">
+
+                                    <option value="newest">
+                                        최근 신고순
+                                    </option>
+
+                                    <option value="oldest">
+                                        오래된 신고순
+                                    </option>
+
+                                </select>
+                            </label>
+
+                        </div>
+
+                        <!-- 검색 결과 개수 -->
+                        <div class="my-reports-list-heading">
+                            <span id="myReportsResultCount">
+                                신고 0개
+                            </span>
+                        </div>
+
+                        <!-- 신고 목록 -->
+                        <ul class="activity-list my-posts-list my-reports-list">
+                        </ul>
+
+                        <!-- 신고 내역 없음 -->
+                        <div id="my-reports-empty"
+                             class="my-reports-empty"
+                             style="display: none;">
+
+                            <div class="my-reports-empty-icon"
+                                 aria-hidden="true">
+                                !
+                            </div>
+
+                            <strong>
+                                신고 내역이 없습니다.
+                            </strong>
+
+                            <p>
+                                신고한 게시글이 이곳에 표시됩니다.
+                            </p>
+
+                        </div>
+
+                        <!-- 페이지네이션 -->
+                        <nav id="my-reports-pagination"
+                             class="my-posts-pagination my-reports-pagination"
+                             aria-label="신고 내역 페이지 이동">
+                        </nav>
 
                     </div>
                 </div>
 
             </section>
         </div>
+
     </main>
 
-    <!-- 공통 푸터 -->
     <div id="footer"></div>
 
-    <!-- 공통 JavaScript -->
     <script src="/js/main.js"></script>
     <script src="/js/mypage.js"></script>
-
-    <!-- 신고 내역 JavaScript -->
     <script src="/js/my-reports.js"></script>
 
 </body>

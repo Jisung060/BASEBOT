@@ -1,0 +1,503 @@
+
+/* ========================================
+   BASEBOT 스크랩한 게시글 전용 CSS
+======================================== */
+
+.my-scraps-page {
+    min-width: 0;
+    color: #202b3c;
+}
+
+.my-scraps-page *,
+.my-scraps-page *::before,
+.my-scraps-page *::after {
+    box-sizing: border-box;
+}
+
+/* 페이지 제목 */
+.my-scraps-page .mypage-title {
+    margin-bottom: 26px;
+}
+
+.my-scraps-page .mypage-title h1 {
+    margin: 0 0 9px;
+    color: #142b4a;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.my-scraps-page .mypage-title p {
+    margin: 0;
+    color: #778397;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* 목록 카드 */
+.my-scraps-box {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5eaf1;
+    border-radius: 0;
+    box-shadow: 0 5px 20px rgba(23, 43, 77, 0.04);
+}
+
+.my-scraps-page .my-scraps-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 23px 25px;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.my-scraps-box-header > div > span {
+    color: #172e4f;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.my-scraps-box-header p {
+    margin: 7px 0 0;
+    color: #8792a3;
+    font-size: 13px;
+}
+
+.my-scraps-box-header .my-posts-total {
+    flex-shrink: 0;
+    padding: 8px 13px;
+    color: #174a83;
+    background: #edf5ff;
+    border: 1px solid #dbeaff;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-scraps-page .my-scraps-body {
+    min-width: 0;
+    padding: 22px 25px 26px;
+}
+
+/* 카테고리 버튼 */
+.my-scraps-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.my-scraps-page .my-scraps-tab {
+    min-height: 37px;
+    padding: 8px 16px;
+    color: #637087;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.my-scraps-page .my-scraps-tab:hover {
+    color: #173d70;
+    background: #f3f7fc;
+}
+
+.my-scraps-page .my-scraps-tab.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+/* 검색창과 정렬 */
+.my-scraps-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 19px;
+}
+
+.my-scraps-page .my-scraps-search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    background: #fff;
+}
+
+.my-scraps-search-icon {
+    margin-right: 9px;
+    color: #77869a;
+    font-size: 25px;
+}
+
+.my-scraps-page #myScrapsSearchInput {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    color: #25344a;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.my-scraps-page #myScrapsSearchInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.my-scraps-page #myScrapsSearchInput::placeholder {
+    color: #a1aaba;
+}
+
+.my-scraps-page #myScrapsSort {
+    width: 145px;
+    height: 44px;
+    padding: 0 12px;
+    color: #4c5a70;
+    background: #fff;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* 스크린 리더용 텍스트 */
+.my-scraps-page .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 목록 건수 */
+.my-scraps-list-heading {
+    min-height: 35px;
+    padding-bottom: 11px;
+    color: #6c788c;
+    border-bottom: 1px solid #e9edf3;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 게시글 목록 */
+.my-scraps-page .my-scraps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.my-scraps-page .my-scraps-item {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    border-bottom: 1px solid #edf0f4;
+    list-style: none;
+}
+
+.my-scraps-page .my-scraps-item:hover {
+    background: #f8faff;
+}
+
+.my-scraps-page .my-scraps-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+    min-width: 0;
+    padding: 10px 13px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.my-scraps-page .my-scraps-link:hover {
+    text-decoration: none;
+}
+
+.my-scraps-page .my-scraps-category {
+    display: inline-flex;
+    padding: 4px 9px;
+    color: #315c91;
+    background: #edf4fc;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.my-scraps-page .my-scraps-title {
+    display: block;
+    width: 100%;
+    overflow-wrap: anywhere;
+    color: #20314a;
+    font-size: 16px;
+    font-weight: 750;
+    line-height: 1.55;
+}
+
+.my-scraps-page .my-scraps-link:hover .my-scraps-title {
+    color: #2365a8;
+}
+
+.my-scraps-page .my-scraps-meta {
+    display: block;
+    max-width: 100%;
+    color: #8490a1;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.my-scraps-page .my-scraps-stats {
+    display: block;
+    color: #8994a4;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* 빈 목록 안내 */
+.my-scraps-page .my-scraps-empty {
+    padding: 48px 18px;
+    color: #778397;
+    text-align: center;
+}
+
+.my-scraps-empty-icon {
+    margin-bottom: 14px;
+    color: #a9b9cd;
+    font-size: 42px;
+}
+
+.my-scraps-page .my-scraps-empty strong {
+    display: block;
+    color: #34445b;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.my-scraps-page .my-scraps-empty p {
+    margin: 8px 0 0;
+    color: #8b96a6;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* 페이지 이동 */
+.my-scraps-page .my-scraps-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 0;
+}
+
+.my-scraps-page .my-scraps-page-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
+    height: 35px;
+    padding: 0 10px;
+    color: #5d6a7e;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.my-scraps-page .my-scraps-page-button:hover:not(:disabled) {
+    color: #173d70;
+    background: #f0f5fc;
+}
+
+/* 이전/다음 화살표 버튼 */
+.my-scraps-page .my-scraps-page-button.page-arrow {
+    font-size: 18px;
+    line-height: 1;
+    padding-bottom: 2px;
+}
+
+.my-scraps-page .my-scraps-page-button.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+.my-scraps-page .my-scraps-page-button:disabled {
+    color: #b5bdc9;
+    background: #f7f8fa;
+    cursor: not-allowed;
+}
+
+/* 모바일 화면 */
+@media (max-width: 600px) {
+    .my-scraps-page .mypage-title h1 {
+        font-size: 22px;
+    }
+
+    .my-scraps-page .my-scraps-box-header {
+        padding: 17px 15px;
+    }
+
+    .my-scraps-page .my-scraps-body {
+        padding: 17px 14px 22px;
+    }
+
+    .my-scraps-tabs {
+        gap: 6px;
+        margin-bottom: 17px;
+    }
+
+    .my-scraps-page .my-scraps-tab {
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 12px;
+    }
+
+    .my-scraps-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+    .my-scraps-page .my-scraps-search {
+        flex: none;
+        width: 100%;
+        height: 42px;
+    }
+
+    .my-scraps-page #myScrapsSort {
+        width: 100%;
+        height: 40px;
+    }
+
+    .my-scraps-page .my-scraps-link {
+        gap: 8px;
+        padding: 17px 8px;
+    }
+
+    .my-scraps-page .my-scraps-title {
+        font-size: 14px;
+    }
+
+    .my-scraps-page .my-scraps-meta {
+        font-size: 11px;
+    }
+
+    .my-scraps-page .my-scraps-stats {
+        font-size: 10px;
+    }
+
+    .my-scraps-page .my-scraps-empty {
+        padding: 38px 10px;
+    }
+}
+
+/* ========================================
+   스크랩 게시글 카테고리 색상
+   커뮤니티 메인과 동일한 색상 사용
+======================================== */
+
+.my-scraps-category.category-ANALYSIS {
+    background: #edf2ff;
+    color: #3157a5;
+}
+
+.my-scraps-category.category-GAME_THREAD {
+    background: #edf8f2;
+    color: #24724b;
+}
+
+.my-scraps-category.category-NEWS {
+    background: #fff5e9;
+    color: #a25c0b;
+}
+
+.my-scraps-category.category-GENERAL {
+    background: #f2f2f2;
+    color: #606060;
+}
+
+/* ========================================
+   스크랩 게시글 목록
+======================================== */
+
+.my-scraps-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    box-sizing: border-box;
+
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.my-scraps-link {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ========================================
+   스크랩 취소 버튼
+======================================== */
+
+.my-scrap-cancel-button {
+    flex-shrink: 0;
+
+    min-width: 82px;
+    height: 34px;
+    padding: 0 12px;
+
+    border: 1px solid #d6dbe3;
+    border-radius: 0;
+
+    background: #ffffff;
+    color: #667085;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.my-scrap-cancel-button:hover {
+    background: #f6f7f9;
+    border-color: #98a2b3;
+    color: #344054;
+}
+
+.my-scrap-cancel-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
