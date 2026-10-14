@@ -6,79 +6,167 @@
 
     <title>스크랩한 게시글 | BASEBOT</title>
 
-    <!-- 공통 CSS -->
+    <!-- 기존 공통 CSS: 수정하지 않음 -->
     <link rel="stylesheet" href="/css/main.css">
-
-    <!-- 인증 페이지 공통 CSS -->
     <link rel="stylesheet" href="/css/auth.css">
-
-    <!-- 마이페이지 공통 CSS -->
     <link rel="stylesheet" href="/css/mypage.css">
 
-    <!-- 내가 쓴 글과 동일한 목록 스타일 재사용 -->
+    <!-- 기존 목록 스타일 -->
     <link rel="stylesheet" href="/css/my-posts.css">
+
+    <!-- 스크랩 페이지 전용 디자인 -->
+    <link rel="stylesheet" href="/css/my-scraps.css">
 </head>
 
 <body data-page="my-scraps">
 
-    <!-- Header -->
+    <!-- 기존 공통 헤더 -->
     <div id="header"></div>
 
-    <!-- Main -->
     <main class="auth-main">
         <div class="auth-layout">
 
-            <!-- Sidebar -->
+            <!-- 기존 마이페이지 사이드바 -->
             <div id="mypage-sidebar"></div>
 
-            <!-- Content -->
-            <section class="mypage-content">
+            <!-- 스크랩 페이지 콘텐츠 -->
+            <section class="mypage-content my-scraps-page">
 
+                <!-- 페이지 제목 -->
                 <div class="mypage-title">
                     <h1>스크랩한 게시글</h1>
-                    <p>관심 있는 게시글을 모아보고 다시 확인할 수 있습니다.</p>
+                    <p>
+                        관심 있는 게시글을 모아보고 언제든 다시 확인할 수 있습니다.
+                    </p>
                 </div>
 
-                <div class="mypage-box">
+                <!-- 스크랩 목록 카드 -->
+                <div class="mypage-box my-scraps-box">
 
-                    <div class="mypage-box-title">
-                        스크랩 목록
+                    <!-- 카드 제목 -->
+                    <div class="mypage-box-title my-scraps-box-header">
+                        <div>
+                            <span>스크랩 목록</span>
+                            <p>저장한 게시글을 확인해 보세요.</p>
+                        </div>
+
                         <span class="my-posts-total">총 0개</span>
                     </div>
 
-                    <div class="mypage-box-body">
+                    <div class="mypage-box-body my-scraps-body">
 
-                        <!-- 스크랩한 게시글 목록 -->
-                        <ul class="activity-list my-posts-list">
+                        <!-- 카테고리 필터 -->
+                        <div class="my-scraps-tabs" role="group"
+                             aria-label="게시글 카테고리 필터">
+
+                            <button type="button"
+                                    class="my-scraps-tab active"
+                                    data-category="ALL"
+                                    aria-pressed="true">
+                                전체
+                            </button>
+
+                            <button type="button"
+                                    class="my-scraps-tab"
+                                    data-category="NEWS"
+                                    aria-pressed="false">
+                                야구 뉴스
+                            </button>
+
+                            <button type="button"
+                                    class="my-scraps-tab"
+                                    data-category="GAME_THREAD"
+                                    aria-pressed="false">
+                                경기
+                            </button>
+
+                            <button type="button"
+                                    class="my-scraps-tab"
+                                    data-category="ANALYSIS"
+                                    aria-pressed="false">
+                                분석
+                            </button>
+
+                            <button type="button"
+                                    class="my-scraps-tab"
+                                    data-category="GENERAL"
+                                    aria-pressed="false">
+                                자유글
+                            </button>
+                        </div>
+
+                        <!-- 검색과 정렬 -->
+                        <div class="my-scraps-toolbar">
+
+                            <label class="my-scraps-search">
+                                <span class="sr-only">게시글 제목 검색</span>
+
+                                <span class="my-scraps-search-icon"
+                                      aria-hidden="true">⌕</span>
+
+                                <input
+                                    type="search"
+                                    id="myScrapsSearchInput"
+                                    placeholder="스크랩한 게시글 제목 검색..."
+                                    autocomplete="off">
+                            </label>
+
+                            <label class="my-scraps-sort">
+                                <span class="sr-only">게시글 정렬</span>
+
+                                <select id="myScrapsSort">
+                                    <option value="newest">최근 스크랩순</option>
+                                    <option value="oldest">오래된 스크랩순</option>
+                                </select>
+                            </label>
+
+                        </div>
+
+                        <!-- 목록 건수 -->
+                        <div class="my-scraps-list-heading">
+                            <span id="myScrapsResultCount">게시글 0개</span>
+                        </div>
+
+                        <!-- JavaScript가 게시글을 표시하는 영역 -->
+                        <ul class="activity-list my-posts-list my-scraps-list">
                         </ul>
 
-                        <!-- 스크랩한 게시글이 없을 때 -->
-                        <p id="my-posts-empty" style="display: none;">
-                            스크랩한 게시글이 없습니다.
-                        </p>
+                        <!-- 목록이 없을 때 -->
+                        <div id="my-posts-empty"
+                             class="my-scraps-empty"
+                             style="display: none;">
+
+                            <div class="my-scraps-empty-icon"
+                                 aria-hidden="true">☆</div>
+
+                            <strong>스크랩한 게시글이 없습니다.</strong>
+
+                            <p>
+                                다른 게시글을 둘러보고 마음에 드는 글을 스크랩해 보세요.
+                            </p>
+                        </div>
+
+                        <!-- 페이지 이동 -->
+                        <nav id="my-posts-pagination"
+                             class="my-posts-pagination my-scraps-pagination"
+                             aria-label="스크랩 목록 페이지 이동">
+                        </nav>
 
                     </div>
-                </div>
-
-                <!-- 페이지 이동 -->
-                <div id="my-posts-pagination"
-                     class="my-posts-pagination">
                 </div>
 
             </section>
         </div>
     </main>
 
-    <!-- Footer -->
+    <!-- 기존 공통 푸터 -->
     <div id="footer"></div>
 
-    <!-- 공통 JS -->
+    <!-- 기존 공통 JavaScript -->
     <script src="/js/main.js"></script>
-
-    <!-- 마이페이지 공통 JS -->
     <script src="/js/mypage.js"></script>
 
-    <!-- 스크랩 목록 전용 JS -->
+    <!-- 기존 스크랩 조회 JavaScript -->
     <script src="/js/my-scraps.js"></script>
 
 </body>

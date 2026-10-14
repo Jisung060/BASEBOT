@@ -1386,6 +1386,54 @@ def get_my_reports(
     return result
 
 # =========================================
+# 게시글 신고 취소
+# =========================================
+
+@router.delete("/reports/{report_id}")
+def cancel_post_report(
+    report_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    # 신고 내역 확인
+    report = (
+        session.query(PostReport)
+        .filter(
+            PostReport.report_id == report_id
+        )
+        .first()
+    )
+
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="신고 내역을 찾을 수 없습니다."
+        )
+
+    # 본인이 접수한 신고인지 확인
+    if report.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="본인이 접수한 신고만 취소할 수 있습니다."
+        )
+
+    # 아직 처리되지 않은 신고만 취소 가능
+    if report.status != "PENDING":
+        raise HTTPException(
+            status_code=400,
+            detail="이미 검토가 시작되었거나 처리된 신고는 취소할 수 없습니다."
+        )
+
+    # 신고 삭제
+    session.delete(report)
+    session.commit()
+
+    return {
+        "message": "신고가 취소되었습니다.",
+        "report_id": report_id
+    }
+
+# =========================================
 # 게시글 이미지 업로드
 # =========================================
 
