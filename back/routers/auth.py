@@ -147,13 +147,12 @@ def login(
         )
     )
 
-    # 2. 회원 조회 결과 및 권한 확인
+    # 관리자 로그인 디버그
     if user:
         print("===== ADMIN LOGIN DEBUG =====")
         print("username:", user.username)
         print("DB role:", repr(user.role))
         print("=============================")
-
 
     # 2. 아이디가 없거나 비밀번호가 틀린 경우
     if not user or not verify_password(
@@ -165,13 +164,20 @@ def login(
             detail="아이디 또는 비밀번호가 올바르지 않습니다."
         )
 
-    # 3. JWT 생성
+    # 3. 회원 상태 확인
+    if user.status != "ACTIVE":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="탈퇴했거나 이용이 제한된 계정입니다."
+        )
+
+    # 4. JWT 생성
     access_token = create_access_token(
         user_id=user.user_id,
         username=user.username
     )
 
-    # 4. 로그인 결과 반환
+    # 5. 로그인 결과 반환
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",

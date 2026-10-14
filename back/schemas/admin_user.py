@@ -13,6 +13,7 @@ class AdminUserItem(BaseModel):
     role: str
     grade: str
     status: str
+    withdrawal_requested_at: datetime | None = None
     created_at: datetime
 
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database.db_connection import get_session
 from models.user import User
 from models.team import Team
+from datetime import datetime
 
 from schemas.user import (
     UserInfoResponse,
@@ -240,3 +241,57 @@ def get_mypage_info(
         prediction_streak=current_user.prediction_streak,
         max_prediction_streak=current_user.max_prediction_streak
     )
+
+# ==================================================
+# 회원 탈퇴 신청
+# ==================================================
+
+@router.post("/me/withdrawal-request")
+def request_withdrawal(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session)
+):
+    # 이미 탈퇴한 회원
+    if current_user.status == "WITHDRAWN":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 탈퇴 처리된 회원입니다."
+        )
+
+    # 이미 탈퇴 신청한 회원
+    if current_user.status == "WITHDRAWAL_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이미 탈퇴 신청이 접수되었습니다."
+        )
+
+    # 활동 정지 회원의 탈퇴 신청은 정책에 따라 제한
+    if current_user.status == "RESTRICTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="활동 정지 상태에서는 탈퇴 신청을 진행할 수 없습니다."
+        )
+
+    # 탈퇴 신청 상태 및 신청 시간 저장
+    current_user.status = "WITHDRAWAL_REQUESTED"
+    current_user.withdrawal_requested_at = datetime.now()
+
+    try:
+        db.commit()
+        db.refresh(current_user)
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="탈퇴 신청 처리 중 오류가 발생했습니다."
+        )
+
+    return {
+        "message": "회원 탈퇴 신청이 접수되었습니다.",
+        "status": current_user.status,
+        "withdrawal_requested_at": (
+            current_user.withdrawal_requested_at.isoformat()
+        )
+    }

@@ -73,7 +73,7 @@ def get_admin_users(
     keyword: str | None = Query(default=None),
     role: Literal["USER", "ADMIN"] | None = Query(default=None),
     status_filter: Literal[
-        "ACTIVE", "RESTRICTED", "WITHDRAWN"
+        "ACTIVE", "RESTRICTED", "WITHDRAWAL_REQUESTED", "WITHDRAWN"
     ] | None = Query(default=None, alias="status"),
     sort_by: Literal[
         "user_id", "username", "nickname", "created_at"
@@ -167,3 +167,94 @@ def get_admin_user_detail(
         )
 
     return AdminUserDetailResponse.model_validate(user)
+
+# ==================================================
+# 탈퇴 신청 승인
+# ==================================================
+
+@router.post("/{user_id}/withdrawal/approve")
+def approve_withdrawal(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_session),
+):
+    user = db.scalar(
+        select(User).where(User.user_id == user_id)
+    )
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="회원을 찾을 수 없습니다.",
+        )
+
+    if user.status != "WITHDRAWAL_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="탈퇴 신청 상태인 회원만 승인할 수 있습니다.",
+        )
+
+    user.status = "WITHDRAWN"
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="탈퇴 승인 처리에 실패했습니다.",
+        )
+
+    return {
+        "message": "회원 탈퇴가 승인되었습니다.",
+        "user_id": user.user_id,
+        "status": user.status,
+    }
+
+
+# ==================================================
+# 탈퇴 신청 반려
+# ==================================================
+
+@router.post("/{user_id}/withdrawal/reject")
+def reject_withdrawal(
+    user_id: int,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_session),
+):
+    user = db.scalar(
+        select(User).where(User.user_id == user_id)
+    )
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="회원을 찾을 수 없습니다.",
+        )
+
+    if user.status != "WITHDRAWAL_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="탈퇴 신청 상태인 회원만 반려할 수 있습니다.",
+        )
+
+    # 반려 시 정상 상태로 복구
+    user.status = "ACTIVE"
+    user.withdrawal_requested_at = None
+
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="탈퇴 반려 처리에 실패했습니다.",
+        )
+
+    return {
+        "message": "회원 탈퇴 신청이 반려되었습니다.",
+        "user_id": user.user_id,
+        "status": user.status,
+    }

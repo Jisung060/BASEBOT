@@ -1,6 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, String, Integer, DateTime, Enum, ForeignKey
+from sqlalchemy import (
+    BigInteger,
+    String,
+    Integer,
+    DateTime,
+    Enum,
+    ForeignKey,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.orm import Base
@@ -58,10 +65,17 @@ class User(Base):
         Enum(
             "ACTIVE",
             "RESTRICTED",
+            "WITHDRAWAL_REQUESTED",
             "WITHDRAWN",
         ),
         default="ACTIVE",
         nullable=False
+    )
+
+    # 회원 탈퇴 신청 시간
+    withdrawal_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
     )
 
     point: Mapped[int] = mapped_column(

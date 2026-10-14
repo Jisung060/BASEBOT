@@ -336,3 +336,68 @@ document.addEventListener(
         }
     }
 );
+
+// ==================================================
+// 회원 탈퇴 신청
+// ==================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    const withdrawalButton = document.getElementById(
+        "withdrawalRequestButton"
+    );
+
+    if (!withdrawalButton) {
+        return;
+    }
+
+    withdrawalButton.addEventListener("click", async () => {
+        const confirmed = confirm(
+            "회원 탈퇴를 신청하시겠습니까?\n" +
+            "관리자 승인 후 탈퇴 처리됩니다."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const token = sessionStorage.getItem("access_token");
+
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
+        }
+
+        withdrawalButton.disabled = true;
+
+        try {
+            const response = await fetch(
+                "/users/me/withdrawal-request",
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "탈퇴 신청에 실패했습니다."
+                );
+            }
+
+            alert(data.message);
+
+            // 신청 완료 후 버튼 비활성화
+            withdrawalButton.textContent = "탈퇴 신청 완료";
+
+        } catch (error) {
+            alert(error.message);
+
+            withdrawalButton.disabled = false;
+        }
+    });
+});
