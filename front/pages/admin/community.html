@@ -25,7 +25,17 @@
     <div class="panel-heading"><div><h2>콘텐츠 검색</h2><p>게시글 제목 또는 작성자 기준으로 검색합니다.</p></div></div>
     <form class="filter-form" action="#" method="get">
         <label>콘텐츠 유형<select name="type"><option value="all">전체</option><option value="post">게시글</option><option value="comment">댓글</option><option value="report">신고</option></select></label>
-        <label>신고 상태<select name="report_status"><option value="">전체 상태</option><option value="PENDING">처리 대기</option><option value="APPROVED">조치 완료</option><option value="REJECTED">반려</option></select></label>
+
+        <label>신고 상태
+            <select name="report_status">
+                <option value="">전체 상태</option>
+                <option value="PENDING">처리 대기</option>
+                <option value="REVIEWED">검토 완료</option>
+                <option value="ACCEPTED">조치 승인</option>
+                <option value="REJECTED">반려</option>
+            </select>
+        </label>
+
         <label class="grow">검색어<input type="search" name="keyword" placeholder="제목 / 작성자 / 신고 사유"></label>
         <button class="button button-primary" type="submit">검색</button>
     </form>
@@ -47,5 +57,6 @@
         </main>
     </div>
     <script src="/js/admin/admin-common.js"></script>
+    <script src="/js/admin/admin-community.js"></script>
 </body>
 </html>
