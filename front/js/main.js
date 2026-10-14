@@ -3,10 +3,20 @@
 ================================================== */
 
 fetch("/components/header.html")
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Header 파일을 불러오지 못했습니다.");
+        }
+
+        return response.text();
+    })
     .then(data => {
-        document.getElementById("header").innerHTML = data;
-        updateHeader();
+        const header = document.getElementById("header");
+
+        if (header) {
+            header.innerHTML = data;
+            updateHeader();
+        }
     })
     .catch(error => {
         console.error("Header 불러오기 실패:", error);
@@ -18,9 +28,19 @@ fetch("/components/header.html")
 ================================================== */
 
 fetch("/components/footer.html")
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Footer 파일을 불러오지 못했습니다.");
+        }
+
+        return response.text();
+    })
     .then(data => {
-        document.getElementById("footer").innerHTML = data;
+        const footer = document.getElementById("footer");
+
+        if (footer) {
+            footer.innerHTML = data;
+        }
     })
     .catch(error => {
         console.error("Footer 불러오기 실패:", error);
@@ -32,10 +52,7 @@ fetch("/components/footer.html")
 ================================================== */
 
 function updateHeader() {
-
     const accessToken = sessionStorage.getItem("access_token");
-
-    console.log("accessToken:", accessToken);
 
     const loginLink = document.getElementById("loginLink");
     const signupArea = document.getElementById("signupArea");
@@ -54,6 +71,8 @@ function updateHeader() {
     }
 
     // 관리자 메뉴 표시
+    // 프런트엔드 메뉴 표시는 편의 기능이며,
+    // 관리자 권한은 반드시 백엔드에서도 검증해야 한다.
     if (adminLink) {
         if (accessToken && user && user.role === "ADMIN") {
             adminLink.style.display = "inline-block";
@@ -67,20 +86,19 @@ function updateHeader() {
     ================================================== */
 
     if (!accessToken) {
-
-        /* 로그인 */
+        // 로그인
         if (loginLink) {
             loginLink.textContent = "로그인";
             loginLink.href = "login.html";
             loginLink.onclick = null;
         }
 
-        /* 회원가입 표시 */
+        // 회원가입 표시
         if (signupArea) {
             signupArea.style.display = "inline";
         }
 
-        /* 마이페이지 숨김 */
+        // 마이페이지 숨김
         if (mypageArea) {
             mypageArea.style.display = "none";
         }
@@ -88,12 +106,11 @@ function updateHeader() {
         return;
     }
 
-
     /* ==================================================
        로그인한 상태
     ================================================== */
 
-    /* 로그인 → 로그아웃 */
+    // 로그인 → 로그아웃
     if (loginLink) {
         loginLink.textContent = "로그아웃";
         loginLink.href = "#";
@@ -104,12 +121,12 @@ function updateHeader() {
         };
     }
 
-    /* 회원가입 숨김 */
+    // 회원가입 숨김
     if (signupArea) {
         signupArea.style.display = "none";
     }
 
-    /* 마이페이지 표시 */
+    // 마이페이지 표시
     if (mypageArea) {
         mypageArea.style.display = "inline";
     }
@@ -121,9 +138,11 @@ function updateHeader() {
 ================================================== */
 
 function logout() {
-
     sessionStorage.removeItem("access_token");
     sessionStorage.removeItem("user");
+
+    // 현재 페이지의 챗봇 세션 초기화
+    chatbotSessionId = null;
 
     alert("로그아웃되었습니다.");
 
@@ -132,118 +151,83 @@ function logout() {
 
 
 /* ==================================================
-   AI CHATBOT
+   AI CHATBOT DOM 요소
 ================================================== */
 
-const chatbotButton =
-    document.getElementById("chatbotButton");
+const chatbotButton = document.getElementById("chatbotButton");
+const chatbotWindow = document.getElementById("chatbotWindow");
+const chatbotClose = document.getElementById("chatbotClose");
+const chatbotInput = document.getElementById("chatbotInput");
+const chatbotSend = document.getElementById("chatbotSend");
+const chatbotBody = document.querySelector(".chatbot-body");
 
-const chatbotWindow =
-    document.getElementById("chatbotWindow");
 
-const chatbotClose =
-    document.getElementById("chatbotClose");
+/* ==================================================
+   챗봇 세션 ID
+================================================== */
 
-const chatbotInput =
-    document.getElementById("chatbotInput");
+// 페이지가 열려 있는 동안 같은 대화의 세션 ID를 유지한다.
+// 페이지를 새로고침하면 새 대화가 시작된다.
+let chatbotSessionId = null;
 
-const chatbotSend =
-    document.getElementById("chatbotSend");
 
-const chatbotBody =
-    document.querySelector(".chatbot-body");
+/* ==================================================
+   챗봇 요청 상태
+================================================== */
+
+// 답변을 기다리는 동안 중복 요청 방지
+let isChatSending = false;
 
 
 /* ==================================================
    챗봇 열기 / 닫기
 ================================================== */
-if(chatbotButton && chatbotWindow) { // 챗봇 창이 존재할 때(창이 없는 곳에서의 오류 방지)
-    chatbotButton.addEventListener(
-        "click",
-        function () {
 
-            chatbotWindow.classList.toggle(
-                "active"
-            );
+if (chatbotButton && chatbotWindow) {
+    chatbotButton.addEventListener("click", function () {
+        chatbotWindow.classList.toggle("active");
 
-            if (
-                chatbotWindow.classList.contains(
-                    "active"
-                )
-            ) {
-
-                chatbotInput.focus();
-
-            }
-
+        if (
+            chatbotWindow.classList.contains("active") &&
+            chatbotInput
+        ) {
+            chatbotInput.focus();
         }
-    );
+    });
 }
+
 
 /* ==================================================
    챗봇 닫기
 ================================================== */
-if(chatbotButton && chatbotWindow) {
-    chatbotClose.addEventListener(
-        "click",
-        function () {
 
-            chatbotWindow.classList.remove(
-                "active"
-            );
-
-        }
-    );
+if (chatbotClose && chatbotWindow) {
+    chatbotClose.addEventListener("click", function () {
+        chatbotWindow.classList.remove("active");
+    });
 }
 
-/* ==================================================
-   세션 ID
-================================================== */
-
-// let chatbotSessionId =
-//     localStorage.getItem(
-//         "basebot_chat_session_id"
-//     );
-
-let chatbotSessionId = null;
 
 /* ==================================================
    사용자 메시지
 ================================================== */
 
-function addUserMessage(
-    message
-) {
+function addUserMessage(message) {
+    if (!chatbotBody) {
+        return;
+    }
 
-    const messageElement =
-        document.createElement("div");
+    const messageElement = document.createElement("div");
+    messageElement.className = "chatbot-message user";
 
+    const content = document.createElement("div");
+    content.className = "message-content";
 
-    messageElement.className =
-        "chatbot-message user";
+    // 사용자 입력을 HTML로 해석하지 않도록 textContent 사용
+    content.textContent = message;
 
-
-    const content =
-        document.createElement("div");
-
-
-    content.className =
-        "message-content";
-
-
-    content.textContent =
-        message;
-
-
-    messageElement.appendChild(
-        content
-    );
-
-
-    chatbotBody.appendChild(
-        messageElement
-    );
-
+    messageElement.appendChild(content);
+    chatbotBody.appendChild(messageElement);
 
     scrollChatToBottom();
 }
@@ -253,45 +237,29 @@ function addUserMessage(
    AI 메시지
 ================================================== */
 
-function addBotMessage(
-    message
-) {
+function addBotMessage(message) {
+    if (!chatbotBody) {
+        return;
+    }
 
-    const messageElement =
-        document.createElement("div");
+    const messageElement = document.createElement("div");
+    messageElement.className = "chatbot-message bot";
 
-    messageElement.className =
-        "chatbot-message bot";
+    const icon = document.createElement("div");
+    icon.className = "message-icon";
+    icon.textContent = "AI";
 
-    const icon =
-        document.createElement("div");
+    const content = document.createElement("div");
+    content.className = "message-content";
 
-    icon.className =
-        "message-icon";
+    // AI 답변의 줄바꿈은 CSS white-space 설정으로 표시할 수 있다.
+    // 서버 응답을 HTML로 실행하지 않도록 textContent 사용
+    content.textContent = message;
 
-    icon.textContent =
-        "AI";
+    messageElement.appendChild(icon);
+    messageElement.appendChild(content);
 
-    const content =
-        document.createElement("div");
-
-    content.className =
-        "message-content";
-
-    content.textContent =
-        message;
-
-    messageElement.appendChild(
-        icon
-    );
-
-    messageElement.appendChild(
-        content
-    );
-
-    chatbotBody.appendChild(
-        messageElement
-    );
+    chatbotBody.appendChild(messageElement);
 
     scrollChatToBottom();
 }
@@ -302,29 +270,32 @@ function addBotMessage(
 ================================================== */
 
 function addLoadingMessage() {
+    if (!chatbotBody) {
+        return;
+    }
 
-    const messageElement =
-        document.createElement("div");
+    // 기존 로딩 메시지가 있다면 중복 생성하지 않는다.
+    if (document.getElementById("chatbotLoading")) {
+        return;
+    }
 
-    messageElement.id =
-        "chatbotLoading";
+    const messageElement = document.createElement("div");
 
-    messageElement.className =
-        "chatbot-message bot";
+    messageElement.id = "chatbotLoading";
+    messageElement.className = "chatbot-message bot";
 
-    messageElement.innerHTML = `
-        <div class="message-icon">
-            AI
-        </div>
+    const icon = document.createElement("div");
+    icon.className = "message-icon";
+    icon.textContent = "AI";
 
-        <div class="message-content">
-            답변을 생각하고 있어요...
-        </div>
-    `;
+    const content = document.createElement("div");
+    content.className = "message-content";
+    content.textContent = "답변을 생각하고 있어요...";
 
-    chatbotBody.appendChild(
-        messageElement
-    );
+    messageElement.appendChild(icon);
+    messageElement.appendChild(content);
+
+    chatbotBody.appendChild(messageElement);
 
     scrollChatToBottom();
 }
@@ -335,16 +306,10 @@ function addLoadingMessage() {
 ================================================== */
 
 function removeLoadingMessage() {
-
-    const loading =
-        document.getElementById(
-            "chatbotLoading"
-        );
+    const loading = document.getElementById("chatbotLoading");
 
     if (loading) {
-
         loading.remove();
-
     }
 }
 
@@ -354,9 +319,26 @@ function removeLoadingMessage() {
 ================================================== */
 
 function scrollChatToBottom() {
+    if (!chatbotBody) {
+        return;
+    }
 
-    chatbotBody.scrollTop =
-        chatbotBody.scrollHeight;
+    chatbotBody.scrollTop = chatbotBody.scrollHeight;
+}
+
+
+/* ==================================================
+   챗봇 입력 상태 변경
+================================================== */
+
+function setChatInputDisabled(disabled) {
+    if (chatbotInput) {
+        chatbotInput.disabled = disabled;
+    }
+
+    if (chatbotSend) {
+        chatbotSend.disabled = disabled;
+    }
 }
 
 
@@ -365,80 +347,119 @@ function scrollChatToBottom() {
 ================================================== */
 
 async function sendChatMessage() {
+    // 입력 요소가 없는 페이지에서는 실행하지 않는다.
+    if (!chatbotInput || !chatbotBody) {
+        return;
+    }
+
+    // 요청 처리 중에는 중복 전송하지 않는다.
+    if (isChatSending) {
+        return;
+    }
+
     const message = chatbotInput.value.trim();
 
     if (!message) {
         return;
     }
 
+    // 요청 상태 변경
+    isChatSending = true;
+    setChatInputDisabled(true);
 
-    /* 사용자 메시지 출력 */
-    addUserMessage(
-        message
-    );
+    // 사용자 메시지 출력
+    addUserMessage(message);
 
-    /* 입력창 초기화 */
+    // 입력창 초기화
     chatbotInput.value = "";
 
-    /* 로딩 */
+    // 로딩 표시
     addLoadingMessage();
 
     try {
-        const response =
-            await fetch(
-                "/chat",
-                {
-                    method: "POST",
+        const accessToken = sessionStorage.getItem("access_token");
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+        const headers = {
+            "Content-Type": "application/json"
+        };
 
-                    body: JSON.stringify({
-                        message: message,
-                        session_id:
-                            chatbotSessionId,
-                        user_id: null
-                    })
-                }
-            );
+        // 토큰이 있는 경우 Authorization 헤더 전달
+        // 백엔드에서 JWT 인증을 처리하도록 연결해야 실제 인증이 적용된다.
+        if (accessToken) {
+            headers["Authorization"] = `Bearer ${accessToken}`;
+        }
+
+        const response = await fetch("/chat", {
+            method: "POST",
+
+            headers: headers,
+
+            body: JSON.stringify({
+                message: message,
+                session_id: chatbotSessionId
+            })
+        });
 
         if (!response.ok) {
+            let errorMessage = "챗봇 API 요청 실패";
+
+            try {
+                const errorData = await response.json();
+
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                }
+            } catch (parseError) {
+                // 오류 응답이 JSON이 아닌 경우 기본 메시지 사용
+            }
+
             throw new Error(
-                "챗봇 API 요청 실패"
+                `${errorMessage} (HTTP ${response.status})`
             );
         }
 
         const data = await response.json();
-        /* 세션 ID 저장 */
-        chatbotSessionId =
-            data.session_id;
 
-        // localStorage.setItem(
-        //     "basebot_chat_session_id",
-        //     chatbotSessionId
-        // );
+        // 응답 데이터 확인
+        if (typeof data.answer !== "string") {
+            throw new Error("챗봇 응답에 answer가 없습니다.");
+        }
 
+        // 서버에서 반환한 세션 ID 유지
+        if (data.session_id) {
+            chatbotSessionId = data.session_id;
+        }
+
+        // 로딩 제거
         removeLoadingMessage();
 
-        /* AI 답변 */
-        addBotMessage(
-            data.answer
-        );
+        // AI 답변 출력
+        addBotMessage(data.answer);
 
     } catch (error) {
-
-        console.error(
-            "AI 챗봇 오류:",
-            error
-        );
+        console.error("AI 챗봇 오류:", error);
 
         removeLoadingMessage();
 
         addBotMessage(
-            "죄송합니다. 현재 AI 챗봇과 연결할 수 없습니다."
+            "죄송합니다. 현재 AI 챗봇과 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."
         );
+
+    } finally {
+        // 요청 상태 초기화
+        isChatSending = false;
+
+        // 입력창과 버튼 활성화
+        setChatInputDisabled(false);
+
+        // 입력창에 포커스
+        if (
+            chatbotWindow &&
+            chatbotWindow.classList.contains("active") &&
+            chatbotInput
+        ) {
+            chatbotInput.focus();
+        }
     }
 }
 
@@ -446,48 +467,33 @@ async function sendChatMessage() {
 /* ==================================================
    전송 버튼
 ================================================== */
-if(chatbotSend) {
-    chatbotSend.addEventListener(
-        "click",
-        sendChatMessage
-    );
+
+if (chatbotSend) {
+    chatbotSend.addEventListener("click", sendChatMessage);
 }
+
 
 /* ==================================================
-   Enter
+   Enter 키로 메시지 전송
 ================================================== */
-if(chatbotInput) {
-    chatbotInput.addEventListener(
-        "keydown",
-        function (event) {
 
-            if (
-                event.key === "Enter"
-            ) {
-
-                event.preventDefault();
-
-                sendChatMessage();
-
-            }
-
+if (chatbotInput) {
+    chatbotInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendChatMessage();
         }
-    );
+    });
 }
+
 
 /* ==================================================
    경기 결과 불러오기
 ================================================== */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        /* 경기 데이터 로드 */
-        fetchMainGames();
-
-    }
-);
+document.addEventListener("DOMContentLoaded", function () {
+    fetchMainGames();
+});
 
 
 /* ==================================================
@@ -495,43 +501,57 @@ document.addEventListener(
 ================================================== */
 
 async function fetchMainGames() {
-
     try {
-
-        /* 2024-04-15 경기 결과 및 일정 조회 */
-        const res =
-            await fetch(
-                "http://127.0.0.1:8000/api/games?date=2024-04-15&limit=6"
-            );
-
+        // 기존에 사용하던 날짜와 limit 값은 유지한다.
+        // localhost를 직접 지정하지 않고 현재 서버의 상대 경로를 사용한다.
+        const res = await fetch(
+            "/api/games?date=2024-04-15&limit=6"
+        );
 
         if (!res.ok) {
-            return;
+            throw new Error(
+                `경기 API 요청 실패: HTTP ${res.status}`
+            );
         }
 
+        const games = await res.json();
 
-        const games =
-            await res.json();
+        if (!Array.isArray(games)) {
+            throw new Error("경기 API 응답 형식이 배열이 아닙니다.");
+        }
 
-
-        renderTodayGames(
-            games
-        );
-
-
-        renderGameResults(
-            games
-        );
-
+        renderTodayGames(games);
+        renderGameResults(games);
 
     } catch (err) {
-
-        console.error(
-            "메인 경기 데이터 로드 실패:",
-            err
-        );
-
+        console.error("메인 경기 데이터 로드 실패:", err);
     }
+}
+
+
+/* ==================================================
+   경기 날짜 및 시간 표시
+================================================== */
+
+function formatGameTime(gameTime) {
+    if (!gameTime) {
+        return "";
+    }
+
+    // DB의 TIME 컬럼이 "14:10:00" 형식으로 반환되는 경우
+    const timeString = String(gameTime);
+
+    const match = timeString.match(/^(\d{1,2}):(\d{2})/);
+
+    if (match) {
+        const hour = match[1].padStart(2, "0");
+        const minute = match[2];
+
+        return `${hour}:${minute}`;
+    }
+
+    // 예상하지 못한 형식은 원본 문자열을 그대로 반환
+    return timeString;
 }
 
 
@@ -539,83 +559,71 @@ async function fetchMainGames() {
    오늘의 경기 카드 영역 렌더링
 ================================================== */
 
-function renderTodayGames(
-    games
-) {
+function renderTodayGames(games) {
+    const container = document.querySelector(".game-list");
 
-    const container =
-        document.querySelector(
-            ".game-list"
-        );
-
-
-    if (
-        !container ||
-        games.length === 0
-    ) {
+    if (!container) {
         return;
     }
 
-
     container.innerHTML = "";
 
+    if (games.length === 0) {
+        return;
+    }
 
-    games
-        .slice(0, 3)
-        .forEach(g => {
+    games.slice(0, 3).forEach(game => {
+        const card = document.createElement("div");
+        card.className = "game-card";
 
-            const timeStr =
-                new Date(
-                    g.game_date
-                ).toLocaleTimeString(
-                    [],
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    }
-                );
+        const gameInfo = document.createElement("div");
+        gameInfo.className = "game-info";
 
+        // 경기 날짜와 시간을 분리하여 표시
+        const gameDate = game.game_date
+            ? String(game.game_date).slice(0, 10)
+            : "";
 
-            const card =
-                document.createElement(
-                    "div"
-                );
+        const gameTime = formatGameTime(game.game_time);
 
+        gameInfo.textContent = [gameDate, gameTime]
+            .filter(Boolean)
+            .join(" ");
 
-            card.className =
-                "game-card";
+        const gameTeam = document.createElement("div");
+        gameTeam.className = "game-team";
 
+        const awayTeam = document.createElement("span");
+        awayTeam.textContent =
+            game.away_team_code ||
+            game.away_team_name ||
+            game.away_team ||
+            "원정팀";
 
-            card.innerHTML = `
-                <div class="game-info">
-                    ${timeStr}
-                </div>
+        const versus = document.createElement("strong");
+        versus.textContent = "VS";
 
-                <div class="game-team">
-                    <span>
-                        ${g.away_team_code}
-                    </span>
+        const homeTeam = document.createElement("span");
+        homeTeam.textContent =
+            game.home_team_code ||
+            game.home_team_name ||
+            game.home_team ||
+            "홈팀";
 
-                    <strong>
-                        VS
-                    </strong>
+        gameTeam.appendChild(awayTeam);
+        gameTeam.appendChild(versus);
+        gameTeam.appendChild(homeTeam);
 
-                    <span>
-                        ${g.home_team_code}
-                    </span>
-                </div>
+        const gameStatus = document.createElement("div");
+        gameStatus.className = "game-status";
+        gameStatus.textContent = game.status || "상태 미정";
 
-                <div class="game-status">
-                    ${g.status}
-                </div>
-            `;
+        card.appendChild(gameInfo);
+        card.appendChild(gameTeam);
+        card.appendChild(gameStatus);
 
-
-            container.appendChild(
-                card
-            );
-
-        });
+        container.appendChild(card);
+    });
 }
 
 
@@ -623,69 +631,62 @@ function renderTodayGames(
    경기 결과 영역 렌더링
 ================================================== */
 
-function renderGameResults(
-    games
-) {
+function renderGameResults(games) {
+    const container = document.querySelector(".result-list");
 
-    const container =
-        document.querySelector(
-            ".result-list"
-        );
-
-
-    if (
-        !container ||
-        games.length === 0
-    ) {
+    if (!container) {
         return;
     }
 
-
     container.innerHTML = "";
 
+    if (games.length === 0) {
+        return;
+    }
 
-    /* DB의 ENUM 값인 "FINAL"로 비교 */
-    const finishedGames =
-        games
-            .filter(
-                g => g.status === "FINAL"
-            )
-            .slice(0, 3);
+    // DB ENUM 값인 FINAL로 비교
+    const finishedGames = games
+        .filter(game => game.status === "FINAL")
+        .slice(0, 3);
 
+    finishedGames.forEach(game => {
+        const item = document.createElement("div");
+        item.className = "result-item";
 
-    finishedGames.forEach(
-        g => {
+        const awayTeam = document.createElement("span");
+        awayTeam.textContent =
+            game.away_team_name ||
+            game.away_team ||
+            game.away_team_code ||
+            "원정팀";
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+        const score = document.createElement("strong");
 
+        const awayScore =
+            game.away_score !== null &&
+            game.away_score !== undefined
+                ? game.away_score
+                : "-";
 
-            item.className =
-                "result-item";
+        const homeScore =
+            game.home_score !== null &&
+            game.home_score !== undefined
+                ? game.home_score
+                : "-";
 
+        score.textContent = `${awayScore} : ${homeScore}`;
 
-            item.innerHTML = `
-                <span>
-                    ${g.away_team_name}
-                </span>
+        const homeTeam = document.createElement("span");
+        homeTeam.textContent =
+            game.home_team_name ||
+            game.home_team ||
+            game.home_team_code ||
+            "홈팀";
 
-                <strong>
-                    ${g.away_score} : ${g.home_score}
-                </strong>
+        item.appendChild(awayTeam);
+        item.appendChild(score);
+        item.appendChild(homeTeam);
 
-                <span>
-                    ${g.home_team_name}
-                </span>
-            `;
-
-
-            container.appendChild(
-                item
-            );
-
-        }
-    );
+        container.appendChild(item);
+    });
 }
-

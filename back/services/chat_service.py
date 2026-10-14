@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+
 from services.prediction_service import predictor
 from services.rag_service import search_documents
 
@@ -38,6 +39,9 @@ BASEBOT은 야구 경기, 팀, 선수, 경기 결과,
 7. ML 예측 확률을 임의로 변경하지 않는다.
 8. RAG 자료가 제공되면 해당 자료를 우선 참고한다.
 9. 사용자가 이해하기 쉽도록 설명한다.
+10. DB에 없는 정보를 실제 DB 조회 결과인 것처럼 말하지 않는다.
+11. 선수 기록이 제공되면 해당 기록의 기준 시즌을 구분해서 설명한다.
+12. 예측 결과와 실제 경기 결과를 혼동하지 않는다.
 
 답변 형식:
 
@@ -64,6 +68,40 @@ BASEBOT은 야구 경기, 팀, 선수, 경기 결과,
 
 
 # ==================================================
+# Gemini 응답 문자열 변환
+# ==================================================
+
+def normalize_response_content(content) -> str:
+    """
+    Gemini 응답이 문자열, 리스트, 딕셔너리 등
+    어떤 형태로 반환되더라도 문자열로 변환한다.
+    """
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        result = []
+
+        for item in content:
+            if isinstance(item, str):
+                result.append(item)
+
+            elif isinstance(item, dict):
+                text_content = item.get("text")
+
+                if text_content:
+                    result.append(str(text_content))
+
+        return "".join(result)
+
+    if isinstance(content, dict):
+        return str(content.get("text", content))
+
+    return str(content)
+
+
+# ==================================================
 # Gemini 질문
 # ==================================================
 
@@ -71,7 +109,7 @@ def ask_gemini(
     question: str,
     context: str = "",
     history: str = ""
-):
+) -> str:
 
     prompt = f"""
 {SYSTEM_PROMPT}
@@ -87,35 +125,14 @@ def ask_gemini(
 
 위의 답변 규칙을 모두 지키면서
 사용자의 질문에 정확하고 이해하기 쉽게 답변해라.
+
+참고 데이터가 비어 있거나 질문과 관련이 없다면
+존재하지 않는 DB 데이터나 기록을 만들어내지 마라.
 """
 
     response = llm.invoke(prompt)
 
-    # Gemini 응답이 문자열인 경우
-    if isinstance(response.content, str):
-        return response.content
-
-    # Gemini 응답이 리스트인 경우
-    if isinstance(response.content, list):
-
-        result = []
-
-        for item in response.content:
-
-            if isinstance(item, str):
-                result.append(item)
-
-            elif isinstance(item, dict):
-
-                text_content = item.get("text")
-
-                if text_content:
-                    result.append(text_content)
-
-        return "".join(result)
-
-    # 그 외의 경우
-    return str(response.content)
+    return normalize_response_content(response.content)
 
 
 # ==================================================
@@ -125,11 +142,9 @@ def ask_gemini(
 def create_chat_session(
     db: Session,
     user_id: int | None = None
-):
+) -> str:
 
-    session_id = str(
-        uuid.uuid4()
-    )
+    session_id = str(uuid.uuid4())
 
     db.execute(
         text("""
@@ -159,22 +174,85 @@ def create_chat_session(
 
 
 # ==================================================
-# 이전 대화
+# 세션 검증
+# ==================================================
+
+def validate_chat_session(
+    db: Session,
+    session_id: str | None,
+    user_id: int | None = None
+) -> str:
+    """
+    세션이 없거나 유효하지 않으면 새 세션을 생성한다.
+
+    user_id가 전달된 경우 세션의 사용자 ID와 비교한다.
+    로그인 사용자와 비로그인 사용자의 세션이 섞이지 않도록 한다.
+
+    주의:
+    비로그인 사용자끼리의 세션 접근을 완전히 차단하려면
+    별도의 인증 또는 비밀 세션 토큰 검증이 필요하다.
+    """
+
+    if not session_id:
+        return create_chat_session(db, user_id)
+
+    row = db.execute(
+        text("""
+            SELECT user_id
+            FROM chat_sessions
+            WHERE session_id = :session_id
+        """),
+        {
+            "session_id": session_id
+        }
+    ).mappings().first()
+
+    # 존재하지 않는 세션
+    if not row:
+        return create_chat_session(db, user_id)
+
+    session_user_id = row["user_id"]
+
+    # 로그인 상태와 세션 소유자가 일치하지 않는 경우
+    if session_user_id != user_id:
+        return create_chat_session(db, user_id)
+
+    return session_id
+
+
+# ==================================================
+# 이전 대화 조회
 # ==================================================
 
 def get_chat_history(
     db: Session,
     session_id: str
-):
+) -> str:
+    """
+    가장 최근 메시지 20개를 조회한 뒤
+    오래된 메시지부터 시간순으로 정렬한다.
+    """
 
     sql = text("""
         SELECT
             role,
             content
-        FROM chat_messages
-        WHERE session_id = :session_id
-        ORDER BY created_at ASC
-        LIMIT 20
+        FROM (
+            SELECT
+                message_id,
+                role,
+                content,
+                created_at
+            FROM chat_messages
+            WHERE session_id = :session_id
+            ORDER BY
+                created_at DESC,
+                message_id DESC
+            LIMIT 20
+        ) AS recent_messages
+        ORDER BY
+            created_at ASC,
+            message_id ASC
     """)
 
     rows = db.execute(
@@ -187,14 +265,11 @@ def get_chat_history(
     history = []
 
     for row in rows:
-
         history.append(
             f'{row["role"]}: {row["content"]}'
         )
 
-    return "\n".join(
-        history
-    )
+    return "\n".join(history)
 
 
 # ==================================================
@@ -208,52 +283,11 @@ def save_message(
     content: str,
     generated_sql: str | None = None
 ):
+    """
+    사용자 질문 또는 AI 답변을 DB에 저장한다.
+    """
 
-    # ------------------------------------------
-    # Gemini 응답이 리스트인 경우
-    # 문자열로 변환
-    # ------------------------------------------
-
-    if isinstance(content, list):
-
-        result = []
-
-        for item in content:
-
-            if isinstance(item, str):
-                result.append(item)
-
-            elif isinstance(item, dict):
-
-                text_content = item.get("text")
-
-                if text_content:
-                    result.append(text_content)
-
-        content = "".join(result)
-
-    # ------------------------------------------
-    # Gemini 응답이 딕셔너리인 경우
-    # ------------------------------------------
-
-    elif isinstance(content, dict):
-
-        content = content.get(
-            "text",
-            str(content)
-        )
-
-    # ------------------------------------------
-    # 혹시 문자열이 아닌 경우
-    # ------------------------------------------
-
-    elif not isinstance(content, str):
-
-        content = str(content)
-
-    # ------------------------------------------
-    # DB 저장
-    # ------------------------------------------
+    content = normalize_response_content(content)
 
     db.execute(
         text("""
@@ -284,44 +318,35 @@ def save_message(
 
 
 # ==================================================
-# 3. 경기 조회
+# 경기 조회
 # ==================================================
 
 def get_recent_games(
     db: Session
-):
+) -> str:
 
     sql = text("""
         SELECT
             g.game_id,
             g.game_date,
             g.game_time,
-
             home.team_name AS home_team,
             away.team_name AS away_team,
-
             g.home_score,
             g.away_score,
             g.status
-
         FROM games g
-
         JOIN teams home
             ON g.home_team_id = home.team_id
-
         JOIN teams away
             ON g.away_team_id = away.team_id
-
         ORDER BY
             g.game_date DESC,
             g.game_time DESC
-
         LIMIT 10
     """)
 
-    rows = db.execute(
-        sql
-    ).mappings().all()
+    rows = db.execute(sql).mappings().all()
 
     if not rows:
         return ""
@@ -329,7 +354,6 @@ def get_recent_games(
     result = []
 
     for row in rows:
-
         result.append(
             f"""
 경기 ID: {row["game_id"]}
@@ -343,18 +367,16 @@ def get_recent_games(
 """
         )
 
-    return "\n".join(
-        result
-    )
+    return "\n".join(result)
 
 
 # ==================================================
-# 선수 정보
+# 선수 정보 조회
 # ==================================================
 
 def get_player_data(
     db: Session
-):
+) -> str:
 
     sql = text("""
         SELECT
@@ -362,20 +384,14 @@ def get_player_data(
             p.player_name,
             p.position,
             t.team_name
-
         FROM players p
-
         LEFT JOIN teams t
             ON p.team_id = t.team_id
-
         ORDER BY p.player_name
-
         LIMIT 50
     """)
 
-    rows = db.execute(
-        sql
-    ).mappings().all()
+    rows = db.execute(sql).mappings().all()
 
     if not rows:
         return ""
@@ -383,7 +399,6 @@ def get_player_data(
     result = []
 
     for row in rows:
-
         result.append(
             f"""
 선수 ID: {row["player_id"]}
@@ -393,24 +408,21 @@ def get_player_data(
 """
         )
 
-    return "\n".join(
-        result
-    )
+    return "\n".join(result)
 
 
 # ==================================================
-# 4. 선수 데이터 분석
+# 선수 기록 분석
 # ==================================================
 
 def analyze_player_stats(
     db: Session
-):
+) -> str:
 
     sql = text("""
         SELECT
             p.player_name,
             t.team_name,
-
             s.season,
             s.games,
             s.batting_avg,
@@ -421,25 +433,18 @@ def analyze_player_stats(
             s.bwar,
             s.fwar,
             s.wrc_plus
-
         FROM player_season_stats s
-
         JOIN players p
             ON s.player_id = p.player_id
-
         LEFT JOIN teams t
             ON p.team_id = t.team_id
-
         ORDER BY
             s.season DESC,
             s.home_runs DESC
-
         LIMIT 30
     """)
 
-    rows = db.execute(
-        sql
-    ).mappings().all()
+    rows = db.execute(sql).mappings().all()
 
     if not rows:
         return ""
@@ -447,7 +452,6 @@ def analyze_player_stats(
     result = []
 
     for row in rows:
-
         result.append(
             f"""
 선수: {row["player_name"]}
@@ -465,13 +469,11 @@ wRC+: {row["wrc_plus"]}
 """
         )
 
-    return "\n".join(
-        result
-    )
+    return "\n".join(result)
 
 
 # ==================================================
-# 8. 사용자 정보
+# 사용자 정보 조회
 # ==================================================
 
 def get_user_data(
@@ -481,21 +483,16 @@ def get_user_data(
 
     sql = text("""
         SELECT
-
             u.username,
             u.nickname,
             u.point,
             u.grade,
             u.prediction_streak,
             u.max_prediction_streak,
-
             t.team_name AS favorite_team
-
         FROM users u
-
         LEFT JOIN teams t
             ON u.favorite_team_id = t.team_id
-
         WHERE u.user_id = :user_id
     """)
 
@@ -513,102 +510,237 @@ def get_user_data(
 
 def classify_question(
     question: str
-):
+) -> str:
+    """
+    질문의 목적에 따라 처리 유형을 구분한다.
 
-    if any(
-        keyword in question
-        for keyword in [
-            "내 포인트",
-            "내 점수",
-            "내 등급",
-            "내 관심팀",
-            "내가 좋아하는 팀",
-            "내 예측",
-            "내 정보"
-        ]
-    ):
+    반환 유형:
+    personal  : 사용자 개인 정보
+    prediction: 경기 승부예측
+    analysis  : 선수 기록 및 통계 분석
+    database  : 경기 일정 및 결과
+    player    : 선수 정보
+    rag       : 야구 용어 및 규칙
+    baseball  : 일반적인 야구 질문
+    general   : 일반 질문
+    """
 
-        return "personal"
+    q = question.strip().lower()
 
-    if any(
-        keyword in question
-        for keyword in [
-            "승부예측",
-            "승률",
-            "누가 이길",
-            "누가 이겨",
-            "승부",
-            "예측",
-            "승리 가능성",
-            "이길 가능성",
-            "경기 예상",
-            "경기 전망"
-        ]
-    ):
+    # ------------------------------------------
+    # 1. 야구 용어 정의 질문
+    # ------------------------------------------
 
-        return "prediction"
+    baseball_terms = (
+        "ops",
+        "era",
+        "whip",
+        "war",
+        "wrc+",
+        "병살",
+        "삼진",
+        "볼넷",
+        "스트라이크",
+        "번트",
+        "희생플라이",
+        "도루",
+        "폭투",
+        "보크",
+        "인필드 플라이",
+        "타율",
+        "출루율",
+        "장타율",
+        "자책점",
+        "퀄리티 스타트",
+        "퍼펙트게임",
+        "노히트노런"
+    )
 
-    if any(
-        keyword in question
-        for keyword in [
-            "분석",
-            "통계",
-            "기록",
-            "타율",
-            "홈런",
-            "타점",
-            "ERA",
-            "OPS",
-            "WAR",
-            "wRC"
-        ]
-    ):
+    definition_patterns = (
+        "뭐야",
+        "무엇",
+        "무슨 뜻",
+        "뜻이 뭐",
+        "의미",
+        "설명해",
+        "알려줘",
+        "란?",
+        "이란",
+        "란 무엇"
+    )
 
-        return "analysis"
+    contains_baseball_term = any(
+        term in q
+        for term in baseball_terms
+    )
 
-    if any(
-        keyword in question
-        for keyword in [
-            "오늘 경기",
-            "경기 일정",
-            "경기 결과",
-            "경기",
-            "팀",
-            "선수"
-        ]
-    ):
+    asks_definition = any(
+        pattern in q
+        for pattern in definition_patterns
+    )
 
-        return "database"
-
-    if any(
-        keyword in question
-        for keyword in [
-            "규칙",
-            "스트라이크",
-            "볼넷",
-            "삼진",
-            "병살",
-            "야구 용어",
-            "OPS가 뭐",
-            "ERA가 뭐"
-        ]
-    ):
-
+    # 용어 정의 질문은 기록 분석보다 RAG를 우선한다.
+    if contains_baseball_term and asks_definition:
         return "rag"
 
-    if any(
-        keyword in question
-        for keyword in [
-            "야구",
-            "투수",
-            "타자",
-            "포수",
-            "외야수",
-            "내야수"
-        ]
-    ):
+    # 짧은 용어 질문도 RAG로 검색한다.
+    if contains_baseball_term and len(q) <= 25:
+        return "rag"
 
+    rule_keywords = (
+        "야구 규칙",
+        "규칙이 뭐",
+        "몇 이닝",
+        "아웃이 몇",
+        "스트라이크 존",
+        "경기 규칙",
+        "야구 용어"
+    )
+
+    if any(keyword in q for keyword in rule_keywords):
+        return "rag"
+
+    # ------------------------------------------
+    # 2. 사용자 개인 정보
+    # ------------------------------------------
+
+    personal_keywords = (
+        "내 포인트",
+        "내 점수",
+        "내 등급",
+        "내 관심팀",
+        "내가 좋아하는 팀",
+        "내 예측",
+        "내 정보",
+        "내 연승"
+    )
+
+    if any(keyword in q for keyword in personal_keywords):
+        return "personal"
+
+    # ------------------------------------------
+    # 3. 승부예측
+    # ------------------------------------------
+
+    prediction_keywords = (
+        "승부예측",
+        "승률",
+        "누가 이길",
+        "누가 이겨",
+        "승부",
+        "예측",
+        "승리 가능성",
+        "이길 가능성",
+        "경기 예상",
+        "경기 전망"
+    )
+
+    if any(keyword in q for keyword in prediction_keywords):
+        return "prediction"
+
+    # ------------------------------------------
+    # 4. 선수 기록 및 통계 분석
+    # ------------------------------------------
+
+    analysis_keywords = (
+        "분석",
+        "통계",
+        "기록",
+        "타율",
+        "홈런",
+        "타점",
+        "era",
+        "ops",
+        "war",
+        "wrc+",
+        "whip",
+        "출루율",
+        "장타율",
+        "방어율",
+        "자책점",
+        "탈삼진",
+        "안타"
+    )
+
+    if any(keyword in q for keyword in analysis_keywords):
+        return "analysis"
+
+    # ------------------------------------------
+    # 5. 경기 일정 및 결과
+    # ------------------------------------------
+
+    game_keywords = (
+        "오늘 경기",
+        "경기 일정",
+        "경기 결과",
+        "경기 스코어",
+        "경기 현황",
+        "최근 경기",
+        "어제 경기",
+        "내일 경기",
+        "경기 목록"
+    )
+
+    if any(keyword in q for keyword in game_keywords):
+        return "database"
+
+    # ------------------------------------------
+    # 6. 선수 정보
+    # ------------------------------------------
+
+    player_keywords = (
+        "선수 명단",
+        "선수 정보",
+        "선수 목록",
+        "선수 소개",
+        "선수",
+        "투수",
+        "타자",
+        "포수",
+        "외야수",
+        "내야수",
+        "소속 선수"
+    )
+
+    if any(keyword in q for keyword in player_keywords):
+        return "player"
+
+    # ------------------------------------------
+    # 7. 팀 정보
+    # ------------------------------------------
+
+    team_keywords = (
+        "팀 정보",
+        "팀 순위",
+        "구단",
+        "팀 목록",
+        "팀 소개",
+        "팀"
+    )
+
+    if any(keyword in q for keyword in team_keywords):
+        return "database"
+
+    # ------------------------------------------
+    # 8. 일반적인 야구 질문
+    # ------------------------------------------
+
+    baseball_keywords = (
+        "야구",
+        "투수",
+        "타자",
+        "포수",
+        "외야수",
+        "내야수",
+        "야구 경기"
+    )
+
+    if any(keyword in q for keyword in baseball_keywords):
         return "baseball"
+
+    # ------------------------------------------
+    # 9. 일반 질문
+    # ------------------------------------------
 
     return "general"
 
@@ -623,29 +755,45 @@ def chat_with_ai(
     session_id: str | None = None,
     user_id: int | None = None
 ):
+    """
+    BASEBOT AI 챗봇의 전체 처리 과정.
+
+    1. 세션 검증
+    2. 이전 대화 조회
+    3. 사용자 메시지 저장
+    4. 질문 유형 판단
+    5. DB/RAG/예측 데이터 조회
+    6. Gemini 답변 생성
+    7. AI 답변 저장
+    8. 세션 ID와 답변 반환
+    """
+
+    question = question.strip()
+
+    if not question:
+        return session_id, "질문 내용을 입력해 주세요."
 
     # ------------------------------------------
-    # 세션이 없으면 생성
+    # 1. 세션 검증 또는 생성
     # ------------------------------------------
 
-    if not session_id:
-
-        session_id = create_chat_session(
-            db,
-            user_id
-        )
-
-    # ------------------------------------------
-    # 이전 대화
-    # ------------------------------------------
-
-    history = get_chat_history(
-        db,
-        session_id
+    session_id = validate_chat_session(
+        db=db,
+        session_id=session_id,
+        user_id=user_id
     )
 
     # ------------------------------------------
-    # 사용자 질문 저장
+    # 2. 이전 대화 조회
+    # ------------------------------------------
+
+    history = get_chat_history(
+        db=db,
+        session_id=session_id
+    )
+
+    # ------------------------------------------
+    # 3. 사용자 질문 저장
     # ------------------------------------------
 
     save_message(
@@ -656,33 +804,33 @@ def chat_with_ai(
     )
 
     # ------------------------------------------
-    # 질문 분류
+    # 4. 질문 분류
     # ------------------------------------------
 
-    question_type = classify_question(
-        question
-    )
+    question_type = classify_question(question)
+
+    print(f"[챗봇 질문 유형] {question_type}")
 
     context = ""
-
     generated_sql = None
 
     # ------------------------------------------
-    # 8. 사용자 맞춤
+    # 5. 사용자 맞춤 정보
     # ------------------------------------------
 
     if question_type == "personal":
 
-        if user_id:
+        if user_id is not None:
 
             user = get_user_data(
-                db,
-                user_id
+                db=db,
+                user_id=user_id
             )
 
             if user:
-
                 context = f"""
+[DB 사용자 정보]
+
 닉네임: {user["nickname"]}
 포인트: {user["point"]}
 등급: {user["grade"]}
@@ -690,30 +838,27 @@ def chat_with_ai(
 최대 연속 적중: {user["max_prediction_streak"]}
 관심 팀: {user["favorite_team"]}
 """
-
             else:
-
-                context = "사용자 정보를 찾을 수 없습니다."
+                context = (
+                    "DB에서 해당 사용자의 정보를 찾을 수 없다. "
+                    "사용자 정보를 임의로 만들어내지 마라."
+                )
 
         else:
-
-            context = """
-현재 사용자가 로그인하지 않았습니다.
-개인 정보를 조회할 수 없습니다.
-"""
+            context = (
+                "현재 로그인한 사용자의 ID가 전달되지 않았다. "
+                "개인 정보는 조회할 수 없으므로 "
+                "로그인이 필요하다고 안내해라."
+            )
 
     # ------------------------------------------
-    # 5. 승부예측
+    # 6. 승부예측
     # ------------------------------------------
 
     elif question_type == "prediction":
 
         try:
-
-            # ==================================================
-            # 질문에서 두 팀 찾기
-            # ==================================================
-
+            # 질문에서 예측할 두 팀 찾기
             with engine.connect() as conn:
                 home_team, away_team = (
                     predictor.find_teams_from_question(
@@ -721,243 +866,272 @@ def chat_with_ai(
                         question
                     )
                 )
-            # ==================================================
-            # 두 팀을 찾지 못한 경우
-            # ==================================================
 
+            # 두 팀을 찾지 못한 경우
             if home_team is None or away_team is None:
 
                 context = """
+사용자가 경기 승부예측을 요청했다.
 
-    경기 예측을 요청받았지만
+질문에서 예측할 두 팀을 찾지 못했다.
 
-    사용자 질문에서 예측할 두 팀을 찾지 못했습니다.
+사용자에게 예측을 원하는 두 팀의 이름을
+입력해 달라고 안내해라.
 
-
-    사용자에게 예측을 원하는 두 팀의 이름을
-
-    입력해 달라고 안내하세요.
-
-    예:
-
-    "양키스와 레드삭스 중 누가 이길까?"
-
-    "다저스와 파드리스 승부예측 해줘"
-
-    """
+예시:
+양키스와 레드삭스 중 누가 이길까?
+다저스와 파드리스 승부예측 해줘.
+"""
 
             else:
-                # ==================================================
                 # 머신러닝 경기 예측
-                # ==================================================
                 prediction = predictor.predict_matchup(
                     home_team_id=home_team["team_id"],
                     away_team_id=away_team["team_id"]
                 )
-                # ==================================================
+
                 # Gemini에게 전달할 결과
-                # ==================================================
                 context = f"""
+[경기 예측 머신러닝 결과]
 
-    [경기 예측 머신러닝 결과]
+홈팀:
+{prediction["home_team_name"]}
 
-    홈팀:
+원정팀:
+{prediction["away_team_name"]}
 
-    {prediction["home_team_name"]}
+홈팀 승리 확률:
+{prediction["home_win_prob"]}%
 
-    원정팀:
+원정팀 승리 확률:
+{prediction["away_win_prob"]}%
 
-    {prediction["away_team_name"]}
+모델 예측 승리팀:
+{prediction["predicted_winner_name"]}
 
-    홈팀 승리 확률:
+[상대전적]
 
-    {prediction["home_win_prob"]}%
+{prediction["head_to_head_summary"]}
 
-    원정팀 승리 확률:
+총 맞대결:
+{prediction["head_to_head"]["total_games"]}경기
 
-    {prediction["away_win_prob"]}%
+홈팀 승리:
+{prediction["head_to_head"]["team_a_wins"]}승
 
-    모델 예측 승리팀:
+원정팀 승리:
+{prediction["head_to_head"]["team_b_wins"]}승
 
-    {prediction["predicted_winner_name"]}
+[주요 팀 지표]
 
-    [상대전적]
+홈팀 평균 타구속도:
+{prediction["metrics_comparison"]["home_avg_exit_velo"]}
 
-    {prediction["head_to_head_summary"]}
+원정팀 평균 타구속도:
+{prediction["metrics_comparison"]["away_avg_exit_velo"]}
 
-    총 맞대결:
+홈팀 배럴 타구 비율:
+{prediction["metrics_comparison"]["home_barrel_pct"]}%
 
-    {prediction["head_to_head"]["total_games"]}경기
+원정팀 배럴 타구 비율:
+{prediction["metrics_comparison"]["away_barrel_pct"]}%
 
-    홈팀 승리:
+홈팀 평균 bWAR:
+{prediction["metrics_comparison"]["home_avg_bwar"]}
 
-    {prediction["head_to_head"]["team_a_wins"]}승
+원정팀 평균 bWAR:
+{prediction["metrics_comparison"]["away_avg_bwar"]}
 
-    원정팀 승리:
+홈팀 타율:
+{prediction["metrics_comparison"]["home_batting_avg"]}
 
-    {prediction["head_to_head"]["team_b_wins"]}승
+원정팀 타율:
+{prediction["metrics_comparison"]["away_batting_avg"]}
 
-    [주요 팀 지표]
+위 결과는 BASEBOT의 RandomForest 머신러닝 모델이
+계산한 예측 결과이다.
 
-
-    홈팀 평균 타구속도:
-
-    {prediction["metrics_comparison"]["home_avg_exit_velo"]}
-
-    원정팀 평균 타구속도:
-
-    {prediction["metrics_comparison"]["away_avg_exit_velo"]}
-
-    홈팀 배럴 타구 비율:
-
-    {prediction["metrics_comparison"]["home_barrel_pct"]}%
-
-    원정팀 배럴 타구 비율:
-
-    {prediction["metrics_comparison"]["away_barrel_pct"]}%
-
-    홈팀 평균 bWAR:
-
-    {prediction["metrics_comparison"]["home_avg_bwar"]}
-
-    원정팀 평균 bWAR:
-
-    {prediction["metrics_comparison"]["away_avg_bwar"]}
-
-    홈팀 타율:
-
-    {prediction["metrics_comparison"]["home_batting_avg"]}
-
-    원정팀 타율:
-
-    {prediction["metrics_comparison"]["away_batting_avg"]}
-
-    위 경기 예측 결과는 BASEBOT의 RandomForest 머신러닝 모델이
-
-    계산한 결과이다.
-
-
-    사용자에게 답변할 때 모델의 승리 확률이나
-
-    예측 승리팀을 임의로 변경하지 않는다.
-
-
-    실제 경기 결과를 알고 있는 것처럼 말하지 않는다.
-
-
-    예측 결과는 머신러닝 모델에 따른 참고용 결과임을
-
-    간단하게 안내할 수 있다.
-
-    """
+모델의 승리 확률과 예측 승리팀을 임의로 변경하지 마라.
+실제 경기 결과를 알고 있는 것처럼 말하지 마라.
+예측은 참고용 결과임을 간단하게 안내할 수 있다.
+"""
 
         except FileNotFoundError as e:
 
-            context = f"""
+            print(f"[경기 예측 모델 파일 오류] {e}")
 
-    경기 예측 모델을 사용할 수 없습니다.
-
-
-    오류:
-
-    {str(e)}
-
-
-    사용자에게 현재 경기 예측 모델을 사용할 수 없다고
-
-    간단하게 안내하세요.
-
-    """
-
+            context = """
+경기 예측 모델 파일을 사용할 수 없다.
+현재 경기 예측 기능을 사용할 수 없다고 안내해라.
+"""
 
         except Exception as e:
 
-            print(
-
-                f"[경기 예측 오류] {e}"
-
-            )
+            print(f"[경기 예측 오류] {e}")
 
             context = """
-
-    경기 예측을 처리하는 과정에서 오류가 발생했습니다.
-
-
-    사용자에게 현재 경기 예측을 처리할 수 없다고
-
-    간단하게 안내하세요.
-
-    """
-
-        # 현재는 실제 경기 선택 로직을 추가하기 전 단계
+경기 예측을 처리하는 과정에서 오류가 발생했다.
+현재 경기 예측을 처리할 수 없다고 간단하게 안내해라.
+"""
 
     # ------------------------------------------
-    # 4. 데이터 분석
+    # 7. 선수 기록 및 통계 분석
     # ------------------------------------------
 
     elif question_type == "analysis":
 
-        context = analyze_player_stats(
-            db
-        )
+        stats = analyze_player_stats(db)
+
+        if stats:
+            context = f"""
+[DB 선수 시즌 기록]
+
+{stats}
+
+위 데이터는 DB에서 조회한 선수 시즌 기록이다.
+
+제공된 기록에 근거해서 답변해라.
+질문에 해당하는 선수나 기록이 명확하지 않으면
+그 사실을 안내하고 임의로 수치를 만들어내지 마라.
+"""
+        else:
+            context = (
+                "DB에서 조회된 선수 시즌 통계 데이터가 없다. "
+                "기록을 임의로 만들어내지 마라."
+            )
 
     # ------------------------------------------
-    # 3. DB 조회
+    # 8. 경기 일정 및 결과 조회
     # ------------------------------------------
 
     elif question_type == "database":
 
-        context = get_recent_games(
-            db
-        )
+        games = get_recent_games(db)
 
-        if not context:
+        if games:
+            context = f"""
+[DB 경기 데이터]
 
-            context = get_player_data(
-                db
+{games}
+
+위 데이터는 DB에서 조회한 최근 경기 목록이다.
+제공된 경기 데이터에 근거해서 답변해라.
+DB에 없는 경기 일정이나 결과는 만들어내지 마라.
+"""
+        else:
+            context = (
+                "DB에서 조회된 경기 데이터가 없다. "
+                "경기 일정이나 결과를 임의로 만들어내지 마라."
             )
 
     # ------------------------------------------
-    # 7. RAG
+    # 9. 선수 정보 조회
+    # ------------------------------------------
+
+    elif question_type == "player":
+
+        players = get_player_data(db)
+
+        if players:
+            context = f"""
+[DB 선수 정보]
+
+{players}
+
+위 데이터는 DB에서 조회한 선수 정보이다.
+제공된 선수명, 포지션, 소속팀에 근거해서 답변해라.
+조회 결과에 없는 정보는 만들어내지 마라.
+"""
+        else:
+            context = (
+                "DB에서 조회된 선수 정보가 없다. "
+                "선수 정보를 임의로 만들어내지 마라."
+            )
+
+    # ------------------------------------------
+    # 10. RAG 야구 규칙 및 용어 검색
     # ------------------------------------------
 
     elif question_type == "rag":
 
-        documents = search_documents(
-            question,
-            k=3
-        )
-
-        if documents:
-
-            context = "\n\n".join(
-                document.page_content
-                for document in documents
+        try:
+            documents = search_documents(
+                question,
+                k=3
             )
 
+            if documents:
+                context = "\n\n".join(
+                    document.page_content
+                    for document in documents
+                )
+            else:
+                context = """
+질문과 관련된 야구 문서를 찾지 못했다.
+확실하지 않은 규칙이나 기록을 사실처럼 만들어내지 마라.
+일반적으로 확실하게 알려진 야구 지식만 설명해라.
+"""
+
+        except Exception as e:
+
+            print(f"[RAG 검색 오류] {e}")
+
+            context = """
+야구 문서 검색 과정에서 오류가 발생했다.
+검색 결과를 조회하지 못했음을 고려해 답변해라.
+"""
+
     # ------------------------------------------
-    # 2. 야구 전문 질문
+    # 11. 일반적인 야구 질문
     # ------------------------------------------
 
     elif question_type == "baseball":
 
-        context = """
-사용자는 야구와 관련된 전문적인 질문을 하고 있습니다.
+        try:
+            documents = search_documents(
+                question,
+                k=3
+            )
 
-야구 규칙, 경기 방식, 포지션,
-선수 기록 등에 대해 정확하게 설명합니다.
+            if documents:
+                context = "\n\n".join(
+                    document.page_content
+                    for document in documents
+                )
+            else:
+                context = """
+사용자는 야구와 관련된 질문을 하고 있다.
+
+야구 규칙, 경기 방식, 포지션 등에 대해
+정확하고 이해하기 쉽게 설명해라.
+
+확실하지 않은 정보는 사실처럼 단정하지 마라.
+"""
+
+        except Exception as e:
+
+            print(f"[야구 문서 검색 오류] {e}")
+
+            context = """
+사용자는 야구와 관련된 질문을 하고 있다.
+확실하게 알고 있는 야구 지식을 중심으로 설명해라.
 """
 
     # ------------------------------------------
-    # 1. 일반 질문
+    # 12. 일반 질문
     # ------------------------------------------
 
     else:
 
-        context = ""
+        context = """
+사용자의 질문에 한국어로 간결하고 정확하게 답변해라.
+
+BASEBOT의 DB에서 조회하지 않은 정보는
+DB 조회 결과인 것처럼 설명하지 마라.
+"""
 
     # ------------------------------------------
-    # Gemini
+    # 13. Gemini 답변 생성
     # ------------------------------------------
 
     answer = ask_gemini(
@@ -967,7 +1141,7 @@ def chat_with_ai(
     )
 
     # ------------------------------------------
-    # AI 답변 저장
+    # 14. AI 답변 저장
     # ------------------------------------------
 
     save_message(
@@ -977,5 +1151,9 @@ def chat_with_ai(
         content=answer,
         generated_sql=generated_sql
     )
+
+    # ------------------------------------------
+    # 15. 결과 반환
+    # ------------------------------------------
 
     return session_id, answer
