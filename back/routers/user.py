@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from auth.dependencies import get_current_user
 from database.db_connection import get_session
 from models.user import User
 from models.team import Team
@@ -295,3 +296,98 @@ def request_withdrawal(
             current_user.withdrawal_requested_at.isoformat()
         )
     }
+
+
+# =========================================================
+# 포인트 지급 내역 조회
+# GET /users/points/history
+# =========================================================
+@router.get("/points/history")
+def get_points_history(
+    db: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    try:
+        user_id = current_user.user_id
+
+        query = text("""
+            SELECT
+                v.vote_id,
+                g.game_date,
+                g.game_time,
+                home_team.team_name AS home_team_name,
+                away_team.team_name AS away_team_name,
+                selected_team.team_name AS selected_team_name,
+                v.is_correct,
+                v.reward_point,
+                v.created_at
+            FROM prediction_votes v
+            JOIN games g
+                ON v.game_id = g.game_id
+            LEFT JOIN teams home_team
+                ON g.home_team_id = home_team.team_id
+            LEFT JOIN teams away_team
+                ON g.away_team_id = away_team.team_id
+            LEFT JOIN teams selected_team
+                ON v.selected_team_id = selected_team.team_id
+            WHERE v.user_id = :user_id
+              AND COALESCE(v.reward_point, 0) > 0
+            ORDER BY v.created_at DESC, v.vote_id DESC
+        """)
+
+        rows = db.execute(
+            query,
+            {"user_id": user_id},
+        ).mappings().all()
+
+        history = []
+
+        for row in rows:
+            history.append({
+                "vote_id": row["vote_id"],
+                "date": (
+                    row["created_at"].isoformat()
+                    if row["created_at"] else None
+                ),
+                "game_date": (
+                    row["game_date"].isoformat()
+                    if row["game_date"] else None
+                ),
+                "game_time": (
+                    str(row["game_time"])
+                    if row["game_time"] is not None
+                    else None
+                ),
+                "game": (
+                    f'{row["away_team_name"] or "원정팀"}'
+                    f' vs {row["home_team_name"] or "홈팀"}'
+                ),
+                "selected_team": row["selected_team_name"],
+                "result": (
+                    "예측 적중 보상"
+                    if row["is_correct"] == 1
+                    else "예측 보상"
+                ),
+                "reward_point": int(row["reward_point"] or 0),
+            })
+
+        return {
+            "history": history,
+            "total_reward_point": sum(
+                item["reward_point"] for item in history
+            ),
+            "count": len(history),
+        }
+
+
+    except Exception as e:
+
+        import traceback
+
+        print("\n========== 포인트 내역 API 오류 ==========")
+
+        traceback.print_exc()
+
+        print("==========================================\n")
+
+        raise

@@ -119,7 +119,16 @@ function renderPredictionHistory(history) {
         return;
     }
 
-    history.forEach((item) => {
+    // 날짜 기준 최신순 정렬 (최신 날짜 → 과거 날짜)
+    const sortedHistory = [...history].sort((a, b) => {
+        const dateA = String(a.date ?? "");
+        const dateB = String(b.date ?? "");
+
+        return dateB.localeCompare(dateA);
+    });
+
+    // 정렬된 기록 표시
+    sortedHistory.forEach((item) => {
         const tr = document.createElement("tr");
 
         // 날짜

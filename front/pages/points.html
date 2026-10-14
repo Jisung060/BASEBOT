@@ -41,22 +41,30 @@
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">현재 포인트</div>
-            <div class="mypage-stat-value">1,000 P</div>
+            <div class="mypage-stat-value" id="userPoint">
+                불러오는 중...
+            </div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">현재 등급</div>
-            <div class="mypage-stat-value">BRONZE</div>
+            <div class="mypage-stat-value" id="userGrade">
+                불러오는 중...
+            </div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">현재 연속 적중</div>
-            <div class="mypage-stat-value">0회</div>
+            <div class="mypage-stat-value" id="userPredictionStreak">
+                불러오는 중...
+            </div>
         </div>
 
         <div class="mypage-stat-card">
             <div class="mypage-stat-label">최고 연속 적중</div>
-            <div class="mypage-stat-value">0회</div>
+            <div class="mypage-stat-value" id="userMaxPredictionStreak">
+                불러오는 중...
+            </div>
         </div>
 
     </div>
@@ -70,18 +78,23 @@
         <div class="mypage-box-body">
 
             <div>
-                <span class="grade-badge">BRONZE</span>
+                <span class="grade-badge" id="userGradeBadge">
+                    불러오는 중...
+                </span>
             </div>
 
             <div class="grade-progress">
 
                 <div class="grade-progress-head">
-                    <span>BRONZE</span>
-                    <span>다음 등급까지 1,000 P</span>
+                    <span id="currentGradeLabel">-</span>
+                    <span id="nextGradePoint">등급 기준 확인 중</span>
                 </div>
 
                 <div class="grade-progress-bar">
-                    <div class="grade-progress-value"></div>
+                    <div
+                        class="grade-progress-value"
+                        id="gradeProgressValue"
+                    ></div>
                 </div>
 
             </div>
@@ -119,7 +132,8 @@
     <!-- 마이페이지 공통 JS -->
     <script src="/js/mypage.js"></script>
 
-
+    <!-- 포인트 / 등급 전용 JS -->
+    <script src="/js/points.js"></script>
 
 </body>
 </html>
