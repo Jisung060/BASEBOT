@@ -12,7 +12,7 @@ const ADMIN_PAGE_TITLES = {
     notices: "공지사항 관리",
     "activity-logs": "관리자 활동 이력",
     "system-status": "시스템 및 수집 상태",
-    settings: "서비스 운영 설정"
+    settings: "서비스 운영 설정",
     news: "뉴스 관리"
 };
 
