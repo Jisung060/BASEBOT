@@ -21,8 +21,10 @@ from routers import favorite_team
 from routers import home
 from routers.my_comments import router as my_comments_router
 from routers.community import router as community_router
+from routers import prediction_history
 
 # admin
+
 from routers.admin_users import router as admin_users_router
 from routers.admin_dashboard import router as admin_dashboard_router
 
@@ -62,6 +64,7 @@ app.include_router(admin_users_router)
 app.include_router(admin_dashboard_router)
 
 # 사용자 Router
+app.include_router(prediction_history.router)
 app.include_router(my_comments_router)
 app.include_router(home.router)
 app.include_router(favorite_team.router)
