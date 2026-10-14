@@ -330,3 +330,89 @@ body.admin-page {
     .form-grid .full-width { grid-column: auto; }
     .page-intro { align-items: flex-start; flex-direction: column; }
 }
+
+/* ==================================================
+   회원 관리 - 회원 목록 페이징
+================================================== */
+
+/* 회원 목록 테이블 영역 높이 유지 */
+.admin-page .users-table-wrap {
+    min-height: 540px;
+}
+
+/* 페이징 버튼 가운데 정렬 */
+.admin-page #users-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    margin: 24px 0;
+}
+
+/* ==================================================
+   회원 관리 - 회원 상세 정보
+================================================== */
+
+.admin-page .detail-placeholder {
+    padding: 24px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--admin-text);
+    text-align: left;
+}
+
+/* 회원 정보 제목 */
+.admin-page .detail-placeholder h3 {
+    margin: 0 0 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--admin-border);
+    color: var(--admin-navy);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+/* 회원 정보 항목을 2열로 배치 */
+.admin-page .detail-placeholder dl {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr);
+    margin: 0;
+}
+
+/* 항목 이름 */
+.admin-page .detail-placeholder dt {
+    margin: 0;
+    padding: 13px 16px;
+    border-bottom: 1px solid #eef2f7;
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+}
+
+/* 항목 값 */
+.admin-page .detail-placeholder dd {
+    min-width: 0;
+    margin: 0;
+    padding: 13px 16px;
+    border-bottom: 1px solid #eef2f7;
+    color: var(--admin-text);
+    overflow-wrap: anywhere;
+}
+
+/* 모바일 대응 */
+@media (max-width: 760px) {
+    .admin-page .detail-placeholder {
+        padding: 16px;
+    }
+
+    .admin-page .detail-placeholder dl {
+        grid-template-columns: 120px minmax(0, 1fr);
+    }
+
+    .admin-page .detail-placeholder dt,
+    .admin-page .detail-placeholder dd {
+        padding: 11px 8px;
+    }
+}
