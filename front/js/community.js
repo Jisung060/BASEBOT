@@ -1741,78 +1741,101 @@ async function loadPostDetail() {
             }
 
 
-            // =================================
-            //          현재 좋아요 상태 확인
-            // =================================
-            try {
-                const likeStatusResponse =
-                    await fetch(
-                        `${API_BASE_URL}/community/posts/${post.post_id}/like`,
-                        {
-                            headers: {
-                                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
-                            }
-                        }
-                    );
+                // =================================
+                //          현재 좋아요 상태 확인
+                // =================================
 
-                console.log("좋아요 상태 API 응답:",
-                    likeStatusResponse.status
-                );
+                const accessToken =
+                    sessionStorage.getItem("access_token");
 
-                if (!likeStatusResponse.ok) {
-
-                    const errorText =
-                        await likeStatusResponse.text();
-
-                    console.error(
-                        "좋아요 상태 조회 실패:",
-                        likeStatusResponse.status,
-                        errorText
-                    );
+                // 로그인하지 않은 경우:
+                // 실제 좋아요 개수는 유지하고,
+                // 내가 좋아요를 눌렀다는 표시만 제거
+                if (!accessToken) {
+                    likeButton.classList.remove("liked");
 
                 } else {
+                    try {
+                        const likeStatusResponse =
+                            await fetch(
+                                `${API_BASE_URL}/community/posts/${post.post_id}/like`,
+                                {
+                                    headers: {
+                                        "Authorization": `Bearer ${accessToken}`
+                                    }
+                                }
+                            );
 
-                    const likeStatus =
-                        await likeStatusResponse.json();
+                        console.log(
+                            "좋아요 상태 API 응답:",
+                            likeStatusResponse.status
+                        );
 
-                    console.log(
-                        "현재 좋아요 상태:",
-                        likeStatus
-                    );
+                        if (!likeStatusResponse.ok) {
+                            const errorText =
+                                await likeStatusResponse.text();
 
-                    // 좋아요 개수 표시
-                    if (count) {
+                            console.error(
+                                "좋아요 상태 조회 실패:",
+                                likeStatusResponse.status,
+                                errorText
+                            );
 
-                        count.textContent =
-                            Number(
-                                likeStatus.like_count || 0
-                            ).toLocaleString();
-                    }
+                        } else {
+                            const likeStatus =
+                                await likeStatusResponse.json();
 
-                    // 이미 좋아요를 눌렀다면
-                    if (likeStatus.liked) {
+                            console.log(
+                                "현재 좋아요 상태:",
+                                likeStatus
+                            );
 
-                        likeButton.classList.add("liked");
+                            // 실제 좋아요 개수 표시
+                            if (count) {
+                                count.textContent =
+                                    Number(
+                                        likeStatus.like_count || 0
+                                    ).toLocaleString();
+                            }
 
-                    } else {
+                            // 로그인한 사용자의 좋아요 상태 표시
+                            likeButton.classList.toggle(
+                                "liked",
+                                Boolean(likeStatus.liked)
+                            );
+                        }
 
-                        likeButton.classList.remove("liked");
+                    } catch (error) {
+                        console.error(
+                            "좋아요 상태 조회 오류:",
+                            error
+                        );
                     }
                 }
-
-            } catch (error) {
-
-                console.error(
-                    "좋아요 상태 조회 오류:",
-                    error
-                );
-            }
 
 
             // =================================
             //          좋아요 버튼 클릭
             // =================================
             likeButton.onclick = async function () {
+
+                // 로그인 토큰 확인
+                const accessToken =
+                    sessionStorage.getItem("access_token");
+
+                // 로그인하지 않은 경우
+                if (!accessToken) {
+                    showBasebotConfirm(
+                        "로그인이 필요합니다",
+                        "해당 기능은 로그인 후 이용할 수 있습니다.",
+                        function () {
+                            window.location.href = "/login.html";
+                        },
+                        "로그인하기"
+                    );
+
+                    return;
+                }
 
                 try {
                     const likeResponse =
@@ -1910,9 +1933,13 @@ async function loadPostDetail() {
 
                 // 로그인하지 않은 경우
                 if (!accessToken) {
-                    showBasebotModal(
-                        "로그인 필요",
-                        "로그인 후 이용할 수 있습니다."
+                    showBasebotConfirm(
+                        "로그인이 필요합니다",
+                        "해당 기능은 로그인 후 이용할 수 있습니다.",
+                        function () {
+                            window.location.href = "/login.html";
+                        },
+                        "로그인하기"
                     );
                     return;
                 }
@@ -2157,6 +2184,23 @@ document
             event.target.closest(".comment-like-button");
 
         if (!likeButton) {
+            return;
+        }
+
+        // 로그인 여부 확인
+        const accessToken = sessionStorage.getItem("access_token");
+
+        // 로그인하지 않은 경우
+        if (!accessToken) {
+            showBasebotConfirm(
+                "로그인이 필요합니다",
+                "댓글 좋아요는 로그인 후 이용할 수 있습니다.",
+                function () {
+                    window.location.href = "/login.html";
+                },
+                "로그인하기"
+            );
+
             return;
         }
 
@@ -2486,6 +2530,26 @@ document
         if (!deleteButton) {
             return;
         }
+
+
+        // 로그인 여부 확인
+        const accessToken =
+            sessionStorage.getItem("access_token");
+
+        // 로그인하지 않은 경우
+        if (!accessToken) {
+            showBasebotConfirm(
+                "로그인이 필요합니다",
+                "해당 기능은 로그인 후 이용할 수 있습니다.",
+                function () {
+                    window.location.href = "/login.html";
+                },
+                "로그인하기"
+            );
+
+            return;
+        }
+
 
         const commentItem =
             deleteButton.closest(
@@ -3506,10 +3570,15 @@ function setupPostActions() {
         scrapButton?.addEventListener("click", async function () {
             const token = sessionStorage.getItem("access_token");
 
-            if (!token) {
-                showBasebotModal(
-                    "로그인 필요",
-                    "스크랩 기능은 로그인 후 이용할 수 있습니다."
+            // 로그인하지 않은 경우
+            if (!accessToken) {
+                showBasebotConfirm(
+                    "로그인이 필요합니다",
+                    "해당 기능은 로그인 후 이용할 수 있습니다.",
+                    function () {
+                        window.location.href = "/login.html";
+                    },
+                    "로그인하기"
                 );
                 return;
             }
@@ -4366,3 +4435,33 @@ function setupEditorImage() {
 }
 
 setupEditorImage();
+
+
+/* =========================================
+   글쓰기 버튼 - 로그인 확인
+========================================= */
+
+const communityWriteButton =
+    document.getElementById("communityWriteButton");
+
+if (communityWriteButton) {
+    communityWriteButton.addEventListener("click", function (event) {
+        const accessToken =
+            sessionStorage.getItem("access_token");
+
+        // 로그인하지 않은 경우
+        if (!accessToken) {
+            event.preventDefault();
+
+            showBasebotConfirm(
+                "로그인이 필요합니다",
+                "글쓰기는 로그인 후 이용할 수 있습니다.",
+                function () {
+                    window.location.href = "/login.html";
+                },
+                "로그인하기"
+            );
+        }
+    });
+}
+

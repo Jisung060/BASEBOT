@@ -20,10 +20,11 @@ router = APIRouter(
 @router.get("/comments")
 def get_my_comments(
     page: int = Query(default=1, ge=1),
+    size: int = Query(default=5, ge=1, le=100),
     db: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    page_size = 5
+    page_size = size
     offset = (page - 1) * page_size
     user_id = current_user.user_id
 
@@ -31,13 +32,16 @@ def get_my_comments(
     # 전체 댓글 수 및 댓글 좋아요 합계
     # -----------------------------------------------------
 
-    summary_sql = text("""
-        SELECT
-            COUNT(*) AS total_comments,
-            COALESCE(SUM(like_count), 0) AS total_likes
-        FROM comments
-        WHERE user_id = :user_id
-    """)
+    summary_sql = text(
+        """
+       SELECT COUNT(*) AS total_comments,
+              COALESCE(SUM(c.like_count), 0) AS total_likes
+       FROM comments c
+                INNER JOIN community_posts p
+                           ON c.post_id = p.post_id
+       WHERE c.user_id = :user_id
+         AND p.status = 'ACTIVE'
+       """)
 
     summary = db.execute(
         summary_sql,
@@ -55,6 +59,7 @@ def get_my_comments(
             c.comment_id,
             c.post_id,
             c.content,
+            c.parent_comment_id, 
             c.like_count AS comment_like_count,
             c.created_at,
 
@@ -74,6 +79,7 @@ def get_my_comments(
             ON p.related_team_id = t.team_id
 
         WHERE c.user_id = :user_id
+            AND p.status = 'ACTIVE'
 
         ORDER BY
             c.created_at DESC,
@@ -101,6 +107,7 @@ def get_my_comments(
             "post_category": row["post_category"],
             "team_name": row["team_name"],
             "content": row["content"],
+            "parent_comment_id": row["parent_comment_id"],
             "comment_like_count": row["comment_like_count"] or 0,
             "post_like_count": row["post_like_count"] or 0,
             "post_comment_count": row["post_comment_count"] or 0,

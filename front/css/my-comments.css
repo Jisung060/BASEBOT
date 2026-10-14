@@ -1,0 +1,539 @@
+/* =========================================================
+   BASEBOT 내가 쓴 댓글 전용 CSS
+   스크랩한 게시글 / 신고 내역 / 내가 쓴 글과 동일한 디자인
+========================================================= */
+
+.my-comments-page {
+    min-width: 0;
+    color: #202b3c;
+}
+
+.my-comments-page *,
+.my-comments-page *::before,
+.my-comments-page *::after {
+    box-sizing: border-box;
+}
+
+/* 페이지 제목 */
+.my-comments-page .mypage-title {
+    margin-bottom: 26px;
+}
+
+.my-comments-page .mypage-title h1 {
+    margin: 0 0 9px;
+    color: #142b4a;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.my-comments-page .mypage-title p {
+    margin: 0;
+    color: #778397;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* 목록 카드 */
+.my-comments-box {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5eaf1;
+    border-radius: 0;
+    box-shadow: 0 5px 20px rgba(23, 43, 77, 0.04);
+}
+
+.my-comments-page .my-comments-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 23px 25px;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.my-comments-box-header .my-comments-heading {
+    color: #172e4f;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.my-comments-box-header p {
+    margin: 7px 0 0;
+    color: #8792a3;
+    font-size: 13px;
+}
+
+/* 총 개수 / 받은 좋아요 */
+.my-comments-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.my-comments-pill {
+    padding: 8px 13px;
+    color: #174a83;
+    background: #edf5ff;
+    border: 1px solid #dbeaff;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-comments-page .my-comments-body {
+    min-width: 0;
+    padding: 22px 25px 26px;
+}
+
+/* 댓글 / 답글 탭 (탭은 둥근 모양 유지) */
+.my-comments-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.my-comments-page .my-comments-tab {
+    min-height: 37px;
+    padding: 8px 16px;
+    color: #637087;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.my-comments-page .my-comments-tab:hover {
+    color: #173d70;
+    background: #f3f7fc;
+}
+
+.my-comments-page .my-comments-tab.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+/* 검색창과 정렬 */
+.my-comments-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 19px;
+}
+
+.my-comments-page .my-comments-search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    background: #fff;
+}
+
+.my-comments-search-icon {
+    margin-right: 9px;
+    color: #77869a;
+    font-size: 25px;
+}
+
+.my-comments-page #myCommentsSearchInput {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    color: #25344a;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.my-comments-page #myCommentsSearchInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.my-comments-page #myCommentsSearchInput::placeholder {
+    color: #a1aaba;
+}
+
+.my-comments-page .my-comments-sort {
+    flex-shrink: 0;
+}
+
+.my-comments-page #myCommentsSort {
+    width: 145px;
+    height: 44px;
+    padding: 0 12px;
+    color: #4c5a70;
+    background: #fff;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* 스크린 리더용 텍스트 (화면에서는 숨김) */
+.my-comments-page .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 목록 건수 */
+.my-comments-list-heading {
+    min-height: 35px;
+    padding-bottom: 11px;
+    color: #6c788c;
+    border-bottom: 1px solid #e9edf3;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 댓글 목록 */
+.my-comments-page .my-comments-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.my-comments-page .my-comments-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    margin: 0;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: #fff;
+    border-bottom: 1px solid #edf0f4;
+    list-style: none;
+}
+
+.my-comments-page .my-comments-item:hover {
+    background: #f8faff;
+}
+
+.my-comments-page .my-comments-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+    gap: 9px;
+    min-width: 0;
+    padding: 10px 13px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.my-comments-page .my-comments-link:hover {
+    text-decoration: none;
+}
+
+/* 카테고리 / 답글 배지 */
+.my-comments-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.my-comments-page .my-comments-category {
+    display: inline-flex;
+    padding: 4px 9px;
+    color: #315c91;
+    background: #edf4fc;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.my-comments-category.category-ANALYSIS {
+    background: #edf2ff;
+    color: #3157a5;
+}
+
+.my-comments-category.category-GAME_THREAD {
+    background: #edf8f2;
+    color: #24724b;
+}
+
+.my-comments-category.category-NEWS {
+    background: #fff5e9;
+    color: #a25c0b;
+}
+
+.my-comments-category.category-GENERAL {
+    background: #f2f2f2;
+    color: #606060;
+}
+
+.my-comments-page .my-comments-reply-badge {
+    display: inline-flex;
+    padding: 4px 9px;
+    color: #4c5a70;
+    background: #e9edf3;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* 댓글 내용 (2줄까지만 표시) */
+.my-comments-page .my-comments-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    width: 100%;
+    margin: 0;
+    color: #20314a;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.my-comments-page .my-comments-link:hover .my-comments-text {
+    color: #2365a8;
+}
+
+/* 원문 게시글 */
+.my-comments-page .my-comments-post {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+    color: #8490a1;
+    font-size: 12px;
+}
+
+.my-comments-post-label {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    color: #6c788c;
+    background: #f2f4f7;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.my-comments-post-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* 작성일 · 좋아요 */
+.my-comments-page .my-comments-meta {
+    display: block;
+    max-width: 100%;
+    color: #8994a4;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* 삭제 버튼 (다른 마이페이지의 취소/삭제 버튼과 동일) */
+.my-comment-delete-button {
+    flex-shrink: 0;
+    min-width: 62px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #d6dbe3;
+    border-radius: 0;
+    background: #ffffff;
+    color: #667085;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.my-comment-delete-button:hover {
+    background: #f6f7f9;
+    border-color: #98a2b3;
+    color: #344054;
+}
+
+.my-comment-delete-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* 빈 목록 안내 */
+.my-comments-page .my-comments-empty {
+    padding: 48px 18px;
+    color: #778397;
+    text-align: center;
+}
+
+.my-comments-empty-icon {
+    margin-bottom: 14px;
+    color: #a9b9cd;
+    font-size: 42px;
+}
+
+.my-comments-page .my-comments-empty strong {
+    display: block;
+    color: #34445b;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.my-comments-page .my-comments-empty p {
+    margin: 8px 0 0;
+    color: #8b96a6;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* 페이지 이동 */
+.my-comments-page .my-comments-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 0;
+}
+
+.my-comments-page .my-comments-page-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
+    height: 35px;
+    padding: 0 10px;
+    color: #5d6a7e;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.my-comments-page .my-comments-page-button.page-arrow {
+    font-size: 18px;
+    line-height: 1;
+    padding-bottom: 2px;
+}
+
+.my-comments-page .my-comments-page-button:hover:not(:disabled) {
+    color: #173d70;
+    background: #f0f5fc;
+}
+
+.my-comments-page .my-comments-page-button.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+.my-comments-page .my-comments-page-button:disabled {
+    color: #b5bdc9;
+    background: #f7f8fa;
+    cursor: not-allowed;
+}
+
+/* 모바일 화면 */
+@media (max-width: 600px) {
+    .my-comments-page .mypage-title h1 {
+        font-size: 22px;
+    }
+
+    .my-comments-page .my-comments-box-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 17px 15px;
+    }
+
+    .my-comments-badges {
+        justify-content: flex-start;
+    }
+
+    .my-comments-page .my-comments-body {
+        padding: 17px 14px 22px;
+    }
+
+    .my-comments-tabs {
+        gap: 6px;
+        margin-bottom: 17px;
+    }
+
+    .my-comments-page .my-comments-tab {
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 12px;
+    }
+
+    .my-comments-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+    .my-comments-page .my-comments-search {
+        flex: none;
+        width: 100%;
+        height: 42px;
+    }
+
+    .my-comments-page #myCommentsSort {
+        width: 100%;
+        height: 40px;
+    }
+
+    .my-comments-page .my-comments-item {
+        gap: 8px;
+    }
+
+    .my-comments-page .my-comments-link {
+        gap: 8px;
+        padding: 17px 8px;
+    }
+
+    .my-comments-page .my-comments-text {
+        font-size: 14px;
+    }
+
+    .my-comments-page .my-comments-meta {
+        font-size: 10px;
+    }
+
+    .my-comment-delete-button {
+        min-width: 52px;
+    }
+
+    .my-comments-page .my-comments-empty {
+        padding: 38px 10px;
+    }
+}

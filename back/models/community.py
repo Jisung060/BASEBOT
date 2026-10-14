@@ -85,3 +85,14 @@ class CommunityPost(Base):
         onupdate=datetime.now,
         nullable=False
     )
+
+
+    status: Mapped[str] = mapped_column(
+        Enum(
+            "ACTIVE",
+            "HIDDEN",
+            "DELETED"
+        ),
+        default="ACTIVE",
+        nullable=False
+    )

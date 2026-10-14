@@ -61,6 +61,9 @@ def get_popular_posts(
             Team,
             CommunityPost.related_team_id == Team.team_id
         )
+        .filter(
+            CommunityPost.status == "ACTIVE"
+        )
         .order_by(
             CommunityPost.like_count.desc(),
             CommunityPost.view_count.desc(),
@@ -119,6 +122,9 @@ def get_posts(
         .outerjoin(
             Team,
             CommunityPost.related_team_id == Team.team_id
+        )
+        .filter(
+            CommunityPost.status == "ACTIVE"
         )
         .order_by(
             CommunityPost.created_at.desc()
@@ -255,7 +261,8 @@ def update_post(
     existing_post = (
         session.query(CommunityPost)
         .filter(
-            CommunityPost.post_id == post_id
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )
@@ -539,7 +546,8 @@ def get_post(
             CommunityPost.related_team_id == Team.team_id
         )
         .filter(
-            CommunityPost.post_id == post_id
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )
@@ -585,7 +593,8 @@ def increase_view_count(
     post = (
         session.query(CommunityPost)
         .filter(
-            CommunityPost.post_id == post_id
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )
@@ -620,11 +629,12 @@ def toggle_post_like(
     # 게시글 확인
     post = (
         session.query(CommunityPost)
-        .filter(CommunityPost.post_id == post_id)
+        .filter(CommunityPost.post_id == post_id,
+                CommunityPost.status == "ACTIVE")
         .first()
     )
 
-    if not post:
+    if post is None:
         raise HTTPException(
             status_code=404,
             detail="게시글을 찾을 수 없습니다."
@@ -685,7 +695,8 @@ def get_post_like(
     # 게시글 확인
     post = (
         session.query(CommunityPost)
-        .filter(CommunityPost.post_id == post_id)
+        .filter(CommunityPost.post_id == post_id,
+                CommunityPost.status == "ACTIVE")
         .first()
     )
 
@@ -718,6 +729,23 @@ def get_comments(
     post_id: int,
     session: Session = Depends(get_session)
 ):
+    # 게시글이 존재하고 ACTIVE 상태인지 먼저 확인
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
+        )
+        .first()
+    )
+
+    if post is None:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
+    # 해당 게시글의 댓글 조회
     comments = (
         session.query(Comment, User)
         .join(
@@ -762,7 +790,8 @@ def create_comment(
     post = (
         session.query(CommunityPost)
         .filter(
-            CommunityPost.post_id == post_id
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )
@@ -851,6 +880,22 @@ def update_comment(
             detail="댓글을 찾을 수 없습니다."
         )
 
+    # 원본 게시글이 존재하고 공개 상태인지 확인
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == comment.post_id,
+            CommunityPost.status == "ACTIVE"
+        )
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
     # 작성자 확인
     if comment.user_id != user_id:
         raise HTTPException(
@@ -911,15 +956,21 @@ def delete_comment(
             detail="댓글을 삭제할 권한이 없습니다."
         )
 
-
-    # 게시글 찾기
+    # 공개 상태인 게시글 찾기
     post = (
         session.query(CommunityPost)
         .filter(
-            CommunityPost.post_id == comment.post_id
+            CommunityPost.post_id == comment.post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
 
     # 삭제할 댓글과 그 아래에 연결된 모든 대댓글 찾기
     comment_rows = (
@@ -997,6 +1048,22 @@ def toggle_comment_like(
             detail="댓글을 찾을 수 없습니다."
         )
 
+    # 원본 게시글의 공개 상태 확인
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == comment.post_id,
+            CommunityPost.status == "ACTIVE"
+        )
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
     # 기존 좋아요 확인
     existing_like = (
         session.query(CommentLike)
@@ -1065,6 +1132,22 @@ def get_comment_like(
             detail="댓글을 찾을 수 없습니다."
         )
 
+    # 원본 게시글의 공개 상태 확인
+    post = (
+        session.query(CommunityPost)
+        .filter(
+            CommunityPost.post_id == comment.post_id,
+            CommunityPost.status == "ACTIVE"
+        )
+        .first()
+    )
+
+    if not post:
+        raise HTTPException(
+            status_code=404,
+            detail="게시글을 찾을 수 없습니다."
+        )
+
     # 현재 로그인한 사용자의 좋아요 확인
     existing_like = (
         session.query(CommentLike)
@@ -1096,7 +1179,9 @@ def get_post_scrap(
 
     post = (
         session.query(CommunityPost)
-        .filter(CommunityPost.post_id == post_id)
+        .filter(CommunityPost.post_id == post_id,
+                CommunityPost.status == "ACTIVE"
+                )
         .first()
     )
 
@@ -1135,7 +1220,8 @@ def toggle_post_scrap(
 
     post = (
         session.query(CommunityPost)
-        .filter(CommunityPost.post_id == post_id)
+        .filter(CommunityPost.post_id == post_id,
+                CommunityPost.status == "ACTIVE")
         .first()
     )
 
@@ -1210,7 +1296,8 @@ def get_my_scraps(
             CommunityPost.user_id == User.user_id
         )
         .filter(
-            PostScrap.user_id == user_id
+            PostScrap.user_id == user_id,
+            CommunityPost.status == "ACTIVE"
         )
         .order_by(
             PostScrap.created_at.desc()
@@ -1267,11 +1354,12 @@ def create_post_report(
             detail="올바른 신고 사유를 선택해주세요."
         )
 
-    # 게시글 존재 여부 확인
+    # 공개 상태인 게시글만 신고할 수 있도록 확인
     post = (
         session.query(CommunityPost)
         .filter(
-            CommunityPost.post_id == post_id
+            CommunityPost.post_id == post_id,
+            CommunityPost.status == "ACTIVE"
         )
         .first()
     )

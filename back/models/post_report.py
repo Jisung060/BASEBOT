@@ -23,14 +23,14 @@ class PostReport(Base):
         autoincrement=True
     )
 
-    post_id: Mapped[int] = mapped_column(
+    post_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(
             "community_posts.post_id",
             onupdate="CASCADE",
-            ondelete="CASCADE"
+            ondelete="SET NULL"
         ),
-        nullable=False
+        nullable=True
     )
 
     user_id: Mapped[int] = mapped_column(

@@ -32,7 +32,8 @@ function setupCommunitySearch() {
 // API 요청 공통 함수
 // ========================================
 
-async function requestAdminAPI(endpoint) {
+
+async function requestAdminAPI(endpoint, options = {}) {
     const token = sessionStorage.getItem("access_token");
 
     if (!token) {
@@ -42,26 +43,36 @@ async function requestAdminAPI(endpoint) {
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: "GET",
+        ...options,
+        method: options.method || "GET",
         headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${token}`,
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...options.headers
         }
     });
 
     if (!response.ok) {
         if (response.status === 401) {
-            throw new Error("로그인이 만료되었거나 인증 정보가 올바르지 않습니다.");
+            throw new Error(
+                "로그인이 만료되었거나 인증 정보가 올바르지 않습니다."
+            );
         }
 
         if (response.status === 403) {
             throw new Error("관리자 계정만 접근할 수 있습니다.");
         }
 
-        throw new Error(`API 요청 실패: HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+
+        throw new Error(
+            errorData.detail || `API 요청 실패: HTTP ${response.status}`
+        );
     }
 
     return await response.json();
 }
+
 
 // ========================================
 // 게시글 / 댓글 / 신고 데이터 불러오기
@@ -272,9 +283,23 @@ function renderReportTable(data) {
     for (const report of items) {
         const row = document.createElement("tr");
 
+
         appendCell(row, report.report_id);
-        appendCell(row, report.title || "(삭제된 게시글)");
+
+        const targetCell = document.createElement("td");
+
+        if (report.post_id !== null && report.post_id !== undefined) {
+            targetCell.textContent =
+                `[No.${report.post_id}] - ${report.title || "[제목 없음]"}`;
+        } else {
+            targetCell.textContent = "[삭제된 게시글]";
+        }
+
+        row.appendChild(targetCell);
+
         appendCell(row, getReportReasonLabel(report.reason));
+
+
 
         const reporterCell = document.createElement("td");
         reporterCell.textContent = report.nickname || "알 수 없음";
@@ -289,11 +314,52 @@ function renderReportTable(data) {
         appendCell(row, getReportStatusLabel(report.status));
 
         const actionCell = document.createElement("td");
-        actionCell.textContent = "—";
-        actionCell.title = "신고 처리 API 연결 후 활성화됩니다.";
+
+        const reviewButton = document.createElement("button");
+        reviewButton.type = "button";
+        reviewButton.textContent = "검토";
+        reviewButton.className = "button";
+        reviewButton.disabled = report.status !== "PENDING";
+        reviewButton.addEventListener("click", () => {
+            updateReportStatus(report.report_id, "REVIEWED");
+        });
+
+        const acceptButton = document.createElement("button");
+        acceptButton.type = "button";
+        acceptButton.textContent = "승인";
+        acceptButton.className = "button button-primary";
+        acceptButton.disabled = report.status === "ACCEPTED";
+        acceptButton.addEventListener("click", () => {
+            updateReportStatus(report.report_id, "ACCEPTED");
+        });
+
+        const rejectButton = document.createElement("button");
+        rejectButton.type = "button";
+        rejectButton.textContent = "반려";
+        rejectButton.className = "button";
+        rejectButton.disabled = report.status === "REJECTED";
+        rejectButton.addEventListener("click", () => {
+            updateReportStatus(report.report_id, "REJECTED");
+        });
+
+
+        actionCell.append(reviewButton, acceptButton, rejectButton);
         row.appendChild(actionCell);
 
+        // 신고 행 전체를 클릭하면 상세 팝업 열기
+        row.style.cursor = "pointer";
+
+        row.addEventListener("click", (event) => {
+            // 검토, 승인, 반려 버튼을 클릭한 경우에는 상세 팝업을 열지 않음
+            if (event.target.closest("button")) {
+                return;
+            }
+
+            showReportDetail(report);
+        });
+
         tbody.appendChild(row);
+
     }
 }
 
@@ -393,3 +459,125 @@ function showCommunityError(message) {
         );
     }
 }
+
+
+async function updateReportStatus(reportId, newStatus) {
+    const statusLabels = {
+        REVIEWED: "검토 완료",
+        ACCEPTED: "조치 승인",
+        REJECTED: "반려"
+    };
+
+    const statusLabel = statusLabels[newStatus];
+
+    if (!window.confirm(`이 신고를 '${statusLabel}' 상태로 변경할까요?`)) {
+        return;
+    }
+
+    try {
+        await requestAdminAPI(
+            `/admin/community/reports/${reportId}/status?new_status=${newStatus}`,
+            {
+                method: "PATCH"
+            }
+        );
+
+        alert("신고 상태가 변경되었습니다.");
+
+        // 변경된 신고 상태와 처리 대기 건수를 다시 불러옵니다.
+        await loadAdminCommunityData();
+
+    } catch (error) {
+        console.error("신고 상태 변경 실패:", error);
+        alert(error.message || "신고 상태 변경에 실패했습니다.");
+    }
+}
+
+
+function showReportDetail(report) {
+    // 상세 보기 팝업 생성
+    const dialog = document.createElement("dialog");
+
+    dialog.style.width = "min(560px, 90vw)";
+    dialog.style.maxHeight = "80vh";
+    dialog.style.overflowY = "auto";
+    dialog.style.border = "none";
+    dialog.style.borderRadius = "12px";
+    dialog.style.padding = "24px";
+    dialog.style.boxShadow = "0 10px 40px rgba(0, 0, 0, 0.2)";
+
+    // 팝업 제목
+    const heading = document.createElement("h2");
+    heading.textContent = `신고 상세 정보 #${report.report_id}`;
+    heading.style.marginTop = "0";
+
+    dialog.appendChild(heading);
+
+    // 신고 상세 항목을 만드는 함수
+    function addDetail(label, value) {
+        const section = document.createElement("div");
+        section.style.marginBottom = "16px";
+
+        const labelElement = document.createElement("strong");
+        labelElement.textContent = label;
+        labelElement.style.display = "block";
+        labelElement.style.marginBottom = "6px";
+
+        const valueElement = document.createElement("div");
+        valueElement.textContent = String(value ?? "—");
+        valueElement.style.whiteSpace = "pre-wrap";
+        valueElement.style.overflowWrap = "anywhere";
+
+        section.append(labelElement, valueElement);
+        dialog.appendChild(section);
+    }
+
+    // 신고 정보 표시
+    addDetail("신고 번호", report.report_id);
+    addDetail("신고 대상", report.title || "[삭제된 게시글]");
+    addDetail(
+        "게시글 번호",
+        report.post_id ?? "삭제된 게시글 (연결된 번호 없음)"
+    );
+    addDetail("신고 사유", getReportReasonLabel(report.reason));
+    addDetail("신고자", report.nickname || "알 수 없음");
+    addDetail("접수일", formatDate(report.reported_at));
+    addDetail("처리 상태", getReportStatusLabel(report.status));
+    addDetail(
+        "신고 내용",
+        report.report_content || "작성된 신고 내용이 없습니다."
+    );
+
+    // 닫기 버튼
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.textContent = "닫기";
+    closeButton.className = "button button-primary";
+    closeButton.style.marginTop = "8px";
+
+    closeButton.addEventListener("click", () => {
+        dialog.close();
+    });
+
+    dialog.appendChild(closeButton);
+
+    // 팝업 배경 스타일
+    dialog.style.backgroundColor = "#ffffff";
+    dialog.style.color = "#222222";
+
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+
+    // 팝업을 화면에 표시
+    document.body.appendChild(dialog);
+
+    dialog.addEventListener("close", () => {
+        dialog.remove();
+    });
+
+    dialog.showModal();
+}
+

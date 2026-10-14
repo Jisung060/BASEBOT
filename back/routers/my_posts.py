@@ -64,6 +64,7 @@ def get_my_posts(
         SELECT COUNT(*)
         FROM community_posts
         where user_id = :user_id
+            AND status = 'ACTIVE'
         """
     )
 
@@ -77,16 +78,28 @@ def get_my_posts(
     offset = (page - 1) * size
 
     # 로그인한 상자의 게시글만 조회
+
     posts_sql = text(
         """
-        SELECT post_id, user_id, category, related_team_id, title,
-            content, view_count, like_count, comment_count, created_at, updated_at
-            FROM community_posts
-            WHERE user_id = :user_id
-            ORDER BY created_at DESC, post_id DESC
-            LIMIT :size OFFSET :offset
+        SELECT post_id,
+               user_id,
+               category,
+               related_team_id,
+               title,
+               content,
+               view_count,
+               like_count,
+               comment_count,
+               created_at,
+               updated_at
+        FROM community_posts
+        WHERE user_id = :user_id
+          AND status = 'ACTIVE'
+        ORDER BY created_at DESC, post_id DESC LIMIT :size
+        OFFSET :offset
         """
     )
+
     rows = db.execute(
         posts_sql,
         {
