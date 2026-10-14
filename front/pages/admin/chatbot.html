@@ -20,36 +20,79 @@
             ></header>
             <div class="admin-content">
 
-<section class="page-intro"><p>챗봇 대화 기록과 오류를 확인하고 야구 지식 문서 및 RAG 색인 작업을 관리합니다.</p></section>
+<section class="page-intro"><p>챗봇 대화 세션과 메시지 기록을 조회하고 관리합니다.</p></section>
+
 <section class="stat-grid stat-grid-4">
     <article class="stat-card"><span>대화 세션</span><strong>—</strong><small>chat_sessions</small></article>
-    <article class="stat-card"><span>질문 수</span><strong>—</strong><small>chat_messages</small></article>
-    <article class="stat-card"><span>오류 기록</span><strong>—</strong><small>오류 로그 연동 필요</small></article>
-    <article class="stat-card"><span>지식 문서</span><strong>—</strong><small>rag_data / Chroma</small></article>
+    <article class="stat-card"><span>전체 메시지</span><strong>—</strong><small>chat_messages</small></article>
+    <article class="stat-card"><span>사용자 질문</span><strong>—</strong><small>role = USER</small></article>
+    <article class="stat-card"><span>AI 응답</span><strong>—</strong><small>role = ASSISTANT</small></article>
 </section>
+
 <section class="panel">
-    <div class="panel-heading"><div><h2>대화 기록 조회</h2><p>질문 내용, 응답, 발생 시각을 검색합니다.</p></div></div>
+    <div class="panel-heading"><div><h2>대화 기록 조회</h2><p>세션 정보와 메시지 기록을 검색합니다.</p></div></div>
+
     <form class="filter-form" action="#" method="get">
-        <label>검색어<input type="search" name="keyword" placeholder="질문 내용"></label>
-        <label>유형<select name="type"><option value="">전체</option><option value="USER">사용자 질문</option><option value="ERROR">오류</option></select></label>
+        <label>세션 ID<input type="search" name="session_id" placeholder="세션 ID"></label>
+        <label>사용자 ID<input type="number" name="user_id" min="1" placeholder="사용자 ID"></label>
+        <label>대화 제목<input type="search" name="title" placeholder="대화 제목"></label>
         <label>기간 시작<input type="date" name="start_date"></label>
         <label>기간 종료<input type="date" name="end_date"></label>
         <button class="button button-primary" type="submit">조회</button>
     </form>
-    <div class="table-wrap"><table><thead><tr><th>세션 ID</th><th>질문 요약</th><th>응답 상태</th><th>발생 시각</th><th>상세</th></tr></thead><tbody><tr><td colspan="5" class="table-empty">챗봇 기록 API를 연결해 주세요.</td></tr></tbody></table></div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>세션 ID</th>
+                    <th>사용자 ID</th>
+                    <th>대화 제목</th>
+                    <th>메시지 수</th>
+                    <th>최근 메시지</th>
+                    <th>세션 생성일</th>
+                    <th>상세</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7" class="table-empty">챗봇 대화 기록 API를 연결해 주세요.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </section>
-<section class="content-grid">
-    <article class="panel">
-        <div class="panel-heading"><div><h2>야구 지식 문서</h2><p>규칙, 용어, 통계, FAQ 등 RAG 문서</p></div></div>
-        <div class="empty-state"><strong>문서 목록이 없습니다.</strong><p>rag_data 문서 목록을 연결하면 파일별 상태를 표시합니다.</p></div>
-        <div class="button-row"><button class="button button-secondary" type="button">문서 목록 새로고침</button><button class="button button-primary" type="button">재색인 실행</button></div>
-    </article>
-    <article class="panel">
-        <div class="panel-heading"><div><h2>최근 오류</h2><p>API 실패 또는 응답 생성 오류</p></div></div>
-        <div class="empty-state"><strong>표시할 오류가 없습니다.</strong><p>오류 로그 저장 및 조회 API가 필요합니다.</p></div>
-    </article>
+
+<section class="panel">
+    <div class="panel-heading"><div><h2>대화 상세 내역</h2><p>선택한 세션의 사용자 질문과 AI 응답을 확인합니다.</p></div></div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>메시지 ID</th>
+                    <th>발신자</th>
+                    <th>메시지 내용</th>
+                    <th>생성 SQL</th>
+                    <th>작성일</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="5" class="table-empty">대화 상세 조회 API를 연결해 주세요.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="button-row">
+        <button class="button button-secondary" type="button">상세 내역 닫기</button>
+        <button class="button button-primary" type="button">세션 삭제</button>
+    </div>
 </section>
-<div class="notice-box"><strong>보안 안내</strong><p>대화 기록을 표시할 때 비밀번호, 인증 토큰 및 불필요한 개인정보가 노출되지 않도록 필터링하세요. 재색인 실행 API는 ADMIN 권한을 확인해야 합니다.</p></div>
+
+<div class="notice-box"><strong>관리 안내</strong><p>대화 세션을 삭제하면 외래 키의 ON DELETE CASCADE 설정에 따라 해당 세션의 메시지도 함께 삭제됩니다. 관리자 권한을 확인하고 삭제 전에 사용자에게 확인을 요청하도록 API를 구현하세요.</p></div>
+
             </div>
             <footer
                 class="admin-footer"
