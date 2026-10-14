@@ -28,6 +28,7 @@ from routers import prediction_history
 from routers.admin_users import router as admin_users_router
 from routers.admin_dashboard import router as admin_dashboard_router
 from routers.admin_community import router as admin_community_router
+from routers.admin_news import router as admin_news_router
 
 from routers import players, teams, games, predictions, rankings
 from routers.news import router as news_router # 뉴스추가
@@ -63,7 +64,7 @@ app.add_middleware(
 app.include_router(admin_users_router)
 app.include_router(admin_dashboard_router)
 app.include_router(admin_community_router)
-
+app.include_router(admin_news_router)
 # 사용자 Router
 app.include_router(prediction_history.router)
 app.include_router(my_comments_router)

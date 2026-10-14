@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스 관리 | BASEBOT ADMIN</title>
+    <link rel="stylesheet" href="/css/admin/admin.css">
+    <link rel="stylesheet" href="/css/admin/admin-news.css">
+</head>
+<body class="admin-page" data-page="news">
+    <div class="admin-layout">
+        <aside class="admin-sidebar" id="admin-sidebar-container"></aside>
+
+        <main class="admin-main">
+            <header class="admin-topbar" id="admin-topbar-container"></header>
+            <div class="admin-content">
+                <section class="page-intro">
+                    <p>MLB Korea 뉴스 수집 주기와 저장된 기사를 관리합니다.</p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>뉴스 수집 설정</h2>
+                            <p>자동 수집 간격을 분 단위로 지정하거나 수동으로 즉시 수집할 수 있습니다.</p>
+                        </div>
+                        <span class="news-status" id="connectionStatus">인증 확인 중</span>
+                    </div>
+                    <div class="news-settings-grid">
+                        <label for="intervalMinutes">자동 수집 간격 (분)
+                            <input id="intervalMinutes" type="number" min="1" max="1440" value="60">
+                        </label>
+                        <div class="news-actions">
+                            <button type="button" class="button button-primary" id="saveSettingsBtn">설정 저장</button>
+                            <button type="button" class="button button-secondary" id="crawlBtn">지금 뉴스 가져오기</button>
+                        </div>
+                    </div>
+                    <p id="settingsMessage" class="news-message" role="status"></p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>저장된 뉴스</h2>
+                            <p>제목을 클릭하면 원문이 새 창에서 열립니다. 삭제는 실제 DB에서 기사를 제거합니다.</p>
+                        </div>
+                        <span class="count-label" id="totalCount">총 0건</span>
+                    </div>
+
+                    <form class="news-filter-form" id="searchForm">
+                        <label for="keyword">제목 또는 출처 검색</label>
+                        <input id="keyword" type="search" maxlength="200" placeholder="검색어 입력">
+                        <button type="submit" class="button button-primary">검색</button>
+                        <button type="button" class="button button-secondary" id="reloadBtn">새로고침</button>
+                    </form>
+
+                    <div class="news-toolbar">
+                        <label class="news-check-label"><input id="selectAll" type="checkbox"> 현재 페이지 전체 선택</label>
+                        <div class="news-actions">
+                            <button type="button" class="button button-danger" id="deleteSelectedBtn" disabled>선택 삭제</button>
+                            <button type="button" class="button button-secondary" id="cleanupBtn">비 MLB 기사 정리</button>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>선택</th>
+                                    <th>번호</th>
+                                    <th>기사 제목</th>
+                                    <th>출처</th>
+                                    <th>게시일</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="newsRows">
+                                <tr><td colspan="6" class="table-empty">뉴스 목록을 불러오는 중입니다.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <nav class="pagination news-pagination" aria-label="뉴스 목록 페이지 이동">
+                        <button type="button" class="button button-secondary" id="prevBtn" disabled>이전</button>
+                        <span id="pageLabel">1 페이지</span>
+                        <button type="button" class="button button-secondary" id="nextBtn" disabled>다음</button>
+                    </nav>
+                    <p id="listMessage" class="news-message" role="status"></p>
+                    <p class="table-note">비 MLB 기사 정리는 제목에 KBO·NPB·CPBL 등 다른 리그가 명확하게 표시된 기사만 대상으로 합니다. 자동 판별이 완벽하지 않으므로 정리 후 목록을 확인해 주세요.</p>
+                </section>
+            </div>
+            <footer class="admin-footer" id="admin-footer-container"></footer>
+        </main>
+    </div>
+
+    <script src="/js/admin/admin-common.js"></script>
+    <script src="/js/admin/admin-news.js"></script>
+</body>
+</html>

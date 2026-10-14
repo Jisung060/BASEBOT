@@ -500,6 +500,11 @@
     window.addEventListener("DOMContentLoaded", () => {
     loadNews();
 
+     // 이후 1시간마다 뉴스 화면 갱신
+    newsRefreshTimer = setInterval(() => {
+        loadNews(true);
+    }, 60 * 60 * 1000);
+
 
 });
 

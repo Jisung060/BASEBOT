@@ -29,13 +29,13 @@ router = APIRouter(prefix="/api/news", tags=["News"])
 #
 # 다른 위치에 HTML을 둘 경우 MLB_NEWS_HTML 환경변수로 경로를 지정하세요.
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_HTML_FILE = os.path.abspath(os.path.join(BACKEND_DIR, "..", "front", "pages", "mlb_news.html"))
+DEFAULT_HTML_FILE = os.path.abspath(os.path.join(BACKEND_DIR, "..", "..", "front", "pages", "mlb_news.html"))
 HTML_FILE = os.path.abspath(os.getenv("MLB_NEWS_HTML", DEFAULT_HTML_FILE))
 
 BASE_URL = "https://www.mlbkor.com"
 NEWS_LIST_URL = BASE_URL + "/news/articleList.html"
 
-CRAWL_INTERVAL = max(10, int(os.getenv("MLB_NEWS_INTERVAL", "30")))
+CRAWL_INTERVAL = max(60, min(int(os.getenv("MLB_NEWS_INTERVAL", "3600")), 86400))
 MAX_LIST_ITEMS = max(1, min(int(os.getenv("MLB_NEWS_MAX_ITEMS", "20")), 100))
 
 HEADERS = {
@@ -73,7 +73,7 @@ def mlb_news_page():
 # DB
 # ============================================================
 def get_db():
-    db = SessionLocal()
+    db = SessionFactory()
 
     try:
         yield db
@@ -82,7 +82,7 @@ def get_db():
 
 
 def create_db_session():
-    return SessionLocal()
+    return SessionFactory()
 
 # ============================================================
 # 문자열/HTML 파싱
@@ -216,6 +216,19 @@ def fetch_news_list():
 
     # 3. 최대 개수(50개)까지만 잘라서 반환
     return result[:MAX_LIST_ITEMS]
+
+
+def is_non_mlb_article(title):
+    """명백히 다른 리그만 다루는 제목을 보수적으로 걸러낸다."""
+    title = clean(title).lower()
+    if not title:
+        return False
+    mlb_terms = ("mlb", "메이저리그", "메이저 리그", "메이저리거", "메이저리그에서", "메이저리그의")
+    other_league_terms = (
+        "kbo리그", "kbo 리그", "한국프로야구", "일본프로야구", "npb",
+        "대만프로야구", "cpbl", "멕시코리그", "마이너리그 전용",
+    )
+    return any(term in title for term in other_league_terms) and not any(term in title for term in mlb_terms)
 
 
 # ============================================================
@@ -466,7 +479,32 @@ def sync_news():
         new_count = 0
         updated_count = 0
 
+        skipped_non_mlb = 0
         for item in reversed(listed):
+            if is_non_mlb_article(item.get("title", "")):
+                # Skip the non-MLB article and remove a previously saved copy,
+                # so old off-topic rows do not remain active in the news page.
+                skipped_non_mlb += 1
+                cleanup_db = SessionFactory()
+                try:
+                    cleanup_db.execute(
+                        text("""
+                            DELETE FROM mlb_news
+                            WHERE source_id = :source_id
+                               OR source_url = :source_url
+                        """),
+                        {
+                            "source_id": item["source_id"],
+                            "source_url": item["url"],
+                        },
+                    )
+                    cleanup_db.commit()
+                except Exception:
+                    cleanup_db.rollback()
+                    raise
+                finally:
+                    cleanup_db.close()
+                continue
             db = SessionFactory()
 
             try:
@@ -507,13 +545,14 @@ def sync_news():
             "checked": len(listed),
             "new": new_count,
             "updated": updated_count,
+            "skipped_non_mlb": skipped_non_mlb,
         }
     finally:
         sync_lock.release()
 
 
 # ============================================================
-# 30초 백그라운드 수집
+# 관리자 설정 주기를 따르는 백그라운드 수집
 # ============================================================
 def crawler_loop():
     try:
@@ -843,6 +882,6 @@ def get_summary(news_id: int):
     finally:
         db.close()
 
-# news.py가 import될 때 자동으로 30초 수집기를 시작한다.
+# news.py가 import될 때 자동 수집기를 시작한다.
 # 단일 Uvicorn 프로세스(local 개발) 기준으로 사용한다.
 start_background_crawler()
