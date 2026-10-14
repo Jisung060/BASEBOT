@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -16,7 +15,7 @@
     <!-- 마이페이지 공통 CSS -->
     <link rel="stylesheet" href="/css/mypage.css">
 
-    <!-- 내가 쓴 글 전용 CSS -->
+    <!-- 내가 쓴 글 전용 CSS (스크랩/신고 내역과 동일한 디자인) -->
     <link rel="stylesheet" href="/css/my-posts.css">
 </head>
 
@@ -33,36 +32,132 @@
             <div id="mypage-sidebar"></div>
 
             <!-- Content -->
-            <section class="mypage-content">
+            <section class="mypage-content my-posts-page">
 
+                <!-- 페이지 제목 -->
                 <div class="mypage-title">
                     <h1>내가 쓴 글</h1>
-                    <p>커뮤니티에서 내가 작성한 게시글을 확인할 수 있습니다.</p>
+                    <p>
+                        커뮤니티에서 내가 작성한 게시글을 확인하고 관리할 수 있습니다.
+                    </p>
                 </div>
 
-                <div class="mypage-box">
+                <!-- 게시글 목록 카드 -->
+                <div class="mypage-box my-posts-box">
 
-                    <div class="mypage-box-title">
-                        게시글 목록
+                    <!-- 카드 제목 -->
+                    <div class="mypage-box-title my-posts-box-header">
+                        <div>
+                            <span>게시글 목록</span>
+                            <p>작성한 게시글을 확인해 보세요.</p>
+                        </div>
+
                         <span class="my-posts-total">총 0개</span>
                     </div>
 
-                    <div class="mypage-box-body">
+                    <div class="mypage-box-body my-posts-body">
 
-                        <!-- DB에서 게시글을 가져와 표시 -->
-                        <ul class="activity-list my-posts-list">
+                        <!-- 카테고리 필터 -->
+                        <div class="my-posts-tabs"
+                             role="group"
+                             aria-label="게시글 카테고리 필터">
+
+                            <button type="button"
+                                    class="my-posts-tab active"
+                                    data-category="ALL"
+                                    aria-pressed="true">
+                                전체
+                            </button>
+
+                            <button type="button"
+                                    class="my-posts-tab"
+                                    data-category="NEWS"
+                                    aria-pressed="false">
+                                야구 뉴스
+                            </button>
+
+                            <button type="button"
+                                    class="my-posts-tab"
+                                    data-category="GAME_THREAD"
+                                    aria-pressed="false">
+                                경기
+                            </button>
+
+                            <button type="button"
+                                    class="my-posts-tab"
+                                    data-category="ANALYSIS"
+                                    aria-pressed="false">
+                                분석
+                            </button>
+
+                            <button type="button"
+                                    class="my-posts-tab"
+                                    data-category="GENERAL"
+                                    aria-pressed="false">
+                                자유글
+                            </button>
+                        </div>
+
+                        <!-- 검색 / 정렬 -->
+                        <div class="my-posts-toolbar">
+
+                            <label class="my-posts-search">
+                                <span class="sr-only">게시글 제목 검색</span>
+
+                                <span class="my-posts-search-icon"
+                                      aria-hidden="true">⌕</span>
+
+                                <input type="search"
+                                       id="myPostsSearchInput"
+                                       placeholder="내가 쓴 게시글 제목 검색..."
+                                       autocomplete="off">
+                            </label>
+
+                            <label class="my-posts-sort">
+                                <span class="sr-only">게시글 정렬</span>
+
+                                <select id="myPostsSort">
+                                    <option value="newest">최신 작성순</option>
+                                    <option value="oldest">오래된 작성순</option>
+                                    <option value="views">조회 많은 순</option>
+                                    <option value="likes">추천 많은 순</option>
+                                </select>
+                            </label>
+
+                        </div>
+
+                        <!-- 목록 건수 -->
+                        <div class="my-posts-list-heading">
+                            <span id="myPostsResultCount">게시글 0개</span>
+                        </div>
+
+                        <!-- JavaScript가 게시글을 표시하는 영역 -->
+                        <ul class="activity-list my-posts-list my-posts-items">
                         </ul>
 
-                        <!-- 게시글이 없을 때 -->
-                        <p id="my-posts-empty" style="display: none;">
-                            작성한 게시글이 없습니다.
-                        </p>
+                        <!-- 목록이 없을 때 -->
+                        <div id="my-posts-empty"
+                             class="my-posts-empty"
+                             style="display: none;">
+
+                            <div class="my-posts-empty-icon"
+                                 aria-hidden="true">✎</div>
+
+                            <strong>작성한 게시글이 없습니다.</strong>
+
+                            <p>
+                                커뮤니티에 첫 글을 작성해 보세요.
+                            </p>
+                        </div>
+
+                        <!-- 페이지 이동 -->
+                        <nav id="my-posts-pagination"
+                             class="my-posts-pagination my-posts-pager"
+                             aria-label="내가 쓴 글 페이지 이동">
+                        </nav>
 
                     </div>
                 </div>
-
-                <!-- 페이지 이동: box 바깥 -->
-                <div id="my-posts-pagination" class="my-posts-pagination"></div>
 
             </section>
         </div>
@@ -77,7 +172,7 @@
     <!-- 마이페이지 공통 JS -->
     <script src="/js/mypage.js"></script>
 
-    <!-- 내가 쓴 글 페이지 이동 JS -->
+    <!-- 내가 쓴 글 JS -->
     <script src="/js/my-posts.js"></script>
 
 </body>

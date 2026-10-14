@@ -187,3 +187,544 @@
     outline: 2px solid #555555;
     outline-offset: 2px;
 }
+
+/* =========================================================
+   내가 쓴 글 페이지 (스크랩한 게시글 / 신고 내역과 동일한 디자인)
+   .my-posts-page 안에서만 적용되므로
+   스크랩·신고 페이지에는 영향이 없습니다.
+========================================================= */
+
+.my-posts-page {
+    min-width: 0;
+    color: #202b3c;
+}
+
+.my-posts-page *,
+.my-posts-page *::before,
+.my-posts-page *::after {
+    box-sizing: border-box;
+}
+
+/* 페이지 제목 */
+.my-posts-page .mypage-title {
+    margin-bottom: 26px;
+}
+
+.my-posts-page .mypage-title h1 {
+    margin: 0 0 9px;
+    color: #142b4a;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.my-posts-page .mypage-title p {
+    margin: 0;
+    color: #778397;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* 목록 카드 */
+.my-posts-box {
+    min-width: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5eaf1;
+    border-radius: 0;
+    box-shadow: 0 5px 20px rgba(23, 43, 77, 0.04);
+}
+
+.my-posts-page .my-posts-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 23px 25px;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.my-posts-box-header > div > span {
+    color: #172e4f;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.my-posts-box-header p {
+    margin: 7px 0 0;
+    color: #8792a3;
+    font-size: 13px;
+}
+
+/* 총 개수 */
+.my-posts-box-header .my-posts-total {
+    float: none;
+    flex-shrink: 0;
+    padding: 8px 13px;
+    color: #174a83;
+    background: #edf5ff;
+    border: 1px solid #dbeaff;
+    border-radius: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.my-posts-page .my-posts-body {
+    min-width: 0;
+    padding: 22px 25px 26px;
+}
+
+/* 카테고리 버튼 (탭은 둥근 모양 유지) */
+.my-posts-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.my-posts-page .my-posts-tab {
+    min-height: 37px;
+    padding: 8px 16px;
+    color: #637087;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.my-posts-page .my-posts-tab:hover {
+    color: #173d70;
+    background: #f3f7fc;
+}
+
+.my-posts-page .my-posts-tab.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+/* 검색창과 정렬 */
+.my-posts-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 19px;
+}
+
+.my-posts-page .my-posts-search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    background: #fff;
+}
+
+.my-posts-search-icon {
+    margin-right: 9px;
+    color: #77869a;
+    font-size: 25px;
+}
+
+.my-posts-page #myPostsSearchInput {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    color: #25344a;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.my-posts-page #myPostsSearchInput:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.my-posts-page #myPostsSearchInput::placeholder {
+    color: #a1aaba;
+}
+
+.my-posts-page .my-posts-sort {
+    flex-shrink: 0;
+}
+
+.my-posts-page #myPostsSort {
+    width: 145px;
+    height: 44px;
+    padding: 0 12px;
+    color: #4c5a70;
+    background: #fff;
+    border: 1px solid #dfe5ee;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* 스크린 리더용 텍스트 (화면에서는 숨김) */
+.my-posts-page .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 목록 건수 */
+.my-posts-list-heading {
+    min-height: 35px;
+    padding-bottom: 11px;
+    color: #6c788c;
+    border-bottom: 1px solid #e9edf3;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* 게시글 목록 */
+.my-posts-page .my-posts-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.my-posts-page .my-posts-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    margin: 0;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: #fff;
+    border-bottom: 1px solid #edf0f4;
+    list-style: none;
+}
+
+.my-posts-page .my-posts-item:hover {
+    background: #f8faff;
+}
+
+.my-posts-page .my-posts-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+    gap: 9px;
+    min-width: 0;
+    padding: 10px 13px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.my-posts-page .my-posts-link:hover {
+    text-decoration: none;
+}
+
+/* 카테고리 배지 */
+.my-posts-page .my-posts-category {
+    display: inline-flex;
+    padding: 4px 9px;
+    color: #315c91;
+    background: #edf4fc;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.my-posts-category.category-ANALYSIS {
+    background: #edf2ff;
+    color: #3157a5;
+}
+
+.my-posts-category.category-GAME_THREAD {
+    background: #edf8f2;
+    color: #24724b;
+}
+
+.my-posts-category.category-NEWS {
+    background: #fff5e9;
+    color: #a25c0b;
+}
+
+.my-posts-category.category-GENERAL {
+    background: #f2f2f2;
+    color: #606060;
+}
+
+/* 제목 */
+.my-posts-page .my-posts-title {
+    display: block;
+    width: 100%;
+    overflow-wrap: anywhere;
+    color: #20314a;
+    font-size: 16px;
+    font-weight: 750;
+    line-height: 1.55;
+}
+
+.my-posts-page .my-posts-link:hover .my-posts-title {
+    color: #2365a8;
+}
+
+/* 작성일 */
+.my-posts-page .my-posts-meta {
+    display: block;
+    max-width: 100%;
+    color: #8490a1;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+/* 조회 / 추천 / 댓글 */
+.my-posts-page .my-posts-stats {
+    display: block;
+    color: #8994a4;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* 수정 / 삭제 버튼 영역 */
+.my-posts-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+/* 수정 버튼 (링크이지만 삭제 버튼과 같은 모양) */
+.my-post-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 62px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #d6dbe3;
+    border-radius: 0;
+    background: #ffffff;
+    color: #667085;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.my-post-edit-button:hover {
+    background: #f6f7f9;
+    border-color: #98a2b3;
+    color: #344054;
+}
+
+/* 삭제 버튼 (스크랩 취소 / 신고 취소 버튼과 동일) */
+.my-post-delete-button {
+    flex-shrink: 0;
+    min-width: 62px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #d6dbe3;
+    border-radius: 0;
+    background: #ffffff;
+    color: #667085;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.my-post-delete-button:hover {
+    background: #f6f7f9;
+    border-color: #98a2b3;
+    color: #344054;
+}
+
+.my-post-delete-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* 빈 목록 안내 */
+.my-posts-page .my-posts-empty {
+    padding: 48px 18px;
+    color: #778397;
+    text-align: center;
+}
+
+.my-posts-empty-icon {
+    margin-bottom: 14px;
+    color: #a9b9cd;
+    font-size: 42px;
+}
+
+.my-posts-page .my-posts-empty strong {
+    display: block;
+    color: #34445b;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.my-posts-page .my-posts-empty p {
+    margin: 8px 0 0;
+    color: #8b96a6;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* 페이지 이동 */
+.my-posts-page .my-posts-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 24px;
+    padding: 0;
+}
+
+.my-posts-page .my-posts-page-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
+    height: 35px;
+    padding: 0 10px;
+    color: #5d6a7e;
+    background: #fff;
+    border: 1px solid #e0e6ef;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.my-posts-page .my-posts-page-button.page-arrow {
+    font-size: 18px;
+    line-height: 1;
+    padding-bottom: 2px;
+}
+
+.my-posts-page .my-posts-page-button:hover:not(:disabled) {
+    color: #173d70;
+    background: #f0f5fc;
+}
+
+.my-posts-page .my-posts-page-button.active {
+    color: #fff;
+    background: #173b68;
+    border-color: #173b68;
+}
+
+.my-posts-page .my-posts-page-button:disabled {
+    color: #b5bdc9;
+    background: #f7f8fa;
+    cursor: not-allowed;
+}
+
+/* 모바일 화면 */
+@media (max-width: 600px) {
+    .my-posts-page .mypage-title h1 {
+        font-size: 22px;
+    }
+
+    .my-posts-page .my-posts-box-header {
+        padding: 17px 15px;
+    }
+
+    .my-posts-page .my-posts-body {
+        padding: 17px 14px 22px;
+    }
+
+    .my-posts-tabs {
+        gap: 6px;
+        margin-bottom: 17px;
+    }
+
+    .my-posts-page .my-posts-tab {
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 12px;
+    }
+
+    .my-posts-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 9px;
+    }
+
+    .my-posts-page .my-posts-search {
+        flex: none;
+        width: 100%;
+        height: 42px;
+    }
+
+    .my-posts-page #myPostsSort {
+        width: 100%;
+        height: 40px;
+    }
+
+    .my-posts-page .my-posts-item {
+        gap: 8px;
+    }
+
+    .my-posts-page .my-posts-link {
+        gap: 8px;
+        padding: 17px 8px;
+    }
+
+    .my-posts-page .my-posts-title {
+        font-size: 14px;
+    }
+
+    .my-posts-page .my-posts-meta {
+        font-size: 11px;
+    }
+
+    .my-posts-page .my-posts-stats {
+        font-size: 10px;
+    }
+
+    .my-posts-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .my-post-edit-button,
+    .my-post-delete-button {
+        min-width: 56px;
+        height: 30px;
+    }
+
+    .my-posts-page .my-posts-empty {
+        padding: 38px 10px;
+    }
+}

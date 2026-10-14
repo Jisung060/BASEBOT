@@ -118,7 +118,7 @@
                 </div>
 
                 <div class="write-button-area">
-                    <a href="community.html" class="community-btn">취소</a>
+                    <a href="community.html" class="community-btn" id="editCancelButton">취소</a>
                     <button type="submit" class="community-btn primary">수정완료</button>
                 </div>
             </form>
@@ -148,5 +148,18 @@
 
 <script src="../js/main.js"></script>
 <script src="../js/community.js"></script>
+
+<script>
+    // '내가 쓴 글'에서 들어온 경우, 취소 버튼을 누르면 '내가 쓴 글'로 돌아간다.
+    (function () {
+        const from = new URLSearchParams(window.location.search).get("from");
+        const cancelButton = document.getElementById("editCancelButton");
+
+        if (from === "my-posts") {
+            cancelButton.href = "my-posts.html";
+        }
+    })();
+</script>
+
 </body>
 </html>
