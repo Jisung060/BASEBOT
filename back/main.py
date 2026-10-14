@@ -25,7 +25,7 @@ from routers.community import router as community_router
 # admin
 from routers.admin_users import router as admin_users_router
 from routers.admin_dashboard import router as admin_dashboard_router
-
+from routers.admin_community import router as admin_community_router
 
 from routers import players, teams, games, predictions, rankings
 from routers.news import router as news_router # 뉴스추가
@@ -60,6 +60,7 @@ app.add_middleware(
 # 관리자 Router
 app.include_router(admin_users_router)
 app.include_router(admin_dashboard_router)
+app.include_router(admin_community_router)
 
 # 사용자 Router
 app.include_router(my_comments_router)
