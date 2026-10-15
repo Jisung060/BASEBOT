@@ -600,7 +600,7 @@ input {
     display: grid;
 
     grid-template-columns:
-        repeat(3, 1fr);   /* 야구뉴스 / 공지사항 / 커뮤니티 */
+        1fr 1fr;
 
     gap: 30px;
 
@@ -1593,10 +1593,18 @@ input {
 .notice-list .notice-badge.notice { background: #1a73e8; }
 
 
-/* 화면이 좁으면 한 줄에 하나씩 */
-@media (max-width: 900px) {
 
-    .content-grid {
+
+/* 야구뉴스 / 공지사항 / 커뮤니티 3칸 일렬 */
+.content-grid.content-grid-3 {
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+
+@media (max-width: 800px) {
+
+    .content-grid.content-grid-3 {
 
         grid-template-columns: 1fr;
     }
