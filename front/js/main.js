@@ -761,7 +761,8 @@ function formatGameTime(gameTime) {
 function renderTodayGames(games) {
     const container = document.querySelector(".game-list");
 
-    if (!container) {
+    // 경기 일정 페이지(game.html)의 #game-list도 같은 클래스라서 건너뜀
+    if (!container || container.id === "game-list") {
         return;
     }
 

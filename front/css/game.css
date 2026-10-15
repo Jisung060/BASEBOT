@@ -167,20 +167,8 @@
   .game-list.team-view{grid-template-columns:1fr}
 }
 
-/* 선택한 날짜 박스 강조 (모든 구단 보기 공통, 선호 구단의 노란색·파란색과 구분되는 초록색) */
-.game-day-group.is-selected-day{
-  border:2px solid #2e9e6a;
-  box-shadow:0 0 0 3px #2e9e6a22;
-}
-.game-day-group.is-selected-day .game-day-heading{
-  background:#e8f7ef;
-}
-.game-day-group.is-selected-day .game-day-heading h3{
-  color:#1d6b47;
-}
-
-/* '전체' 버튼: '최근' 버튼의 왼쪽에 놓음 */
-.all-button{position:absolute;left:calc(50% - 232px);padding:7px 13px;border-radius:18px;background:#fff;color:#6f7886;font-size:12px}
+/* '전체' 버튼: '오늘' 버튼 왼쪽에 약 1cm(38px) 띄워 놓음 */
+.all-button{position:absolute;left:calc(50% - 258px);padding:7px 13px;border-radius:18px;background:#fff;color:#6f7886;font-size:12px}
 .all-button:hover,.recent-button:hover{color:#174b8a}
 /* 휴대폰 화면: 두 버튼을 작게 만들어 왼쪽에 나란히 놓음 */
 @media(max-width:760px){
