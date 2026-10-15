@@ -16,6 +16,7 @@ fetch("/components/header.html")
         if (header) {
             header.innerHTML = data;
             updateHeader();
+            initHeaderSearch();
         }
     })
     .catch(error => {
@@ -48,31 +49,31 @@ fetch("/components/footer.html")
 
 
 /* ==================================================
-   로그인 상태에 따른 Header 변경
+   로그인 상태에 따른 Header 변경 (닉네임 환영 문구 포함)
 ================================================== */
 
-function updateHeader() {
+async function updateHeader() {
     const accessToken = sessionStorage.getItem("access_token");
 
+    const userGreetingArea = document.getElementById("userGreetingArea");
+    const userNicknameText = document.getElementById("userNicknameText");
     const loginLink = document.getElementById("loginLink");
     const signupArea = document.getElementById("signupArea");
     const mypageArea = document.getElementById("mypageArea");
     const adminLink = document.getElementById("adminLink");
 
-    // 로그인 사용자 정보
+    // 로그인 사용자 정보 파싱
     let user = null;
 
     try {
         user = JSON.parse(
-            sessionStorage.getItem("user") || "null"
+            sessionStorage.getItem("user") || localStorage.getItem("user") || "null"
         );
     } catch (error) {
         console.error("사용자 정보 파싱 실패:", error);
     }
 
     // 관리자 메뉴 표시
-    // 프런트엔드 메뉴 표시는 편의 기능이며,
-    // 관리자 권한은 반드시 백엔드에서도 검증해야 한다.
     if (adminLink) {
         if (accessToken && user && user.role === "ADMIN") {
             adminLink.style.display = "inline-block";
@@ -86,19 +87,20 @@ function updateHeader() {
     ================================================== */
 
     if (!accessToken) {
-        // 로그인
+        if (userGreetingArea) {
+            userGreetingArea.style.display = "none";
+        }
+
         if (loginLink) {
             loginLink.textContent = "로그인";
             loginLink.href = "login.html";
             loginLink.onclick = null;
         }
 
-        // 회원가입 표시
         if (signupArea) {
             signupArea.style.display = "inline";
         }
 
-        // 마이페이지 숨김
         if (mypageArea) {
             mypageArea.style.display = "none";
         }
@@ -110,7 +112,32 @@ function updateHeader() {
        로그인한 상태
     ================================================== */
 
-    // 로그인 → 로그아웃
+    // 1. 닉네임 표시 (세션에 nickname이 없으면 백엔드에서 보완 조회)
+    if (userGreetingArea && userNicknameText) {
+        let displayName = user ? (user.nickname || user.username || user.name) : null;
+
+        if (!displayName && user && (user.user_id || user.id)) {
+            try {
+                const uid = user.user_id || user.id;
+                const res = await fetch(`/api/rankings/me?user_id=${uid}`);
+                if (res.ok) {
+                    const rankData = await res.json();
+                    if (rankData.user_info && rankData.user_info.nickname) {
+                        displayName = rankData.user_info.nickname;
+                        user.nickname = displayName;
+                        sessionStorage.setItem("user", JSON.stringify(user));
+                    }
+                }
+            } catch (e) {
+                console.warn("닉네임 추가 조회 실패:", e);
+            }
+        }
+
+        userNicknameText.textContent = displayName || "회원";
+        userGreetingArea.style.display = "inline";
+    }
+
+    // 2. 로그인 → 로그아웃
     if (loginLink) {
         loginLink.textContent = "로그아웃";
         loginLink.href = "#";
@@ -121,17 +148,189 @@ function updateHeader() {
         };
     }
 
-    // 회원가입 숨김
+    // 3. 회원가입 숨김 & 마이페이지 표시
     if (signupArea) {
         signupArea.style.display = "none";
     }
 
-    // 마이페이지 표시
     if (mypageArea) {
         mypageArea.style.display = "inline";
     }
 }
 
+
+/* ==================================================
+   Baseball Savant 스타일 실시간 자동완성 검색 초기화
+================================================== */
+
+function initHeaderSearch() {
+    const wrapper = document.getElementById("savantSearchWrapper");
+    const input = document.getElementById("headerSearchInput");
+    const clearBtn = document.getElementById("headerSearchClear");
+    const searchBtn = document.getElementById("headerSearchBtn");
+    const dropdown = document.getElementById("headerSearchDropdown");
+    const resultList = document.getElementById("headerSearchResultList");
+
+    if (!input || !dropdown || !resultList) return;
+
+    let debounceTimer = null;
+    let currentItems = [];
+    let activeIndex = -1;
+
+    // 상세 페이지 이동 헬퍼
+    function navigateToItem(item) {
+        if (!item) return;
+        if (item.type === "team") {
+            location.href = `/team-detail.html?id=${item.id}`;
+        } else {
+            location.href = `/player-detail.html?id=${item.id}`;
+        }
+    }
+
+    // 검색 결과 렌더링
+    function renderDropdown(results) {
+        currentItems = results || [];
+        activeIndex = -1;
+        resultList.innerHTML = "";
+
+        if (currentItems.length === 0) {
+            resultList.innerHTML = `<li class="savant-no-result">검색 결과가 없습니다.</li>`;
+            dropdown.style.display = "block";
+            return;
+        }
+
+        currentItems.forEach((item, idx) => {
+            const li = document.createElement("li");
+            li.className = "savant-result-item";
+            li.dataset.index = idx;
+
+            const fallbackImg = item.type === "team"
+                ? `https://www.mlbstatic.com/team-logos/${item.id}.svg`
+                : "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current";
+
+            li.innerHTML = `
+                <img 
+                    class="savant-item-thumb ${item.type === 'team' ? 'is-team' : ''}" 
+                    src="${item.image_url}" 
+                    onerror="this.src='${fallbackImg}'"
+                    alt="${item.name}"
+                >
+                <div class="savant-item-info">
+                    <span class="savant-item-name">${item.name}</span>
+                    <span class="savant-item-sub">${item.subtext}</span>
+                </div>
+            `;
+
+            li.addEventListener("click", () => navigateToItem(item));
+            resultList.appendChild(li);
+        });
+
+        dropdown.style.display = "block";
+    }
+
+    // API 호출
+    async function fetchSearchResults(query) {
+        try {
+            const res = await fetch(`/api/players/search/autocomplete?q=${encodeURIComponent(query)}&limit=12`);
+            if (!res.ok) throw new Error("검색 API 오류");
+            const data = await res.json();
+            renderDropdown(data.results || []);
+        } catch (err) {
+            console.error("검색 실패:", err);
+        }
+    }
+
+    // 입력 이벤트 (디바운스 200ms)
+    input.addEventListener("input", () => {
+        const val = input.value.trim();
+        if (clearBtn) {
+            clearBtn.style.display = val.length > 0 ? "flex" : "none";
+        }
+
+        clearTimeout(debounceTimer);
+        if (val.length < 1) {
+            dropdown.style.display = "none";
+            currentItems = [];
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetchSearchResults(val);
+        }, 200);
+    });
+
+    // 포커스 시 이미 입력된 검색어가 있으면 드롭다운 다시 표시
+    input.addEventListener("focus", () => {
+        if (input.value.trim().length > 0 && currentItems.length > 0) {
+            dropdown.style.display = "block";
+        }
+    });
+
+    // 키보드 방향키(↑, ↓) 및 Enter 지원
+    input.addEventListener("keydown", (e) => {
+        const itemsEl = resultList.querySelectorAll(".savant-result-item");
+        if (!itemsEl.length) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % itemsEl.length;
+            updateActiveHighlight(itemsEl);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + itemsEl.length) % itemsEl.length;
+            updateActiveHighlight(itemsEl);
+        } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (activeIndex >= 0 && currentItems[activeIndex]) {
+                navigateToItem(currentItems[activeIndex]);
+            } else if (currentItems.length > 0) {
+                navigateToItem(currentItems[0]);
+            }
+        } else if (e.key === "Escape") {
+            dropdown.style.display = "none";
+        }
+    });
+
+    function updateActiveHighlight(itemsEl) {
+        itemsEl.forEach((el, idx) => {
+            el.classList.toggle("active", idx === activeIndex);
+            if (idx === activeIndex) {
+                el.scrollIntoView({ block: "nearest" });
+            }
+        });
+    }
+
+    // ✕ 지우기 버튼 클릭
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            input.value = "";
+            clearBtn.style.display = "none";
+            dropdown.style.display = "none";
+            currentItems = [];
+            input.focus();
+        });
+    }
+
+    // 🔍 돋보기 버튼 클릭 시 첫 번째 결과로 이동하거나 검색 실행
+    if (searchBtn) {
+        searchBtn.addEventListener("click", () => {
+            if (currentItems.length > 0) {
+                navigateToItem(currentItems[0]);
+            } else if (input.value.trim().length > 0) {
+                fetchSearchResults(input.value.trim());
+            } else {
+                input.focus();
+            }
+        });
+    }
+
+    // 검색창 외부 클릭 시 드롭다운 닫기
+    document.addEventListener("click", (e) => {
+        if (wrapper && !wrapper.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+}
 
 /* ==================================================
    로그아웃

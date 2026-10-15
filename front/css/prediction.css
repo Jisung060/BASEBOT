@@ -483,3 +483,48 @@
     vertical-align: middle;
     margin: 0 6px;
 }
+
+/* ==================================================
+   승부예측 & 랭킹 페이지 반응형 스케일링
+================================================== */
+.sub-container {
+    width: 100% !important;
+    max-width: 1280px !important;
+    box-sizing: border-box;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+@media (max-width: 1024px) {
+    .sub-container {
+        flex-direction: column;
+        gap: 24px;
+    }
+    .sub-sidebar {
+        width: 100%;
+    }
+    /* 매치업 카드 내 좌/중앙/우 영역 유연하게 축소 */
+    .matchup-arena,
+    .prediction-matchup-card {
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+    .game-result-banner {
+        flex-direction: column;
+        gap: 14px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .h2h-pill {
+        width: 100%;
+        min-width: unset;
+        box-sizing: border-box;
+    }
+    .saber-compare-table th,
+    .saber-compare-table td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+}

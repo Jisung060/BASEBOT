@@ -18,6 +18,144 @@ def calculate_age(birth_date_str):
     except Exception:
         return "-"
 
+
+def get_team_standing_and_record(db: Session, team_info: dict, season: int) -> dict:
+    """
+    해당 시즌의 지구(Division) 내 순위 및 승-패-승률 산출
+    (1순위: 시즌 투수진 총 승패 합계 / 2순위: games 테이블 경기 결과 집계)
+    """
+    league = team_info.get("league")
+    division = team_info.get("division")
+    target_tid = int(team_info["team_id"])
+
+    # 같은 지구(Division) 소속 구단 전체 조회
+    div_teams_sql = text("""
+        SELECT team_id, team_name
+        FROM teams
+        WHERE league = :league AND division = :division
+    """)
+    div_teams = db.execute(div_teams_sql, {"league": league, "division": division}).mappings().all()
+    if not div_teams:
+        div_teams = [{"team_id": target_tid, "team_name": team_info.get("team_name")}]
+
+    standings = []
+    for dt in div_teams:
+        tid = int(dt["team_id"])
+
+        # 1) player_season_stats의 투수 승/패 합산 조회 (시즌 전체 162경기 성적 반영에 유리)
+        stat_wl = db.execute(text("""
+            SELECT SUM(COALESCE(s.wins, 0)) AS w, SUM(COALESCE(s.losses, 0)) AS l
+            FROM player_season_stats s
+            JOIN players p ON s.player_id = p.player_id
+            WHERE COALESCE(s.team_id, p.team_id) = :tid
+              AND s.season = :season
+              AND s.is_pitcher = TRUE
+        """), {"tid": tid, "season": season}).mappings().first()
+
+        wins = int(stat_wl["w"] or 0) if stat_wl else 0
+        losses = int(stat_wl["l"] or 0) if stat_wl else 0
+
+        # 2) 만약 투수 스탯 승패 합계가 너무 적다면 games 테이블에서 해당 연도 승패 직접 집계
+        if (wins + losses) < 10:
+            game_wl = db.execute(text("""
+                SELECT 
+                    SUM(CASE WHEN (home_team_id = :tid AND home_score > away_score) 
+                               OR (away_team_id = :tid AND away_score > home_score) THEN 1 ELSE 0 END) AS gw,
+                    SUM(CASE WHEN (home_team_id = :tid AND home_score < away_score) 
+                               OR (away_team_id = :tid AND away_score < home_score) THEN 1 ELSE 0 END) AS gl
+                FROM games
+                WHERE status = 'FINAL'
+                  AND YEAR(game_date) = :season
+                  AND (home_team_id = :tid OR away_team_id = :tid)
+            """), {"tid": tid, "season": season}).mappings().first()
+
+            gw = int(game_wl["gw"] or 0) if game_wl else 0
+            gl = int(game_wl["gl"] or 0) if game_wl else 0
+            if (gw + gl) > (wins + losses):
+                wins, losses = gw, gl
+
+        total = wins + losses
+        win_pct = round(wins / total, 3) if total > 0 else 0.0
+        standings.append({
+            "team_id": tid,
+            "wins": wins,
+            "losses": losses,
+            "win_pct": win_pct
+        })
+
+    # 승률 내림차순, 다승 내림차순 정렬하여 지구 순위 부여
+    standings.sort(key=lambda x: (x["win_pct"], x["wins"]), reverse=True)
+
+    my_standing = next((item for idx, item in enumerate(standings, start=1) if item["team_id"] == target_tid and not item.update({"rank": idx})), None)
+    if not my_standing:
+        for idx, item in enumerate(standings, start=1):
+            if item["team_id"] == target_tid:
+                my_standing = {**item, "rank": idx}
+                break
+
+    rank_num = my_standing["rank"] if my_standing else 1
+    suffix = {1: "st", 2: "nd", 3: "rd"}.get(rank_num if rank_num < 20 else rank_num % 10, "th")
+
+    return {
+        "wins": my_standing["wins"] if my_standing else 0,
+        "losses": my_standing["losses"] if my_standing else 0,
+        "win_pct": f"{my_standing['win_pct']:.3f}".replace("0.", ".") if my_standing else ".000",
+        "division_rank": rank_num,
+        "division_rank_en": f"{rank_num}{suffix} in {league} {division}",
+        "division_rank_kr": f"{league} {division} {rank_num}위"
+    }
+
+
+def get_team_season_sabermetrics(db: Session, team_id: int, season: int) -> dict:
+    """해당 구단의 시즌 12대 세이버메트릭스 요약 지표 산출"""
+    bat_sql = text("""
+        SELECT 
+            ROUND(AVG(s.wrc_plus), 0) AS wrc_plus,
+            ROUND(AVG(s.xwoba), 3) AS xwoba,
+            ROUND(AVG(s.avg_exit_velocity), 1) AS avg_exit_velo,
+            ROUND(AVG(s.barrel_percentage), 1) AS barrel_pct,
+            ROUND(AVG(s.hard_hit_percentage), 1) AS hard_hit_pct,
+            SUM(COALESCE(s.outs_above_average, 0)) AS team_oaa,
+            ROUND(AVG(s.sprint_speed), 1) AS sprint_speed,
+            ROUND(AVG(s.bwar), 2) AS avg_bwar
+        FROM player_season_stats s
+        JOIN players p ON s.player_id = p.player_id
+        WHERE COALESCE(s.team_id, p.team_id) = :tid
+          AND s.season = :season
+          AND s.is_pitcher = FALSE
+    """)
+    bat = db.execute(bat_sql, {"tid": team_id, "season": season}).mappings().first() or {}
+
+    pit_sql = text("""
+        SELECT 
+            ROUND(AVG(s.era), 2) AS era,
+            ROUND(AVG(s.fip), 2) AS fip,
+            ROUND(AVG(s.fastball_velocity), 1) AS fastball_velo,
+            ROUND(AVG(s.k_percentage), 1) AS pit_k_pct
+        FROM player_season_stats s
+        JOIN players p ON s.player_id = p.player_id
+        WHERE COALESCE(s.team_id, p.team_id) = :tid
+          AND s.season = :season
+          AND s.is_pitcher = TRUE
+    """)
+    pit = db.execute(pit_sql, {"tid": team_id, "season": season}).mappings().first() or {}
+
+    return {
+        "wrc_plus": int(bat["wrc_plus"]) if bat.get("wrc_plus") is not None else 100,
+        "xwoba": float(bat["xwoba"]) if bat.get("xwoba") is not None else 0.315,
+        "avg_exit_velo": float(bat["avg_exit_velo"]) if bat.get("avg_exit_velo") is not None else 88.5,
+        "barrel_pct": float(bat["barrel_pct"]) if bat.get("barrel_pct") is not None else 7.5,
+        "hard_hit_pct": float(bat["hard_hit_pct"]) if bat.get("hard_hit_pct") is not None else 38.0,
+        "fip": float(pit["fip"]) if pit.get("fip") is not None else 4.10,
+        "era": float(pit["era"]) if pit.get("era") is not None else 4.15,
+        "fastball_velo": float(pit["fastball_velo"]) if pit.get("fastball_velo") is not None else 93.8,
+        "pit_k_pct": float(pit["pit_k_pct"]) if pit.get("pit_k_pct") is not None else 22.0,
+        "team_oaa": int(bat["team_oaa"]) if bat.get("team_oaa") is not None else 0,
+        "sprint_speed": float(bat["sprint_speed"]) if bat.get("sprint_speed") is not None else 27.0,
+        "avg_bwar": float(bat["avg_bwar"]) if bat.get("avg_bwar") is not None else 1.20
+    }
+
+
 # ----------------------------------------------------
 # 1. 30개 구단 전체 목록 (teams.html)
 # ----------------------------------------------------
@@ -27,6 +165,7 @@ def get_all_teams(db: Session = Depends(get_session)):
     query = text("SELECT * FROM teams ORDER BY league ASC, division ASC, team_name ASC")
     return db.execute(query).mappings().all()
 
+
 # ----------------------------------------------------
 # 2. 특정 팀 상세 및 시즌별 로스터 (team-detail.html)
 # ----------------------------------------------------
@@ -34,7 +173,7 @@ def get_all_teams(db: Session = Depends(get_session)):
 @router.get("/{team_id}/roster")
 def get_team_detail_and_roster(
     team_id: int,
-    season: Optional[int] = Query(None, description="조회할 시즌 연도 (미입력 시 최신 시즌 자동 선택)"),
+    season: Optional[int] = Query(None, description="조회할 시즌 연도"),
     db: Session = Depends(get_session)
 ):
     try:
@@ -56,17 +195,21 @@ def get_team_detail_and_roster(
         season_rows = db.execute(seasons_query, {"team_id": int(team_id)}).scalars().all()
         available_seasons = [int(s) for s in season_rows if s is not None]
 
-        # 만약 해당 구단에 아직 기록이 없다면 전체 DB 최신 시즌 확인
         if not available_seasons:
             global_seasons = db.execute(
                 text("SELECT DISTINCT season FROM player_season_stats WHERE season IS NOT NULL ORDER BY season DESC")
             ).scalars().all()
             available_seasons = [int(s) for s in global_seasons if s is not None] or [2024]
 
-        # 요청된 season이 없으면 가장 최신 시즌을 기본값으로 사용
         target_season = int(season) if season is not None else available_seasons[0]
 
-        # 3. 타자 로스터 (player_season_stats.team_id 우선 기준)
+        # 3. 구단 시즌 성적(승-패) 및 지구 순위 산출
+        team_standing = get_team_standing_and_record(db, dict(team), target_season)
+
+        # 4. 구단 12대 세이버메트릭스 요약 지표 산출
+        team_sabermetrics = get_team_season_sabermetrics(db, int(team_id), target_season)
+
+        # 5. 타자 로스터
         batters_query = text("""
             SELECT 
                 p.player_id, p.player_name, p.headshot_url, p.jersey_number,
@@ -86,7 +229,7 @@ def get_team_detail_and_roster(
             batters_query, {"team_id": int(team_id), "season": target_season}
         ).mappings().all()
 
-        # 4. 투수 로스터 (player_season_stats.team_id 우선 기준)
+        # 6. 투수 로스터
         pitchers_query = text("""
             SELECT 
                 p.player_id, p.player_name, p.headshot_url, p.jersey_number,
@@ -105,7 +248,6 @@ def get_team_detail_and_roster(
             pitchers_query, {"team_id": int(team_id), "season": target_season}
         ).mappings().all()
 
-        # 타자 정제
         batters = []
         for b in raw_batters:
             item = dict(b)
@@ -126,7 +268,6 @@ def get_team_detail_and_roster(
                 
             batters.append(item)
 
-        # 투수 정제
         pitchers = []
         for p in raw_pitchers:
             item = dict(p)
@@ -152,6 +293,8 @@ def get_team_detail_and_roster(
             "team": dict(team),
             "season": target_season,
             "available_seasons": available_seasons,
+            "standing": team_standing,
+            "sabermetrics": team_sabermetrics,
             "batters": batters,
             "pitchers": pitchers
         }

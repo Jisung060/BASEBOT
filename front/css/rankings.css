@@ -237,3 +237,12 @@
     padding: 40px !important;
     color: #94a3b8;
 }
+
+.sub-container, .ranking-container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+    box-sizing: border-box;
+}
