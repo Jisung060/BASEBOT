@@ -152,6 +152,16 @@ function renderNoticePagination(totalPages) {
    시작: 분류 변경 / 검색 연결
 ========================================= */
 document.addEventListener("DOMContentLoaded", () => {
+    // 관리자에게만 글쓰기 버튼 보이기
+    try {
+        const user = JSON.parse(sessionStorage.getItem("user"));
+        if (sessionStorage.getItem("access_token") && user?.role === "ADMIN") {
+            document.getElementById("noticeWriteButton").style.display = "inline-flex";
+        }
+    } catch (error) {
+        // 저장된 사용자 정보가 없으면 버튼을 숨긴 채로 둠
+    }
+
     document.getElementById("noticeCategorySelect").addEventListener("change", loadNotices);
 
     // 검색 버튼 클릭 또는 Enter 키로 검색 (커뮤니티와 동일)

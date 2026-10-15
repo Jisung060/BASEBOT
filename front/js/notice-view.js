@@ -159,11 +159,9 @@ function setupAdminButtons(noticeId) {
     }
     adminArea.style.display = "flex";
 
-    // 수정: 작성 페이지를 만들 때 연결 예정
-    document.getElementById("editNoticeButton").onclick = function (event) {
-        event.preventDefault();
-        showBasebotModal("준비 중", "공지사항 수정 기능은 작성 페이지와 함께 추가될 예정입니다.");
-    };
+    // 수정: 작성 페이지를 수정 모드(?id=)로 열기
+    document.getElementById("editNoticeButton").href =
+        `notice-write.html?id=${encodeURIComponent(noticeId)}`;
 
     // 삭제: 확인 팝업 → 서버에 삭제 요청 (서버에서도 관리자인지 다시 확인함)
     document.getElementById("deleteNoticeButton").onclick = function () {
