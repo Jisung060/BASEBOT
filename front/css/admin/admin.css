@@ -416,3 +416,95 @@ body.admin-page {
         padding: 11px 8px;
     }
 }
+
+
+/* ==================================================
+   BASEBOT RAG 페이지네이션
+================================================== */
+
+#rag-chunk-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 24px 0 12px;
+}
+
+/* 페이지 버튼 공통 */
+#rag-chunk-pagination button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #475569;
+
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+/* 마우스 올렸을 때 */
+#rag-chunk-pagination button:not(:disabled):hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #2563eb;
+}
+
+/* 현재 페이지 */
+#rag-chunk-pagination button.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+}
+
+/* 현재 페이지 버튼에 마우스를 올려도 유지 */
+#rag-chunk-pagination button.active:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+
+/* 이전 / 다음 비활성화 */
+#rag-chunk-pagination button:disabled {
+    background: #f8fafc;
+    border-color: #f1f5f9;
+    color: #cbd5e1;
+    cursor: not-allowed;
+}
+
+/* 키보드 포커스 */
+#rag-chunk-pagination button:focus-visible {
+    outline: 3px solid rgba(59, 130, 246, 0.25);
+    outline-offset: 2px;
+}
+
+/* 작은 화면 */
+@media (max-width: 600px) {
+    #rag-chunk-pagination {
+        gap: 4px;
+        margin-top: 18px;
+    }
+
+    #rag-chunk-pagination button {
+        min-width: 32px;
+        height: 32px;
+        padding: 0 7px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
+}

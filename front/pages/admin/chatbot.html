@@ -55,13 +55,17 @@
                     <th>상세</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="chatbot-session-list">
                 <tr>
                     <td colspan="7" class="table-empty">챗봇 대화 기록 API를 연결해 주세요.</td>
                 </tr>
             </tbody>
         </table>
     </div>
+    <div
+    id="chatbot-session-pagination"
+    class="pagination"
+    ></div>
 </section>
 
 <section class="panel">
@@ -203,8 +207,80 @@
             </button>
         </div>
     </div>
+    <div class="panel-heading">
+        <div>
+            <h2>ChromaDB 색인 조각</h2>
+            <p>
+                벡터 데이터베이스에 실제 저장된 문서 조각과 출처를 확인합니다.
+            </p>
+        </div>
+        <strong id="rag-chunk-total">전체 색인 조각: —개</strong>
+    </div>
+
+    <form class="filter-form" id="rag-chunk-filter-form">
+        <label>
+            내용 검색
+            <input
+                type="search"
+                id="rag-chunk-keyword"
+                name="keyword"
+                placeholder="색인된 텍스트 검색"
+            >
+        </label>
+
+        <label>
+            문서 분류
+            <select id="rag-chunk-category" name="category">
+                <option value="">전체</option>
+                <option value="rules">야구 규칙</option>
+                <option value="terms">야구 용어</option>
+                <option value="statistics">기록 및 통계</option>
+                <option value="positions">포지션</option>
+                <option value="strategy">야구 전략</option>
+                <option value="faq">자주 묻는 질문</option>
+                <option value="general">일반</option>
+            </select>
+        </label>
+
+        <button class="button button-primary" type="submit">
+            색인 검색
+        </button>
+
+        <button
+            class="button button-secondary"
+            id="rag-refresh-chunks"
+            type="button"
+        >
+            새로고침
+        </button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>원본 문서</th>
+                    <th>분류</th>
+                    <th>실제 색인 내용</th>
+                    <th>색인 ID</th>
+                </tr>
+            </thead>
+            <tbody id="rag-chunk-list">
+                <tr>
+                    <td colspan="4" class="table-empty">
+                        ChromaDB 색인 조각 API를 불러오는 중입니다.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <div id="rag-operation-status" role="status" aria-live="polite" hidden></div>
+    <!-- 색인 조각 페이지네이션 -->
+    <div
+        id="rag-chunk-pagination"
+        class="pagination"
+    ></div>
 </section>
 
 <div class="notice-box">

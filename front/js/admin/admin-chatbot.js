@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const messageTableBody = tableBodies[1];
 
     const sessionTableWrap = tableWraps[0];
+
     const detailPanel = Array.from(panels).find((panel) => {
         const heading = panel.querySelector(".panel-heading h2");
 
@@ -61,16 +62,81 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeButton = detailButtons[0];
     const deleteButton = detailButtons[1];
 
+    if (!closeButton || !deleteButton) {
+        console.error(
+            "대화 상세 내역의 버튼을 찾을 수 없습니다."
+        );
+        return;
+    }
+
     // 상세 내역은 세션을 선택한 뒤 표시
     detailPanel.hidden = true;
     deleteButton.disabled = true;
 
-    // HTML을 변경하지 않고 페이지 이동 영역 생성
-    const pagination = document.createElement("div");
-    pagination.className = "button-row";
+    /* ==================================================
+       페이징 영역 설정
+    ================================================== */
+
+    const pagination = document.getElementById(
+        "chatbot-session-pagination"
+    );
+
+    if (!pagination) {
+        console.error("챗봇 페이징 영역을 찾을 수 없습니다.");
+        return;
+    }
+
+    /*
+       세션 테이블과 페이지네이션을 하나의 영역으로 구성합니다.
+       기존 HTML 파일은 수정하지 않습니다.
+    */
+    const sessionListArea = document.createElement("div");
+
+    sessionListArea.className = "session-list-area";
+
+    sessionTableWrap.parentElement.insertBefore(
+        sessionListArea,
+        sessionTableWrap
+    );
+
+    sessionListArea.appendChild(sessionTableWrap);
+    sessionListArea.appendChild(pagination);
+
+    /*
+       목록 영역의 전체 높이를 고정합니다.
+       테이블 영역만 스크롤되며 페이지네이션은 아래쪽에 유지됩니다.
+    */
+    sessionListArea.style.display = "flex";
+    sessionListArea.style.flexDirection = "column";
+    sessionListArea.style.width = "100%";
+    sessionListArea.style.height = "680px";
+    sessionListArea.style.minHeight = "680px";
+    sessionListArea.style.boxSizing = "border-box";
+    sessionListArea.style.minWidth = "0";
+
+    // 테이블 영역은 남은 공간을 사용하고, 내용은 내부에서 스크롤
+    sessionTableWrap.style.flex = "1 1 0";
+    sessionTableWrap.style.height = "0";
+    sessionTableWrap.style.minHeight = "0";
+    sessionTableWrap.style.width = "100%";
+    sessionTableWrap.style.minWidth = "0";
+    sessionTableWrap.style.overflowY = "auto";
+    sessionTableWrap.style.overflowX = "auto";
+    sessionTableWrap.style.boxSizing = "border-box";
+
+    // 페이지네이션은 항상 아래쪽에 고정하고 가운데 정렬
+    pagination.style.display = "flex";
+    pagination.style.flex = "0 0 64px";
+    pagination.style.width = "100%";
+    pagination.style.height = "64px";
+    pagination.style.minHeight = "64px";
     pagination.style.justifyContent = "center";
-    pagination.style.marginTop = "16px";
-    sessionTableWrap.insertAdjacentElement("afterend", pagination);
+    pagination.style.alignItems = "center";
+    pagination.style.flexWrap = "wrap";
+    pagination.style.gap = "8px";
+    pagination.style.margin = "0";
+    pagination.style.padding = "16px 0 0";
+    pagination.style.boxSizing = "border-box";
 
     /* ==================================================
        공통 함수
@@ -86,7 +152,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function formatDate(value) {
-        if (!value) return "-";
+        if (!value) {
+            return "-";
+        }
 
         const date = new Date(value);
 
@@ -109,6 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.className = className;
         button.textContent = label;
         button.disabled = disabled;
+
         button.addEventListener("click", onClick);
 
         return button;
@@ -152,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             window.location.href = "/login.html";
+
             throw new Error("인증 실패");
         }
 
@@ -197,7 +267,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ================================================== */
 
     async function loadSessions() {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
 
         isLoading = true;
 
@@ -240,6 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             params.set("limit", String(PAGE_SIZE));
+
             params.set(
                 "offset",
                 String((currentPage - 1) * PAGE_SIZE)
@@ -250,6 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             totalSessions = result.total || 0;
+
             totalPages = Math.max(
                 1,
                 Math.ceil(totalSessions / PAGE_SIZE)
@@ -259,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (currentPage > totalPages) {
                 currentPage = totalPages;
                 isLoading = false;
+
                 await loadSessions();
                 return;
             }
@@ -290,6 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 values.forEach((value) => {
                     const cell = document.createElement("td");
+
                     setText(cell, value);
                     row.appendChild(cell);
                 });
@@ -304,6 +380,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 actionCell.appendChild(detailButton);
                 row.appendChild(actionCell);
+
                 sessionTableBody.appendChild(row);
             });
 
@@ -319,6 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             pagination.replaceChildren();
+            pagination.style.visibility = "hidden";
 
         } finally {
             isLoading = false;
@@ -332,10 +410,29 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderPagination() {
         pagination.replaceChildren();
 
+        // 렌더링할 때도 고정 레이아웃 유지
+        pagination.style.display = "flex";
+        pagination.style.flex = "0 0 64px";
+        pagination.style.width = "100%";
+        pagination.style.height = "64px";
+        pagination.style.minHeight = "64px";
+        pagination.style.justifyContent = "center";
+        pagination.style.alignItems = "center";
+        pagination.style.flexWrap = "wrap";
+        pagination.style.gap = "8px";
+        pagination.style.margin = "0";
+        pagination.style.padding = "16px 0 0";
+        pagination.style.boxSizing = "border-box";
+
+        // 데이터가 없거나 페이지가 하나뿐이어도 공간은 유지
         if (totalSessions === 0 || totalPages <= 1) {
+            pagination.style.visibility = "hidden";
             return;
         }
 
+        pagination.style.visibility = "visible";
+
+        // 이전 버튼
         pagination.appendChild(
             createButton(
                 "이전",
@@ -345,13 +442,21 @@ document.addEventListener("DOMContentLoaded", () => {
             )
         );
 
-        const pageInfo = document.createElement("span");
-        pageInfo.textContent =
-            `${currentPage} / ${totalPages} 페이지`;
-        pageInfo.style.alignSelf = "center";
+        // 페이지 번호
+        for (let page = 1; page <= totalPages; page++) {
+            pagination.appendChild(
+                createButton(
+                    String(page),
+                    page === currentPage
+                        ? "button button-primary"
+                        : "button button-secondary",
+                    () => goToPage(page),
+                    page === currentPage
+                )
+            );
+        }
 
-        pagination.appendChild(pageInfo);
-
+        // 다음 버튼
         pagination.appendChild(
             createButton(
                 "다음",
@@ -468,7 +573,6 @@ document.addEventListener("DOMContentLoaded", () => {
             );
 
             deleteButton.disabled = true;
-
         }
     }
 
@@ -497,7 +601,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "연결된 모든 메시지도 함께 삭제됩니다."
         );
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         deleteButton.disabled = true;
 
