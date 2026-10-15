@@ -412,6 +412,39 @@ function updateTeamSelect(
     }
 }
 
+// =========================================
+// 글쓰기 팀 선택
+// 리그/지구 선택 없이 전체 팀 표시
+// =========================================
+
+function setupWriteTeamSelect() {
+
+    const teamSelect =
+        document.getElementById("writeTeamSelect");
+
+    if (!teamSelect) {
+        return;
+    }
+
+    // 기본 선택 항목
+    teamSelect.innerHTML =
+        '<option value="">선택 안 함</option>';
+
+    // 전체 팀 목록 표시
+    teams.forEach(team => {
+
+        const option =
+            document.createElement("option");
+
+        option.value = team.team_code;
+
+        option.textContent =
+            koreanTeamNames[team.team_code] ||
+            team.team_name;
+
+        teamSelect.appendChild(option);
+    });
+}
 
 /* =========================================
    팀 데이터 로드 후 선택창 초기화
@@ -427,11 +460,8 @@ async function initializeTeamSelects() {
         "teamSelect"
     );
 
-    updateTeamSelect(
-        "writeLeagueSelect",
-        "writeDivisionSelect",
-        "writeTeamSelect"
-    );
+    setupWriteTeamSelect();
+
 }
 
 
@@ -3223,68 +3253,24 @@ async function setupEditForm() {
         categorySelect.value =
             post.category;
 
-
         // =========================
-        // 2. 리그
+        // 2. 구단
         // =========================
-
-        const leagueSelect =
-            document.getElementById(
-                "writeLeagueSelect"
-            );
-
-        const divisionSelect =
-            document.getElementById(
-                "writeDivisionSelect"
-            );
 
         const teamSelect =
             document.getElementById(
                 "writeTeamSelect"
             );
 
-
-        // 팀 정보가 있다면
-        if (post.league) {
-
-            leagueSelect.value =
-                post.league;
-
-            // 리그 변경 이벤트 실행
-            leagueSelect.dispatchEvent(
-                new Event("change")
-            );
-        }
-
-
-        // =========================
-        // 3. 지구
-        // =========================
-
-        if (post.division) {
-
-            divisionSelect.value =
-                post.division.toUpperCase();
-
-            divisionSelect.dispatchEvent(
-                new Event("change")
-            );
-        }
-
-
-        // =========================
-        // 4. 구단
-        // =========================
-
+        // 기존 게시글의 팀이 있다면 선택
         if (post.team_code) {
 
             teamSelect.value =
                 post.team_code;
         }
 
-
         // =========================
-        // 5. 제목
+        // 3. 제목
         // =========================
 
         const titleInput =
@@ -3297,7 +3283,7 @@ async function setupEditForm() {
 
 
         // =========================
-        // 6. 내용
+        // 4. 내용
         // =========================
 
         const editor =
