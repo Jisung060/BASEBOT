@@ -1,13 +1,14 @@
 /* ==================================================
-   선수 상세 페이지 레이아웃 (서브 컨테이너 1280px)
+   선수/구단 상세 페이지 레이아웃 (반응형 컨테이너)
 ================================================== */
 .sub-container {
-    width: 1280px;
+    width: 100%;
+    max-width: 1280px;
     margin: 0 auto;
-    padding-top: 40px;
-    padding-bottom: 80px;
+    padding: 40px 24px 80px 24px;
+    box-sizing: border-box;
     display: flex;
-    gap: 50px;
+    gap: 40px;
     flex: 1;
 }
 
@@ -704,4 +705,97 @@
     background: #e2e8f0;
     color: #1e293b;
     border-radius: 4px;
+}
+
+/* ==================================================
+   창 크기별 반응형 스케일링 (Responsive Media Queries)
+================================================== */
+
+/* 1. 노트북 및 태블릿 가로 (1280px 이하) */
+@media (max-width: 1280px) {
+    .sub-container {
+        gap: 30px;
+        padding: 30px 20px 60px 20px;
+    }
+    .sub-sidebar {
+        width: 190px;
+    }
+    .player-profile-card {
+        padding: 24px;
+        gap: 24px;
+    }
+    .player-meta-grid {
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+}
+
+/* 2. 태블릿 및 작은 창 크기 (1024px 이하) */
+@media (max-width: 1024px) {
+    .sub-container {
+        flex-direction: column;
+        gap: 24px;
+    }
+    /* 좌측 사이드바를 상단 가로 탭 메뉴 형태로 전환 */
+    .sub-sidebar {
+        width: 100%;
+    }
+    .sub-sidebar-menu {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .sub-sidebar-menu a {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 14px;
+    }
+    /* 4칸 요약 카드를 2x2 그리드로 자동 전환 */
+    .stats-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .savant-benchmark-scale {
+        padding: 0 40px 8px 140px;
+    }
+    .savant-bar-row {
+        grid-template-columns: 140px 1fr 65px;
+        gap: 12px;
+    }
+}
+
+/* 3. 모바일 및 좁은 창 (768px 이하) */
+@media (max-width: 768px) {
+    .player-profile-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    .player-meta-tags {
+        justify-content: center;
+    }
+    .player-meta-grid {
+        justify-content: center;
+        gap: 18px;
+    }
+    .roster-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .savant-benchmark-scale {
+        padding: 0 10px 8px 100px;
+    }
+    .savant-bar-row {
+        grid-template-columns: 110px 1fr 55px;
+        gap: 8px;
+    }
+    .savant-bar-label {
+        font-size: 11.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-summary-grid {
+        grid-template-columns: 1fr;
+    }
 }
