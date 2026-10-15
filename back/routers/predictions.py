@@ -175,12 +175,18 @@ def cast_prediction_vote(
     if vote.selected_team_id not in (game["home_team_id"], game["away_team_id"]):
         raise HTTPException(status_code=400, detail="해당 경기에 참여하는 팀만 선택할 수 있습니다.")
 
-    # ★ 경기 시작 10분 전 마감 체크
+    # ★ 경기 시작 10분 전 마감 체크 (UTC 저장 시각 -> KST 변환 후 현재 시각과 비교)
     if game["game_date"] and game["game_time"]:
         try:
-            time_str = game["game_time"][:8]  # "HH:MM:SS"
-            game_start_dt = datetime.strptime(f"{game['game_date']} {time_str}", "%Y-%m-%d %H:%M:%S")
-            deadline_dt = game_start_dt - timedelta(minutes=10)
+            time_str = game["game_time"][:8]
+            raw_dt = datetime.strptime(f"{game['game_date']} {time_str}", "%Y-%m-%d %H:%M:%S")
+            # 999999 테스트 경기가 아닌 실제 MLB 경기는 UTC이므로 +9시간하여 KST로 변환
+            if int(vote.game_id) != 999999:
+                kst_start_dt = raw_dt + timedelta(hours=9)
+            else:
+                kst_start_dt = raw_dt
+
+            deadline_dt = kst_start_dt - timedelta(minutes=10)
             if datetime.now() >= deadline_dt:
                 raise HTTPException(status_code=400, detail="경기 시작 10분 전부터는 투표가 마감됩니다.")
         except ValueError:

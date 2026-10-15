@@ -1,6 +1,7 @@
 import traceback
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database.db_connection import get_session
@@ -27,19 +28,45 @@ def get_all_teams(db: Session = Depends(get_session)):
     return db.execute(query).mappings().all()
 
 # ----------------------------------------------------
-# 2. 특정 팀 상세 및 로스터 (team-detail.html)
+# 2. 특정 팀 상세 및 시즌별 로스터 (team-detail.html)
 # ----------------------------------------------------
 @router.get("/{team_id}")
 @router.get("/{team_id}/roster")
-def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = Depends(get_session)):
+def get_team_detail_and_roster(
+    team_id: int,
+    season: Optional[int] = Query(None, description="조회할 시즌 연도 (미입력 시 최신 시즌 자동 선택)"),
+    db: Session = Depends(get_session)
+):
     try:
-        # 1. 구단 기본 정보 (SELECT * 로 컬럼명 불일치 원천 방지)
+        # 1. 구단 기본 정보
         team_query = text("SELECT * FROM teams WHERE team_id = :team_id")
         team = db.execute(team_query, {"team_id": int(team_id)}).mappings().first()
         if not team:
             raise HTTPException(status_code=404, detail="해당 구단을 찾을 수 없습니다.")
 
-        # 2. 타자 로스터
+        # 2. 해당 구단에 데이터가 존재하는 시즌 목록 조회 (최신순)
+        seasons_query = text("""
+            SELECT DISTINCT s.season
+            FROM player_season_stats s
+            JOIN players p ON s.player_id = p.player_id
+            WHERE COALESCE(s.team_id, p.team_id) = :team_id
+              AND s.season IS NOT NULL
+            ORDER BY s.season DESC
+        """)
+        season_rows = db.execute(seasons_query, {"team_id": int(team_id)}).scalars().all()
+        available_seasons = [int(s) for s in season_rows if s is not None]
+
+        # 만약 해당 구단에 아직 기록이 없다면 전체 DB 최신 시즌 확인
+        if not available_seasons:
+            global_seasons = db.execute(
+                text("SELECT DISTINCT season FROM player_season_stats WHERE season IS NOT NULL ORDER BY season DESC")
+            ).scalars().all()
+            available_seasons = [int(s) for s in global_seasons if s is not None] or [2024]
+
+        # 요청된 season이 없으면 가장 최신 시즌을 기본값으로 사용
+        target_season = int(season) if season is not None else available_seasons[0]
+
+        # 3. 타자 로스터 (player_season_stats.team_id 우선 기준)
         batters_query = text("""
             SELECT 
                 p.player_id, p.player_name, p.headshot_url, p.jersey_number,
@@ -50,14 +77,16 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
                 s.xba, s.xslg, s.xwoba
             FROM player_season_stats s
             JOIN players p ON s.player_id = p.player_id
-            WHERE p.team_id = :team_id 
+            WHERE COALESCE(s.team_id, p.team_id) = :team_id 
               AND s.season = :season 
               AND s.is_pitcher = FALSE
             ORDER BY s.bwar DESC, s.games DESC
         """)
-        raw_batters = db.execute(batters_query, {"team_id": int(team_id), "season": season}).mappings().all()
+        raw_batters = db.execute(
+            batters_query, {"team_id": int(team_id), "season": target_season}
+        ).mappings().all()
 
-        # 3. 투수 로스터
+        # 4. 투수 로스터 (player_season_stats.team_id 우선 기준)
         pitchers_query = text("""
             SELECT 
                 p.player_id, p.player_name, p.headshot_url, p.jersey_number,
@@ -67,14 +96,16 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
                 s.bwar, s.fwar
             FROM player_season_stats s
             JOIN players p ON s.player_id = p.player_id
-            WHERE p.team_id = :team_id 
+            WHERE COALESCE(s.team_id, p.team_id) = :team_id 
               AND s.season = :season 
               AND s.is_pitcher = TRUE
             ORDER BY s.innings_pitched DESC, s.bwar DESC
         """)
-        raw_pitchers = db.execute(pitchers_query, {"team_id": int(team_id), "season": season}).mappings().all()
+        raw_pitchers = db.execute(
+            pitchers_query, {"team_id": int(team_id), "season": target_season}
+        ).mappings().all()
 
-        # 타자 정제 (ops 계산 보강)
+        # 타자 정제
         batters = []
         for b in raw_batters:
             item = dict(b)
@@ -82,14 +113,11 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
             item["bt"] = f"{b.get('bats') or '-'}/{b.get('throws') or '-'}"
             item["jersey_number"] = b.get("jersey_number") if b.get("jersey_number") else "-"
             
-            # Decimal -> float 변환
             avg_val = float(b["batting_avg"]) if b.get("batting_avg") is not None else 0.0
             item["batting_avg"] = float(b["batting_avg"]) if b.get("batting_avg") is not None else None
             item["bwar"] = float(b["bwar"]) if b.get("bwar") is not None else None
             item["fwar"] = float(b["fwar"]) if b.get("fwar") is not None else None
 
-            # OPS 추정치/계산치 (xSLG와 batting_avg 기반 또는 근사치 제공)
-            # 만약 xslg가 있으면 (타율 + 0.070 출루율 추정 + 장타율) 기반 정밀 추정, 없을 경우 기본 처리
             if b.get("xslg") is not None:
                 approx_obp = avg_val + 0.065
                 item["ops"] = round(approx_obp + float(b["xslg"]), 3)
@@ -97,6 +125,7 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
                 item["ops"] = round(avg_val * 2.5, 3) if avg_val > 0 else "-"
                 
             batters.append(item)
+
         # 투수 정제
         pitchers = []
         for p in raw_pitchers:
@@ -104,7 +133,6 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
             item["age"] = calculate_age(p.get("birth_date"))
             item["jersey_number"] = p.get("jersey_number") if p.get("jersey_number") else "-"
             
-            # Decimal -> float 안전 변환 및 ERA+ 계산
             era_val = float(p["era"]) if p.get("era") is not None else None
             item["era"] = era_val
             item["innings_pitched"] = float(p["innings_pitched"]) if p.get("innings_pitched") is not None else None
@@ -122,7 +150,8 @@ def get_team_detail_and_roster(team_id: int, season: int = 2024, db: Session = D
 
         return {
             "team": dict(team),
-            "season": season,
+            "season": target_season,
+            "available_seasons": available_seasons,
             "batters": batters,
             "pitchers": pitchers
         }

@@ -71,12 +71,19 @@
                 </div>
             </div>
 
-            <!-- ★ [타격 / 투구] 모드 전환 탭 버튼 (오타니 등 투타 겸업 완벽 대응) ★ -->
-            <div class="mode-tab-container">
-                <button type="button" class="mode-tab-btn active" id="tabBatting" onclick="switchMode('batting')">타격 기록 (Batting)</button>
-                <button type="button" class="mode-tab-btn" id="tabPitching" onclick="switchMode('pitching')">투구 기록 (Pitching)</button>
+            <!-- ★ [타격 / 투구] 모드 전환 탭 & 시즌 선택 드롭다운 컨트롤 바 ★ -->
+            <div class="mode-control-header">
+                <div class="mode-tab-container" style="margin-bottom: 0;">
+                    <button type="button" class="mode-tab-btn active" id="tabBatting" onclick="switchMode('batting')">타격 기록 (Batting)</button>
+                    <button type="button" class="mode-tab-btn" id="tabPitching" onclick="switchMode('pitching')">투구 기록 (Pitching)</button>
+                </div>
+                <div class="player-season-selector">
+                    <label for="playerSeasonSelect">조회 시즌</label>
+                    <select id="playerSeasonSelect" class="season-dropdown" onchange="onSeasonChange(this.value)">
+                        <option value="">시즌 선택</option>
+                    </select>
+                </div>
             </div>
-
             <!-- 4개 핵심 지표 요약 카드 -->
             <div class="stats-summary-grid" id="summaryGrid"></div>
 

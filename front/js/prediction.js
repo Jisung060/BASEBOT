@@ -6,6 +6,117 @@ let currentUserPoints = 0;
 let currentUserFavoriteTeamId = null; // ★ 선호 구단 ID 전역 관리
 
 // ==================================================
+// MLB 30개 구단 홈구장 현지 시간대(IANA TimeZone) 매핑
+// ==================================================
+const MLB_TEAM_TIMEZONES = {
+    // 중부 시간 (Central Time)
+    158: "America/Chicago", // Milwaukee Brewers
+    112: "America/Chicago", // Chicago Cubs
+    145: "America/Chicago", // Chicago White Sox
+    138: "America/Chicago", // St. Louis Cardinals
+    142: "America/Chicago", // Minnesota Twins
+    118: "America/Chicago", // Kansas City Royals
+    117: "America/Chicago", // Houston Astros
+    140: "America/Chicago", // Texas Rangers
+    // 산악 시간 (Mountain Time)
+    115: "America/Denver",  // Colorado Rockies
+    109: "America/Phoenix", // Arizona Diamondbacks (서머타임 미적용 지역 자동 반영)
+    // 서부 시간 (Pacific Time)
+    119: "America/Los_Angeles", // Los Angeles Dodgers
+    108: "America/Los_Angeles", // Los Angeles Angels
+    135: "America/Los_Angeles", // San Diego Padres
+    137: "America/Los_Angeles", // San Francisco Giants
+    136: "America/Los_Angeles", // Seattle Mariners
+    133: "America/Los_Angeles"  // Athletics
+    // 그 외 나머지 구단(양키스, 보스턴, 다저스 외 동부 구단)은 기본값 "America/New_York" (동부 시간)
+};
+
+function formatTimezoneParts(utcDateObj, timeZone) {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZoneName: "short"
+    });
+    const parts = formatter.formatToParts(utcDateObj);
+    const map = {};
+    parts.forEach(p => { map[p.type] = p.value; });
+    const hour = map.hour === "24" ? "00" : map.hour;
+    return {
+        date: `${map.year}-${map.month}-${map.day}`,
+        time: `${hour}:${map.minute}`,
+        tzShort: map.timeZoneName || ""
+    };
+}
+
+/**
+ * DB의 game_date, game_time을 받아 한국 시간(KST)과 구장 현지 시간으로 변환
+ * (999999 등 테스트 경기는 입력된 시각 그대로 KST로 취급)
+ */
+function convertGameTimes(gameDateStr, gameTimeStr, homeTeamId, gameId = null) {
+    if (!gameDateStr) {
+        return {
+            kstDate: "", kstTime: "시간 미정", kstFull: "시간 미정",
+            localFull: "현지 시간 미정", utcDateObj: null
+        };
+    }
+
+    const cleanDate = String(gameDateStr).substring(0, 10);
+    const cleanTime = gameTimeStr ? String(gameTimeStr).substring(0, 8) : "00:00:00";
+
+    // MLB 공식 경기(game_id != 999999)는 UTC 기준이므로 'Z'를 붙여 파싱
+    const isTestGame = (Number(gameId) === 999999);
+    const isoStr = isTestGame ? `${cleanDate}T${cleanTime}+09:00` : `${cleanDate}T${cleanTime}Z`;
+    const utcDateObj = new Date(isoStr);
+
+    if (isNaN(utcDateObj.getTime())) {
+        return {
+            kstDate: cleanDate, kstTime: cleanTime.substring(0, 5),
+            kstFull: `${cleanDate} ${cleanTime.substring(0, 5)}`,
+            localFull: "-", utcDateObj: null
+        };
+    }
+
+    // 1. 한국 표준시 (Asia/Seoul)
+    const kst = formatTimezoneParts(utcDateObj, "Asia/Seoul");
+
+    // 2. 홈구장 현지 시간 (America/New_York, America/Chicago 등)
+    const localTz = MLB_TEAM_TIMEZONES[Number(homeTeamId)] || "America/New_York";
+    const local = formatTimezoneParts(utcDateObj, localTz);
+
+    return {
+        kstDate: kst.date,
+        kstTime: kst.time,
+        kstFull: `${kst.date} ${kst.time} (KST)`,
+        localFull: `${local.date} ${local.time} (${local.tzShort})`,
+        utcDateObj: utcDateObj
+    };
+}
+
+// ==================================================
+// 경기 시작 10분 전 마감 여부 및 마감 시각(KST) 계산 헬퍼
+// ==================================================
+function checkVoteDeadline(gameDateStr, gameTimeStr, homeTeamId, gameId = null) {
+    const converted = convertGameTimes(gameDateStr, gameTimeStr, homeTeamId, gameId);
+    if (!converted.utcDateObj) {
+        return { isPastDeadline: false, deadlineText: "경기 시작 10분 전" };
+    }
+
+    const deadlineDt = new Date(converted.utcDateObj.getTime() - 10 * 60 * 1000);
+    const now = new Date();
+    const kstDeadline = formatTimezoneParts(deadlineDt, "Asia/Seoul");
+
+    return {
+        isPastDeadline: now >= deadlineDt,
+        deadlineText: `${kstDeadline.time} KST`
+    };
+}
+
+// ==================================================
 // 로그인 유저 식별 (sessionStorage / localStorage 안전 검사)
 // ==================================================
 function getLoggedInUserId() {
@@ -89,7 +200,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-// 3. 경기 목록 불러오기 (최신순 + 경기 시간 표시)
+
+// 3. 경기 목록 불러오기 (드롭다운: 한국 시간 KST 기준 표시)
 async function loadGameList() {
     const select = document.getElementById("gameSelect");
     if (!select) return;
@@ -107,10 +219,12 @@ async function loadGameList() {
         }
 
         games.forEach(g => {
-            const dateStr = g.game_date ? g.game_date.substring(0, 10) : "";
-            // 경기 시간(HH:MM) 추출
-            const timeStr = g.game_time ? ` ${String(g.game_time).substring(0, 5)}` : "";
-            
+            // ★ UTC 경기 시각을 한국 시간(KST) 날짜 및 시각으로 변환하여 드롭다운에 표시
+            const tInfo = convertGameTimes(g.game_date, g.game_time, g.home_team_id, g.game_id);
+            const dateTimeLabel = g.game_time
+                ? `${tInfo.kstDate} ${tInfo.kstTime} (KST)`
+                : `${tInfo.kstDate}`;
+
             let statusLabel = "[예정]";
             if (g.status === "FINAL") {
                 statusLabel = "[종료]";
@@ -119,7 +233,7 @@ async function loadGameList() {
             }
 
             const opt = new Option(
-                `${statusLabel} ${dateStr}${timeStr} - ${g.away_team_name} vs ${g.home_team_name}`,
+                `${statusLabel} ${dateTimeLabel} - ${g.away_team_name} vs ${g.home_team_name}`,
                 g.game_id
             );
             select.add(opt);
@@ -299,17 +413,22 @@ function renderPredictionUI(pred, voteStatus) {
     const gameStatus = currentGameData ? currentGameData.status : "SCHEDULED";
     const myVote = voteStatus.my_vote;
 
-    // ★ 경기장 및 경기 날짜/시간 표시 포맷팅
+// ★ 한국 시간(KST)과 구장 현지 시간을 모두 변환하여 중앙 요약 박스에 표시
     const stadium = currentGameData?.stadium || "경기장 미정";
-    const gameDate = currentGameData?.game_date ? currentGameData.game_date.substring(0, 10) : "";
-    const gameTime = currentGameData?.game_time ? currentGameData.game_time.substring(0, 5) : "시간 미정";
     const h2hText = pred.head_to_head_summary || "맞대결 기록 없음";
+    const timeInfo = convertGameTimes(
+        currentGameData?.game_date,
+        currentGameData?.game_time,
+        currentGameData?.home_team_id,
+        currentGameData?.game_id
+    );
 
     const h2hPillEl = document.getElementById("h2hPill");
     if (h2hPillEl) {
         h2hPillEl.innerHTML = `
             <div class="meta-line">🏟️ ${stadium}</div>
-            <div class="meta-line">🕒 ${gameDate} ${gameTime}</div>
+            <div class="meta-line">🇰🇷 한국: <strong>${timeInfo.kstFull}</strong></div>
+            <div class="meta-line" style="font-size: 12px; color: #64748b;">🇺🇸 현지: ${timeInfo.localFull}</div>
             <div class="meta-line h2h-highlight">⚔️ ${h2hText}</div>
         `;
     }
@@ -418,7 +537,12 @@ function renderPredictionUI(pred, voteStatus) {
     if (!btnAway || !btnHome) return;
 
     const userId = getLoggedInUserId();
-    const deadlineInfo = checkVoteDeadline(currentGameData?.game_date, currentGameData?.game_time);
+    const deadlineInfo = checkVoteDeadline(
+        currentGameData?.game_date,
+        currentGameData?.game_time,
+        currentGameData?.home_team_id,
+        currentGameData?.game_id
+    );
     const deadlineNoticeHtml = `<div style="margin-top: 6px; font-size: 12.5px; color: #d97706; font-weight: 700;">⏰ 경기 시작 10분 전(${deadlineInfo.deadlineText})까지 투표 가능합니다.</div>`;
 
     const disableBtn = (btn, text) => {

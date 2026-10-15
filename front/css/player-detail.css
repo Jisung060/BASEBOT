@@ -644,3 +644,64 @@
     font-weight: 900;
     color: #102d63;
 }
+
+/* ==================================================
+   선수 상세 페이지: 투/타 탭 & 시즌 선택 컨트롤 바
+================================================== */
+.mode-control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.player-season-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8fafc;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+}
+
+.player-season-selector label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+}
+
+.season-dropdown {
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #102d63;
+    background: #ffffff;
+    border: 1.5px solid #102d63;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+}
+
+/* 하단 시즌별 테이블: 현재 선택된 시즌 행 강조 & 클릭 연동 */
+.player-stats-table tbody tr.clickable-season-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.player-stats-table tbody tr.active-season-row {
+    background-color: #eff6ff !important;
+    border-left: 3px solid #102d63;
+}
+
+.season-team-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: #1e293b;
+    border-radius: 4px;
+}
