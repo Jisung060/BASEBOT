@@ -10,19 +10,57 @@
         /* 팀 상세 페이지 전용 테이블 및 선수명 스타일 보정 */
         .roster-container { width: 100%; margin-top: 25px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        /* 시즌 선택 바 & 섹션 헤더 */
+        /* 상단 카드 Baseball Reference 스타일 Record 배지 */
+        .bref-record-line {
+            font-size: 14.5px;
+            color: #334155;
+            margin-bottom: 16px;
+            padding: 8px 14px;
+            background: #f8fafc;
+            border-left: 3.5px solid #102d63;
+            border-radius: 0 6px 6px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bref-record-line strong {
+            color: #0f172a;
+            font-weight: 800;
+        }
+        .bref-rank-pill {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 800;
+            font-size: 12.5px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* 시즌 선택 & 접이식 세이버메트릭스 아코디언 헤더 바 */
         .roster-filter-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
             border-radius: 8px;
             padding: 14px 20px;
-            margin-bottom: 25px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+        .roster-filter-bar:hover {
+            border-color: #94a3b8;
+        }
+        .saber-accordion-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
         }
         .roster-filter-info {
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 700;
             color: #1e293b;
         }
@@ -30,6 +68,23 @@
             color: #102d63;
             font-weight: 800;
         }
+        .accordion-toggle-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #102d63;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        .saber-accordion-trigger:hover .accordion-toggle-badge {
+            background: #102d63;
+            color: #ffffff;
+        }
+
         .season-select-group {
             display: flex;
             align-items: center;
@@ -56,18 +111,99 @@
             background-color: #eff6ff;
         }
 
-        .section-title h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; margin-top: 30px; }
+        /* 접이식(Collapsible) 팀 세이버메트릭스 패널 */
+        .team-saber-collapse-panel {
+            display: none; /* 기본 접힘 상태 */
+            background: #ffffff;
+            border: 1px solid #dbe2ea;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+        }
+        .team-saber-collapse-panel.open {
+            display: block;
+            animation: slideDownFade 0.25s ease-out;
+        }
+        @keyframes slideDownFade {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 승부예측 페이지 스타일의 세이버메트릭스 비교 테이블 */
+        .saber-compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 2px solid #1e293b;
+            text-align: center;
+        }
+        .saber-compare-table th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 12px 10px;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .saber-compare-table td {
+            padding: 11px 16px;
+            font-size: 13.5px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .saber-category-row td {
+            background-color: #f1f5f9 !important;
+            font-weight: 800;
+            font-size: 13px;
+            color: #1e293b;
+            text-align: center;
+            letter-spacing: 0.3px;
+            padding: 8px 12px !important;
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .metric-label-cell {
+            font-weight: 700;
+            color: #334155;
+            font-size: 13.5px;
+            background: #fcfdfe;
+        }
+        .metric-sub-desc {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        .metric-num {
+            font-weight: 700;
+            color: #475569;
+        }
+        .metric-num.is-better {
+            color: #102d63;
+            font-weight: 900;
+            background-color: #eff6ff;
+        }
+        .better-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #2563eb;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin: 0 6px;
+        }
+
+        .section-title h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; margin-top: 25px; }
 
         .roster-table { width: 100%; border-collapse: collapse; font-size: 13px; border-top: 2px solid #111827; margin-bottom: 30px; }
         .roster-table th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 10px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
         .roster-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
         .roster-table tr:hover { background-color: #f8fafc; cursor: pointer; }
 
-        /* 선수 프로필 셀: 대형 글자 방지 및 인라인 정렬 */
         .player-cell { display: flex; align-items: center; gap: 8px; text-align: left; justify-content: flex-start; padding-left: 12px !important; }
         .player-headshot { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #e2e8f0; flex-shrink: 0; }
         
-        /* player-detail.css의 거대한 h1/font-size를 덮어쓰기 */
         .roster-table .player-name {
             font-size: 13.5px !important;
             font-weight: 600 !important;
@@ -108,14 +244,21 @@
                 <span id="bcTeamName">-</span>
             </div>
 
-            <!-- 구단 요약 카드 -->
+            <!-- 구단 요약 카드 (Baseball Reference 스타일 성적 & 순위 반영) -->
             <div class="player-profile-card">
                 <div class="player-headshot-box" style="border-radius: 8px;">
                     <img id="teamLogo" src="" alt="팀 로고">
                 </div>
                 <div class="player-info-details">
                     <div class="team-badge" id="teamLeagueDiv">-</div>
-                    <h1 class="player-name" id="teamFullName" style="font-size: 26px !important;">구단 정보 로딩 중...</h1>
+                    <h1 class="player-name" id="teamFullName" style="font-size: 26px !important; margin-bottom: 10px;">구단 정보 로딩 중...</h1>
+                    
+                    <!-- ★ Baseball Reference 스타일 Record & Division Standing 줄 -->
+                    <div class="bref-record-line" id="teamRecordBanner">
+                        <span><strong>Record:</strong> <span id="teamRecordText">-</span></span>
+                        <span class="bref-rank-pill" id="teamStandingBadge">-</span>
+                    </div>
+
                     <div class="player-meta-grid">
                         <div class="meta-item">
                             <span class="meta-label">연고지</span>
@@ -125,20 +268,53 @@
                             <span class="meta-label">홈구장</span>
                             <span class="meta-value" id="teamStadium">-</span>
                         </div>
+                        <div class="meta-item">
+                            <span class="meta-label">시즌 승률</span>
+                            <span class="meta-value highlight" id="teamWinPct">-</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">지구 순위</span>
+                            <span class="meta-value" id="teamDivRankKr">-</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ★ 시즌 선택 필터 바 -->
+            <!-- ★ 시즌 선택 & 세이버메트릭스 접이식(Accordion) 컨트롤 바 -->
             <div class="roster-filter-bar">
-                <div class="roster-filter-info">
-                    📅 <span id="activeSeasonLabel">-</span> 시즌 구단 소속 로스터 및 세이버메트릭스 기록
+                <div class="saber-accordion-trigger" onclick="toggleTeamSaberPanel()">
+                    <div class="roster-filter-info">
+                        📊 <span id="activeSeasonLabel">2024</span> 시즌 세이버메트릭스 팀 기록
+                    </div>
+                    <span class="accordion-toggle-badge" id="saberToggleBtn">펼쳐서 보기 ▼</span>
                 </div>
                 <div class="season-select-group">
                     <label for="teamSeasonSelect">조회 시즌 선택</label>
                     <select id="teamSeasonSelect" class="season-select">
                         <option value="">시즌 로딩 중...</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- ★ 접이식(Collapsible) 팀 세이버메트릭스 12대 지표 테이블 (기본 접힘) -->
+            <div class="team-saber-collapse-panel" id="teamSaberPanel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 15px; color: #0f172a;" id="saberPanelHeaderTitle">📊 팀 세이버메트릭스 핵심 지표 요약 (vs MLB 리그 평균)</strong>
+                    <span style="font-size: 12px; color: #64748b;">파란색 도트(●)는 MLB 리그 평균 대비 우세 지표를 의미합니다.</span>
+                </div>
+                <div class="table-responsive" style="margin-bottom: 0;">
+                    <table class="saber-compare-table">
+                        <thead>
+                            <tr>
+                                <th id="thTeamSaberName" style="width: 35%;">구단 기록</th>
+                                <th style="width: 30%;">세이버메트릭스 분석 지표</th>
+                                <th style="width: 35%;">MLB 리그 평균 (기준치)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamSaberBody">
+                            <!-- JS에서 동적 렌더링 -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -227,6 +403,165 @@
             fetchTeamRoster(currentTeamId, initialSeason);
         });
 
+        // 접이식 세이버메트릭스 아코디언 토글
+        function toggleTeamSaberPanel() {
+            const panel = document.getElementById("teamSaberPanel");
+            const btn = document.getElementById("saberToggleBtn");
+            const isOpen = panel.classList.toggle("open");
+            btn.textContent = isOpen ? "접기 ▲" : "펼쳐서 보기 ▼";
+        }
+
+        // 구단 세이버메트릭스 12대 지표 테이블 렌더링
+        function renderTeamSaberTable(teamName, season, sb) {
+            const tbody = document.getElementById("teamSaberBody");
+            document.getElementById("thTeamSaberName").textContent = `${season} ${teamName}`;
+            document.getElementById("saberPanelHeaderTitle").textContent = `📊 ${season} 시즌 ${teamName} 세이버메트릭스 핵심 지표 (vs MLB 평균)`;
+
+            if (!tbody || !sb) return;
+
+            const rows = [
+                { category: "⚾ 타격 생산력 및 타구질 (Batting & Statcast)" },
+                {
+                    label: "wRC+ (조정 득점 창출력)",
+                    desc: "리그 평균 100 기준 팀 타선 생산력",
+                    teamVal: sb.wrc_plus,
+                    mlbAvg: 100,
+                    format: v => `${v ?? '-'}`,
+                    higherIsBetter: true
+                },
+                {
+                    label: "xwOBA (기대 가중출루율)",
+                    desc: "타구 속도와 발사각 기반 기대 출루 가치",
+                    teamVal: sb.xwoba,
+                    mlbAvg: 0.315,
+                    format: v => v !== undefined ? Number(v).toFixed(3) : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "평균 타구속도 (Exit Velocity)",
+                    desc: "타자가 타격한 공의 평균 속도",
+                    teamVal: sb.avg_exit_velo,
+                    mlbAvg: 88.8,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "배럴 타구 비율 (Barrel %)",
+                    desc: "장타 확률이 극대화되는 이상적 타구 비율",
+                    teamVal: sb.barrel_pct,
+                    mlbAvg: 7.8,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "하드힛 비율 (Hard-Hit %)",
+                    desc: "95mph 이상의 강한 타구 비율",
+                    teamVal: sb.hard_hit_pct,
+                    mlbAvg: 39.0,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
+                    higherIsBetter: true
+                },
+                { category: "🔥 마운드 억제력 및 구위 (Pitching & Stuff)" },
+                {
+                    label: "팀 평균 FIP (수비무관 자책점)",
+                    desc: "삼진·볼넷·홈런만으로 평가한 투수 본연의 억제력 (낮을수록 우세)",
+                    teamVal: sb.fip,
+                    mlbAvg: 4.12,
+                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+                    higherIsBetter: false
+                },
+                {
+                    label: "팀 평균 ERA (평균자책점)",
+                    desc: "9이닝당 평균 자책점 (낮을수록 우세)",
+                    teamVal: sb.era,
+                    mlbAvg: 4.15,
+                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+                    higherIsBetter: false
+                },
+                {
+                    label: "포심 평균 구속 (Fastball Velo)",
+                    desc: "투수진의 포심 패스트볼 평균 구속",
+                    teamVal: sb.fastball_velo,
+                    mlbAvg: 93.9,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "투수 탈삼진율 (Pitcher K%)",
+                    desc: "상대 타자 대비 탈삼진 유도 비율",
+                    teamVal: sb.pit_k_pct,
+                    mlbAvg: 22.3,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
+                    higherIsBetter: true
+                },
+                { category: "🧤 수비 · 주루 · 종합 기여도 (Fielding, Running & WAR)" },
+                {
+                    label: "팀 수비 범위 (Team OAA)",
+                    desc: "평균 대비 추가 아웃 카운트 처리 수",
+                    teamVal: sb.team_oaa,
+                    mlbAvg: 0,
+                    format: v => (v !== null && v !== undefined) ? (v > 0 ? `+${v}` : `${v}`) : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "팀 평균 주루 속도 (Sprint Speed)",
+                    desc: "초당 피트(ft/s) 기준 주루 능력",
+                    teamVal: sb.sprint_speed,
+                    mlbAvg: 27.0,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} ft/s` : '-',
+                    higherIsBetter: true
+                },
+                {
+                    label: "선수단 평균 bWAR",
+                    desc: "대체 선수 대비 평균 승리 기여도",
+                    teamVal: sb.avg_bwar,
+                    mlbAvg: 0.25,
+                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+                    higherIsBetter: true
+                }
+            ];
+
+            let html = "";
+            rows.forEach(r => {
+                if (r.category) {
+                    html += `<tr class="saber-category-row"><td colspan="3">${r.category}</td></tr>`;
+                    return;
+                }
+
+                const tVal = Number(r.teamVal);
+                const mVal = Number(r.mlbAvg);
+                let teamBetter = false;
+                let avgBetter = false;
+
+                if (!isNaN(tVal) && !isNaN(mVal) && tVal !== mVal) {
+                    if (r.higherIsBetter) {
+                        teamBetter = tVal > mVal;
+                        avgBetter = mVal > tVal;
+                    } else {
+                        teamBetter = tVal < mVal;
+                        avgBetter = mVal < tVal;
+                    }
+                }
+
+                html += `
+                    <tr>
+                        <td class="metric-num ${teamBetter ? 'is-better' : ''}">
+                            ${teamBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.teamVal)}
+                        </td>
+                        <td class="metric-label-cell">
+                            ${r.label}
+                            <span class="metric-sub-desc">${r.desc}</span>
+                        </td>
+                        <td class="metric-num ${avgBetter ? 'is-better' : ''}" style="color: #64748b;">
+                            ${r.format(r.mlbAvg)}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
         async function fetchTeamRoster(teamId, season = null) {
             try {
                 let url = `http://127.0.0.1:8000/api/teams/${teamId}`;
@@ -241,10 +576,11 @@
                 // 1. 구단 메타데이터 렌더링
                 const t = data.team;
                 const activeSeason = data.season;
+                const st = data.standing || {};
 
                 document.getElementById("bcTeamName").textContent = t.team_name || '-';
                 document.getElementById("sidebarTeamName").textContent = `${t.team_name} 로스터`;
-                document.getElementById("teamFullName").textContent = t.team_name || '구단 정보';
+                document.getElementById("teamFullName").textContent = `${activeSeason} ${t.team_name}`;
                 
                 const logoImg = document.getElementById("teamLogo");
                 logoImg.src = t.logo_url || `https://www.mlbstatic.com/team-logos/${t.team_id}.svg`;
@@ -253,6 +589,15 @@
                 document.getElementById("teamLeagueDiv").textContent = `${t.league || ''} ${t.division || ''}`;
                 document.getElementById("teamCity").textContent = t.city || '-';
                 document.getElementById("teamStadium").textContent = t.stadium || '-';
+
+                // ★ Baseball Reference 스타일 성적 및 지구 순위 바인딩
+                const wins = st.wins ?? 0;
+                const losses = st.losses ?? 0;
+                const winPct = st.win_pct || ".000";
+                document.getElementById("teamRecordText").textContent = `${wins}-${losses} (${winPct}), ${wins}승 ${losses}패`;
+                document.getElementById("teamStandingBadge").textContent = st.division_rank_en || `${t.league} ${t.division}`;
+                document.getElementById("teamWinPct").textContent = winPct;
+                document.getElementById("teamDivRankKr").textContent = st.division_rank_kr || '-';
 
                 // 2. 시즌 드롭다운 구성 및 동적 타이틀 업데이트
                 const seasonSelect = document.getElementById("teamSeasonSelect");
@@ -270,7 +615,10 @@
                 document.getElementById("battersSectionTitle").textContent = `${activeSeason} 시즌 소속 타자 로스터`;
                 document.getElementById("pitchersSectionTitle").textContent = `${activeSeason} 시즌 소속 투수 로스터`;
 
-                // 3. 타자 로스터 렌더링 (선수 상세 이동 시 선택한 시즌 파라미터도 전달)
+                // ★ 3. 접이식 팀 세이버메트릭스 요약 테이블 렌더링
+                renderTeamSaberTable(t.team_name, activeSeason, data.sabermetrics);
+
+                // 4. 타자 로스터 렌더링
                 const bTbody = document.getElementById("battersTbody");
                 bTbody.innerHTML = "";
                 if (!data.batters || data.batters.length === 0) {
@@ -302,7 +650,7 @@
                     });
                 }
 
-                // 4. 투수 로스터 렌더링
+                // 5. 투수 로스터 렌더링
                 const pTbody = document.getElementById("pitchersTbody");
                 pTbody.innerHTML = "";
                 if (!data.pitchers || data.pitchers.length === 0) {
