@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,174 +5,373 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경기 예측 관리 | BASEBOT ADMIN</title>
     <link rel="stylesheet" href="../../css/admin/admin.css">
+    <style>
+        /* 정렬 가능한 테이블 헤더 */
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        th.sortable:hover {
+            background-color: #eff6ff !important;
+            color: var(--admin-blue) !important;
+        }
+        th.sortable .sort-icon {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        th.sortable.asc .sort-icon,
+        th.sortable.desc .sort-icon {
+            color: var(--admin-blue);
+            font-weight: 900;
+        }
+
+        /* 하이라이트 경기 3종 카드 그리드 */
+        .highlight-games-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+        .highlight-card {
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: var(--admin-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .highlight-card .hl-badge {
+            display: inline-flex;
+            align-self: flex-start;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .hl-badge.blue { background: #dbeafe; color: #1d4ed8; }
+        .hl-badge.green { background: #dcfce7; color: #15803d; }
+        .hl-badge.amber { background: #fef3c7; color: #b45309; }
+
+        .highlight-card h3 {
+            margin: 4px 0 2px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .highlight-card .hl-metric {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--admin-navy);
+        }
+        .highlight-card small {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* 고정 높이 스크롤 테이블 */
+        .table-scroll-box {
+            max-height: 440px;
+            overflow-y: auto;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .table-scroll-box thead th {
+            position: sticky;
+            top: 0;
+            z-index: 4;
+        }
+
+        /* 적중률 프로그레스 바 */
+        .acc-bar-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 110px;
+        }
+        .acc-bar-bg {
+            flex: 1;
+            height: 7px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .acc-bar-fill {
+            height: 100%;
+            background: var(--admin-blue);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 1100px) {
+            .highlight-games-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body class="admin-page" data-page="predictions">
     <div class="admin-layout">
-        <aside
-            class="admin-sidebar"
-            id="admin-sidebar-container"
-        ></aside>
+        <aside class="admin-sidebar" id="admin-sidebar-container"></aside>
 
         <main class="admin-main">
-            <header
-                class="admin-topbar"
-                id="admin-topbar-container"
-            ></header>
+            <header class="admin-topbar" id="admin-topbar-container"></header>
 
             <div class="admin-content">
 
-<section class="page-intro">
-    <p>경기별 예측 참여 현황과 팀별 투표 결과, 사용자별 베팅 포인트를 확인합니다.</p>
-</section>
+                <section class="page-intro">
+                    <p>승부예측 전체 통계, 최다/최고 적중 경기, 구단별 예측 적중률, 경기별 베팅 현황 및 사용자 상세 랭킹을 통합 관리합니다.</p>
+                </section>
 
-<section class="panel">
-    <div class="panel-heading">
-        <div>
-            <h2>경기별 예측 현황</h2>
-            <p>경기 결과와 양 팀의 투표 수 및 베팅 포인트를 확인합니다.</p>
-        </div>
-    </div>
+                <!-- 1. 상단 핵심 요약 KPI 4칸 -->
+                <section class="stat-grid stat-grid-4">
+                    <article class="stat-card">
+                        <span>총 누적 투표 수</span>
+                        <strong id="kpiTotalVotes">—</strong>
+                        <small id="kpiUniqueUsers">참여 회원 집계 중</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>전체 예측 적중률</span>
+                        <strong id="kpiOverallAccuracy">—</strong>
+                        <small id="kpiHitDetail">정산 완료 투표 기준</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>누적 베팅 / 지급 포인트</span>
+                        <strong id="kpiTotalPoints" style="font-size: 24px;">—</strong>
+                        <small id="kpiPointRatio">베팅 대비 보상 지급 현황</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>정산 대기 투표</span>
+                        <strong id="kpiPendingVotes">—</strong>
+                        <small>경기 종료 후 정산 대기 건수</small>
+                    </article>
+                </section>
 
-    <form class="filter-form" action="#" method="get">
-        <label>
-            경기 날짜
-            <input type="date" name="game_date">
-        </label>
+                <!-- 2. 하이라이트 경기 3종 (최다 적중 / 최고 적중률 / 최대 이변) -->
+                <section class="highlight-games-grid">
+                    <article class="highlight-card">
+                        <span class="hl-badge blue">🔥 최다 적중 경기 (투표 수 기반)</span>
+                        <h3 id="hlMostHitTitle">데이터 집계 중...</h3>
+                        <div class="hl-metric" id="hlMostHitValue">—</div>
+                        <small id="hlMostHitDesc">가장 많은 사용자가 승자를 맞힌 경기</small>
+                    </article>
 
-        <label>
-            경기 상태
-            <select name="status">
-                <option value="">전체</option>
-                <option value="SCHEDULED">경기 예정</option>
-                <option value="IN_PROGRESS">경기 진행 중</option>
-                <option value="FINAL">경기 종료</option>
-                <option value="CANCELLED">경기 취소</option>
-            </select>
-        </label>
+                    <article class="highlight-card">
+                        <span class="hl-badge green">🎯 최고 적중률 경기 (적중률 기반)</span>
+                        <h3 id="hlHighAccTitle">데이터 집계 중...</h3>
+                        <div class="hl-metric" id="hlHighAccValue">—</div>
+                        <small id="hlHighAccDesc">투표 참여자 대비 적중률이 가장 높았던 경기</small>
+                    </article>
 
-        <label>
-            팀 검색
-            <input type="search" name="team" placeholder="팀명">
-        </label>
+                    <article class="highlight-card">
+                        <span class="hl-badge amber">⚡ 최대 이변 경기 (최저 적중률)</span>
+                        <h3 id="hlLowAccTitle">데이터 집계 중...</h3>
+                        <div class="hl-metric" id="hlLowAccValue">—</div>
+                        <small id="hlLowAccDesc">예상이 가장 크게 빗나간 언더독 승리 경기</small>
+                    </article>
+                </section>
 
-        <button class="button button-primary" type="submit">
-            조회
-        </button>
-    </form>
+                <!-- 3. 구단별 예측 적중률 통계 -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>구단별 예측 적중률 및 베팅 통계</h2>
+                            <p>사용자들이 특정 구단의 승리에 투표했을 때의 적중 횟수, 적중률(%), 누적 베팅 포인트를 비교합니다. (컬럼 클릭 정렬 지원)</p>
+                        </div>
+                        <span class="count-label" id="teamStatsCountLabel">총 0개 구단</span>
+                    </div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>경기 ID</th>
-                    <th>경기</th>
-                    <th>경기 상태</th>
-                    <th>경기 결과</th>
-                    <th>홈팀 투표 수</th>
-                    <th>원정팀 투표 수</th>
-                    <th>홈팀 베팅 포인트</th>
-                    <th>원정팀 베팅 포인트</th>
-                </tr>
-            </thead>
+                    <div class="table-wrap table-scroll-box" style="max-height: 340px;">
+                        <table id="teamStatsTable">
+                            <thead id="teamStatsThead">
+                                <tr>
+                                    <th class="sortable" data-col="team_name">구단명 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="division">소속 지구 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable desc" data-col="vote_count">총 득표수 <span class="sort-icon">▼</span></th>
+                                    <th class="sortable" data-col="hit_count">적중 수 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="miss_count">실패 수 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="accuracy">팀 예측 적중률 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="total_bet">누적 베팅 포인트 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="total_reward">누적 지급 보상 <span class="sort-icon">↕</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamStatsTbody">
+                                <tr><td colspan="8" class="table-empty">구단별 예측 통계를 불러오는 중입니다...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-            <tbody>
-                <tr>
-                    <td colspan="8" class="table-empty">
-                        예측 데이터를 불러오려면 API 연동이 필요합니다.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                <!-- 4. 경기별 예측 현황 -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>경기별 예측 현황</h2>
+                            <p>경기 결과와 양 팀의 투표 수, 베팅 포인트, 경기별 적중률을 확인하고 미정산 경기를 정산합니다. (컬럼 클릭 정렬 지원)</p>
+                        </div>
+                        <span class="count-label" id="gamePredCountLabel">총 0경기</span>
+                    </div>
 
-    <p class="table-note">
-        투표 수는 각 팀의 승리를 예측한 사용자 수이며,
-        베팅 포인트는 각 팀에 투입된 포인트의 합계입니다.
-        경기 결과는 결과가 확정된 경기만 표시하도록 연결합니다.
-    </p>
-</section>
+                    <form class="filter-form" id="gamePredFilterForm">
+                        <label>
+                            경기 날짜
+                            <input type="date" id="filterGameDate">
+                        </label>
+                        <label>
+                            경기 상태
+                            <select id="filterGameStatus">
+                                <option value="">전체 상태</option>
+                                <option value="SCHEDULED">경기 예정 (SCHEDULED)</option>
+                                <option value="IN_PROGRESS">경기 진행 중 (IN_PROGRESS)</option>
+                                <option value="FINAL">경기 종료 (FINAL)</option>
+                            </select>
+                        </label>
+                        <label class="grow">
+                            팀 검색
+                            <input type="search" id="filterGameTeam" placeholder="구단명 또는 약어 (예: Yankees, NYY)">
+                        </label>
+                        <label class="switch-label" style="min-height: 40px; padding: 0 8px;">
+                            <input type="checkbox" id="filterOnlyVoted" checked>
+                            <span>투표 있는 경기만</span>
+                        </label>
+                        <button class="button button-primary" type="submit">조회</button>
+                    </form>
 
-<section class="panel">
-    <div class="panel-heading">
-        <div>
-            <h2>사용자 예측 기록</h2>
-            <p>사용자별 예측 결과와 베팅 포인트 누적 내역을 확인합니다.</p>
-        </div>
-    </div>
+                    <div class="table-wrap table-scroll-box">
+                        <table id="gamePredTable">
+                            <thead id="gamePredThead">
+                                <tr>
+                                    <th class="sortable" data-col="game_id">경기 ID <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="game_date">날짜 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="matchup">경기 매치업 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="status">상태 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="game_result">경기 결과 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable desc" data-col="total_votes">총 투표 <span class="sort-icon">▼</span></th>
+                                    <th class="sortable" data-col="home_votes">홈 투표 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="away_votes">원정 투표 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="home_bet_points">홈 베팅P <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="away_bet_points">원정 베팅P <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="correct_votes">적중 수 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="accuracy">적중률 <span class="sort-icon">↕</span></th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gamePredTbody">
+                                <tr><td colspan="13" class="table-empty">경기별 예측 현황을 불러오는 중입니다...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-    <form class="filter-form" action="#" method="get">
-        <label>
-            사용자 검색
-            <input
-                type="search"
-                name="user"
-                placeholder="아이디 / 닉네임"
-            >
-        </label>
+                <!-- 5. 관리자 전용 사용자 예측 상세 랭킹 -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>사용자 예측 상세 랭킹 (관리자 전용)</h2>
+                            <p>일반 랭킹 페이지보다 상세한 회원별 적중/실패 수, 현재/최대 연승, 보유 포인트, 누적 베팅 대비 순수익을 분석합니다.</p>
+                        </div>
+                        <span class="count-label" id="userRankingCountLabel">총 0명</span>
+                    </div>
 
-        <label>
-            경기 날짜
-            <input type="date" name="user_game_date">
-        </label>
+                    <form class="filter-form" id="userRankingFilterForm">
+                        <label class="grow">
+                            회원 검색
+                            <input type="search" id="filterRankUser" placeholder="아이디(username) / 닉네임 / 이메일 검색...">
+                        </label>
+                        <button class="button button-primary" type="submit">검색</button>
+                    </form>
 
-        <label>
-            지급 상태
-            <select name="reward_status">
-                <option value="">전체</option>
-                <option value="PAID">지급 완료</option>
-                <option value="PENDING">대기</option>
-                <option value="FAILED">실패</option>
-            </select>
-        </label>
+                    <div class="table-wrap table-scroll-box">
+                        <table id="userRankingTable">
+                            <thead id="userRankingThead">
+                                <tr>
+                                    <th class="sortable asc" data-col="rank">순위 <span class="sort-icon">▲</span></th>
+                                    <th class="sortable" data-col="nickname">닉네임 (아이디) <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="grade">등급 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="fav_team_code">선호구단 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="total_votes">총 참여 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="correct_votes">적중 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="failed_votes">실패 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="accuracy">적중률 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="prediction_streak">현재 연승 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="max_prediction_streak">최대 연승 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="current_point">보유 포인트 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="total_bet_points">누적 베팅P <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="total_reward_points">누적 보상P <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="net_profit">포인트 순수익 <span class="sort-icon">↕</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="userRankingTbody">
+                                <tr><td colspan="14" class="table-empty">사용자 상세 랭킹을 불러오는 중입니다...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-        <button class="button button-primary" type="submit">
-            검색
-        </button>
-    </form>
+                <!-- 6. 사용자 예측 기록 (개별 투표 이력) -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>사용자 예측 기록 (개별 투표 로그)</h2>
+                            <p>사용자별 개별 경기 예측 결과와 베팅 포인트, 누적 베팅액 및 보상 지급 상태를 확인합니다. (컬럼 클릭 정렬 지원)</p>
+                        </div>
+                        <span class="count-label" id="userRecordCountLabel">총 0건</span>
+                    </div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>사용자</th>
-                    <th>경기</th>
-                    <th>예측 팀</th>
-                    <th>경기 결과</th>
-                    <th>베팅 포인트</th>
-                    <th>사용자 총 베팅 포인트</th>
-                    <th>보상 포인트</th>
-                    <th>지급 상태</th>
-                </tr>
-            </thead>
+                    <form class="filter-form" id="userRecordFilterForm">
+                        <label class="grow">
+                            사용자 검색
+                            <input type="search" id="filterRecordUser" placeholder="아이디 / 닉네임">
+                        </label>
+                        <label>
+                            경기 날짜
+                            <input type="date" id="filterRecordDate">
+                        </label>
+                        <label>
+                            지급 상태
+                            <select id="filterRewardStatus">
+                                <option value="">전체 상태</option>
+                                <option value="PAID">적중 · 지급 완료 (PAID)</option>
+                                <option value="PENDING">정산 대기 (PENDING)</option>
+                                <option value="FAILED">미적중 · 실패 (FAILED)</option>
+                            </select>
+                        </label>
+                        <button class="button button-primary" type="submit">검색</button>
+                    </form>
 
-            <tbody>
-                <tr>
-                    <td colspan="8" class="table-empty">
-                        예측 기록이 없습니다. API를 연결해 주세요.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <p class="table-note">
-        사용자 총 베팅 포인트는 해당 사용자의 전체 예측 기록에 등록된
-        베팅 포인트를 합산한 값입니다.
-        개별 경기의 베팅 포인트와 구분하여 표시합니다.
-        적중 여부와 보상 포인트는 경기 결과가 확정된 뒤 계산하고,
-        포인트 지급은 서버에서 중복 지급을 방지하도록 처리해야 합니다.
-    </p>
-</section>
+                    <div class="table-wrap table-scroll-box">
+                        <table id="userRecordTable">
+                            <thead id="userRecordThead">
+                                <tr>
+                                    <th class="sortable desc" data-col="vote_id">투표 ID <span class="sort-icon">▼</span></th>
+                                    <th class="sortable" data-col="user_display">사용자 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="game_date">경기 날짜 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="matchup">경기 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="selected_team_name">예측 팀 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="game_result">경기 결과 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="bet_point">베팅 포인트 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="user_total_bet">사용자 총 베팅P <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="reward_point">보상 포인트 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="status_label">지급 상태 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="voted_at">투표 일시 <span class="sort-icon">↕</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="userRecordTbody">
+                                <tr><td colspan="11" class="table-empty">예측 기록을 불러오는 중입니다...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
             </div>
 
-            <footer
-                class="admin-footer"
-                id="admin-footer-container"
-            ></footer>
+            <footer class="admin-footer" id="admin-footer-container"></footer>
         </main>
     </div>
 
     <script src="/js/admin/admin-common.js"></script>
+    <script src="/js/admin/predictions.js"></script>
 </body>
 </html>

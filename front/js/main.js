@@ -720,7 +720,6 @@ async function fetchMainGames() {
         }
 
         renderTodayGames(games);
-        renderGameResults(games);
 
     } catch (err) {
         console.error("메인 경기 데이터 로드 실패:", err);
@@ -823,70 +822,5 @@ function renderTodayGames(games) {
         card.appendChild(gameStatus);
 
         container.appendChild(card);
-    });
-}
-
-
-/* ==================================================
-   경기 결과 영역 렌더링
-================================================== */
-
-function renderGameResults(games) {
-    const container = document.querySelector(".result-list");
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = "";
-
-    if (games.length === 0) {
-        return;
-    }
-
-    // DB ENUM 값인 FINAL로 비교
-    const finishedGames = games
-        .filter(game => game.status === "FINAL")
-        .slice(0, 3);
-
-    finishedGames.forEach(game => {
-        const item = document.createElement("div");
-        item.className = "result-item";
-
-        const awayTeam = document.createElement("span");
-        awayTeam.textContent =
-            game.away_team_name ||
-            game.away_team ||
-            game.away_team_code ||
-            "원정팀";
-
-        const score = document.createElement("strong");
-
-        const awayScore =
-            game.away_score !== null &&
-            game.away_score !== undefined
-                ? game.away_score
-                : "-";
-
-        const homeScore =
-            game.home_score !== null &&
-            game.home_score !== undefined
-                ? game.home_score
-                : "-";
-
-        score.textContent = `${awayScore} : ${homeScore}`;
-
-        const homeTeam = document.createElement("span");
-        homeTeam.textContent =
-            game.home_team_name ||
-            game.home_team ||
-            game.home_team_code ||
-            "홈팀";
-
-        item.appendChild(awayTeam);
-        item.appendChild(score);
-        item.appendChild(homeTeam);
-
-        container.appendChild(item);
     });
 }

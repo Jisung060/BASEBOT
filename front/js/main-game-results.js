@@ -2,6 +2,10 @@ document.addEventListener("DOMContentLoaded", () => {
     loadMainGameResults();
 });
 
+
+// ==================================================
+// 메인 경기 결과 조회
+// ==================================================
 async function loadMainGameResults() {
     const list = document.getElementById("main-game-results-list");
 
@@ -17,7 +21,10 @@ async function loadMainGameResults() {
         }
 
         const data = await response.json();
-        renderMainGameResults(data.games || []);
+
+        renderMainGameResults(
+            Array.isArray(data.games) ? data.games : []
+        );
 
     } catch (error) {
         console.error("메인 경기 결과 조회 오류:", error);
@@ -30,6 +37,10 @@ async function loadMainGameResults() {
     }
 }
 
+
+// ==================================================
+// 메인 경기 결과 렌더링
+// ==================================================
 function renderMainGameResults(games) {
     const list = document.getElementById("main-game-results-list");
 
@@ -45,44 +56,110 @@ function renderMainGameResults(games) {
     }
 
     list.innerHTML = games.slice(0, 3).map(game => {
-        const homeName = escapeGameHtml(game.home_team_name || "홈팀");
-        const awayName = escapeGameHtml(game.away_team_name || "원정팀");
+        const homeName = escapeGameHtml(
+            game.home_team_name || "홈팀"
+        );
 
-        const homeLogo = game.home_team_logo;
-        const awayLogo = game.away_team_logo;
+        const awayName = escapeGameHtml(
+            game.away_team_name || "원정팀"
+        );
+
+        // API 로고 URL이 없으면 팀 ID로 로고 URL 생성
+        const homeLogo = getTeamLogo(
+            game.home_team_logo,
+            game.home_team_id
+        );
+
+        const awayLogo = getTeamLogo(
+            game.away_team_logo,
+            game.away_team_id
+        );
+
+        const homeScore = escapeGameHtml(
+            game.home_score ?? 0
+        );
+
+        const awayScore = escapeGameHtml(
+            game.away_score ?? 0
+        );
 
         return `
             <div class="result-item">
+
                 <div class="result-team">
-                    <img
-                        class="result-team-logo"
-                        src="${escapeGameHtml(homeLogo)}"
-                        alt="${homeName} 로고"
-                    >
-                    <span title="${homeName}">${homeName}</span>
+                    ${renderTeamLogo(homeLogo, homeName)}
+
+                    <span title="${homeName}">
+                        ${homeName}
+                    </span>
                 </div>
-        
+
                 <strong class="result-score">
-                    ${game.home_score ?? 0} : ${game.away_score ?? 0}
+                    ${homeScore} : ${awayScore}
                 </strong>
-        
+
                 <div class="result-team">
-                    <img
-                        class="result-team-logo"
-                        src="${escapeGameHtml(awayLogo)}"
-                        alt="${awayName} 로고"
-                    >
-                    <span title="${awayName}">${awayName}</span>
+                    ${renderTeamLogo(awayLogo, awayName)}
+
+                    <span title="${awayName}">
+                        ${awayName}
+                    </span>
                 </div>
+
             </div>
         `;
     }).join("");
 }
 
-function getMlbLogo(teamId) {
-    return `https://www.mlbstatic.com/team-logos/${Number(teamId)}.svg`;
+
+// ==================================================
+// 팀 로고 URL 반환
+// ==================================================
+function getTeamLogo(logoUrl, teamId) {
+    // API에서 정상적인 로고 URL을 제공하면 우선 사용
+    if (
+        typeof logoUrl === "string" &&
+        logoUrl.trim() !== "" &&
+        /^https?:\/\//i.test(logoUrl.trim())
+    ) {
+        return logoUrl.trim();
+    }
+
+    // 로고 URL이 없으면 MLB 팀 ID로 생성
+    const id = Number(teamId);
+
+    if (Number.isInteger(id) && id > 0) {
+        return `https://www.mlbstatic.com/team-logos/${id}.svg`;
+    }
+
+    // 팀 ID도 없으면 로고 없이 팀 이름 표시
+    return "";
 }
 
+
+// ==================================================
+// 팀 로고 HTML 생성
+// ==================================================
+function renderTeamLogo(logoUrl, teamName) {
+    if (!logoUrl) {
+        return "";
+    }
+
+    return `
+        <img
+            class="result-team-logo"
+            src="${escapeGameHtml(logoUrl)}"
+            alt="${teamName} 로고"
+            loading="lazy"
+            onerror="this.style.display='none';"
+        >
+    `;
+}
+
+
+// ==================================================
+// HTML 특수문자 이스케이프
+// ==================================================
 function escapeGameHtml(value) {
     return String(value).replace(/[&<>"']/g, char => {
         const entities = {
