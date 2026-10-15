@@ -31,6 +31,7 @@ from routers.admin_news import router as admin_news_router
 from routers.admin_chatbot import router as admin_chatbot_router
 from routers.admin_chatbot_rag import router as admin_chatbot_rag_router
 from routers.admin_baseball_data import router as admin_baseball_data_router
+from routers.admin_predictions import router as admin_predictions_router
 
 from routers import players, teams, games, predictions, rankings
 from routers.news import router as news_router # 뉴스추가
@@ -71,6 +72,7 @@ app.include_router(admin_community_router)
 app.include_router(admin_news_router)
 app.include_router(admin_chatbot_router)
 app.include_router(admin_baseball_data_router)
+app.include_router(admin_predictions_router)
 
 # 사용자 Router
 app.include_router(prediction_history.router)
