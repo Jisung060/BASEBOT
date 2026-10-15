@@ -13,6 +13,12 @@
 
             <div class="utility-menu">
 
+                <!-- ★ 로그인 시 닉네임 환영 문구 표시 영역 -->
+                <span id="userGreetingArea" class="user-greeting" style="display: none;">
+                    <strong id="userNicknameText"></strong>님, 안녕하세요
+                    <span class="utility-divider">|</span>
+                </span>
+
                 <!-- 로그인 / 로그아웃 -->
                 <a href="login.html" id="loginLink">
                     로그인
@@ -20,7 +26,7 @@
 
                 <!-- 회원가입 -->
                 <span id="signupArea">
-                    <span>|</span>
+                    <span class="utility-divider">|</span>
 
                     <a href="signup.html" id="signupLink">
                         회원가입
@@ -29,24 +35,34 @@
 
                 <!-- 마이페이지 -->
                 <span id="mypageArea" style="display: none;">
-                    <span>|</span>
+                    <span class="utility-divider">|</span>
                     <a href="mypage.html" id="mypageLink">
                         마이페이지
                     </a>
                 </span>
 
-                <!-- 검색 -->
-                <div class="search-box">
+                <!-- ★ Baseball Savant 스타일 검색창 -->
+                <div class="savant-search-wrapper" id="savantSearchWrapper">
+                    <div class="savant-search-box" id="savantSearchBox">
+                        <span class="savant-floating-label">Search Player Name or Team</span>
+                        <input
+                            type="text"
+                            id="headerSearchInput"
+                            placeholder="선수명 또는 구단 검색..."
+                            autocomplete="off"
+                        >
+                        <button type="button" id="headerSearchClear" class="savant-clear-btn" style="display: none;" title="지우기">
+                            ✕
+                        </button>
+                        <button type="button" id="headerSearchBtn" class="savant-search-icon-btn" title="검색">
+                            🔍
+                        </button>
+                    </div>
 
-                    <input
-                        type="text"
-                        placeholder="검색"
-                    >
-
-                    <button type="button">
-                        🔍
-                    </button>
-
+                    <!-- 실시간 자동완성 드롭다운 결과창 -->
+                    <div class="savant-search-dropdown" id="headerSearchDropdown" style="display: none;">
+                        <ul class="savant-result-list" id="headerSearchResultList"></ul>
+                    </div>
                 </div>
 
             </div>

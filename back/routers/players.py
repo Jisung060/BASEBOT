@@ -16,6 +16,88 @@ def calculate_age(birth_date_str):
     except Exception:
         return "-"
 
+@router.get("/search/autocomplete")
+def search_players_and_teams(q: str = "", limit: int = 12, db: Session = Depends(get_session)):
+    keyword = q.strip()
+    if not keyword:
+        return {"results": []}
+
+    like_pattern = f"%{keyword}%"
+    starts_pattern = f"{keyword}%"
+
+    # 1. 구단 검색 (팀명, 약어, 연고지 매칭)
+    team_sql = text("""
+        SELECT team_id, team_name, team_code, league, division, logo_url
+        FROM teams
+        WHERE team_name LIKE :kw 
+           OR team_code LIKE :kw 
+           OR city LIKE :kw
+        ORDER BY CASE WHEN team_name LIKE :starts THEN 0 ELSE 1 END, team_name ASC
+        LIMIT 3
+    """)
+    teams = db.execute(team_sql, {"kw": like_pattern, "starts": starts_pattern}).mappings().all()
+
+    # 2. 선수 검색 (최신 시즌 연도 및 소속팀 포함)
+    player_sql = text("""
+        SELECT 
+            p.player_id,
+            p.player_name,
+            p.headshot_url,
+            p.position,
+            p.throws,
+            t.team_name,
+            t.team_code,
+            (SELECT MAX(s.season) FROM player_season_stats s WHERE s.player_id = p.player_id) AS latest_season
+        FROM players p
+        LEFT JOIN teams t ON p.team_id = t.team_id
+        WHERE p.player_name LIKE :kw
+           OR t.team_name LIKE :kw
+           OR t.team_code LIKE :kw
+        ORDER BY 
+            CASE WHEN p.player_name LIKE :starts THEN 0 ELSE 1 END,
+            p.player_name ASC
+        LIMIT :limit
+    """)
+    players = db.execute(player_sql, {
+        "kw": like_pattern,
+        "starts": starts_pattern,
+        "limit": limit
+    }).mappings().all()
+
+    results = []
+
+    # 구단 결과 포맷팅
+    for t in teams:
+        results.append({
+            "type": "team",
+            "id": t["team_id"],
+            "name": t["team_name"],
+            "image_url": t["logo_url"] or f"https://www.mlbstatic.com/team-logos/{t['team_id']}.svg",
+            "subtext": f"MLB | {t['league'] or ''} {t['division'] or ''} | {t['team_code'] or ''}"
+        })
+
+    # 선수 결과 포맷팅 (Baseball Savant 스타일: MLB | 2024 | RHP/RF | Yankees)
+    for p in players:
+        pos = p["position"] or "-"
+        # 투수(P)인 경우 좌완(LHP)/우완(RHP)으로 Savant 스타일 표기
+        if pos == "P" and p["throws"]:
+            pos = f"{p['throws']}HP"
+
+        season_str = str(p["latest_season"]) if p["latest_season"] else "2024"
+        # 팀 이름에서 마지막 단어(예: New York Yankees -> Yankees) 추출해 깔끔하게 표시
+        full_team = p["team_name"] or p["team_code"] or "FA"
+        short_team = full_team.split()[-1] if full_team != "Boston Red Sox" and full_team != "Chicago White Sox" and full_team != "Toronto Blue Jays" else " ".join(full_team.split()[-2:])
+
+        results.append({
+            "type": "player",
+            "id": p["player_id"],
+            "name": p["player_name"],
+            "image_url": p["headshot_url"] or "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current",
+            "subtext": f"MLB | {season_str} | {pos} | {short_team}"
+        })
+
+    return {"results": results}
+
 @router.get("/{player_id}")
 def get_player_detail(player_id: int, db: Session = Depends(get_session)):
     # 1. 선수 기본 프로필 (현재 소속팀 포함)
