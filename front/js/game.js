@@ -73,7 +73,7 @@ function setupEvents() {
     });
     $("btn-prev-year").addEventListener("click", () => moveYear(-1));
     $("btn-next-year").addEventListener("click", () => moveYear(1));
-    $("btn-all").addEventListener("click", resetToDefault);   // '초기화' 버튼: 첫 화면 상태로 되돌림
+    $("btn-all").addEventListener("click", goToRecentGame);   // '최근' 버튼: 오늘 기준 가장 최근 경기 날짜로 이동
     $("btn-today").addEventListener("click", goToToday);      // '오늘' 버튼: 오늘 날짜 경기로 이동
     $("btn-calendar").addEventListener("click", toggleCalendar);
 
@@ -90,14 +90,42 @@ function goToToday() {                 // 오늘 날짜의 경기만 보여 줌
     setSelectedDate(formatKey(new Date()));
 }
 
-function resetToDefault() {            // 페이지를 처음 열었을 때 상태로 되돌림
+async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 경기 날짜의 경기만 보여 줌
     calendar.hidden = true;
-    dateInput.value = DEFAULT_DATE;    // 처음 날짜 (2024년 4월)
-    selectedDay = null;                // 날짜 선택 해제 → 그 달 경기 전체
-    teamSelect.value = "ALL";          // 전체 구단
-    updateTeamRail();
-    renderMonthStrip();
-    loadGames();
+    try {
+        // 1) DB에서 가장 최근에 끝난 경기 1개로 '어느 달'인지 찾기
+        const response = await fetch(`${API_BASE}/api/games?status=FINAL&limit=1`);
+        if (!response.ok) throw new Error(`경기 데이터 API 오류 (${response.status})`);
+        const [latestGame] = await response.json();
+        if (!latestGame) {
+            emptyMessage.textContent = "최근 경기 결과가 없습니다.";
+            emptyMessage.hidden = false;
+            return;
+        }
+
+        // 2) 그 달 경기 중 오늘 이전에 끝난 경기의 마지막 날짜 찾기 (한국 날짜 기준)
+        const today = formatKey(new Date());
+        let games = await fetchMonthGames(String(latestGame.game_date).slice(0, 10));
+        if (teamSelect.value !== "ALL") {
+            games = games.filter(g => involvesTeam(g, teamSelect.value)); // 구단을 골랐으면 그 구단 경기만
+        }
+        const lastDate = games
+            .filter(g => g.status === "FINAL" && g.display_date <= today)
+            .map(g => g.display_date)
+            .sort()
+            .pop();
+
+        if (!lastDate) {
+            emptyMessage.textContent = "최근 경기 결과가 없습니다.";
+            emptyMessage.hidden = false;
+            return;
+        }
+        setSelectedDate(lastDate);         // 그 날짜의 경기만 보여 줌
+    } catch (error) {
+        console.error(error);
+        emptyMessage.textContent = "최근 경기 데이터를 불러오지 못했습니다.";
+        emptyMessage.hidden = false;
+    }
 }
 
 /* ---------- 날짜 선택 ---------- */

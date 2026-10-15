@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항 | BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/community.css">
+    <link rel="stylesheet" href="../css/notice.css">
+</head>
+<body>
+<div id="header"></div>
+
+<main class="community-main">
+    <!-- 커뮤니티 양식 사용 (왼쪽 메뉴 없는 형태) -->
+    <div class="community-layout no-sidebar">
+
+        <section class="community-content">
+            <div class="community-title">
+                <h1>공지사항</h1>
+                <p>BASEBOT의 새로운 소식과 안내를 확인하세요.</p>
+            </div>
+
+            <section class="board-section">
+                <div class="board-toolbar">
+                    <div class="board-total">
+                        전체 공지 <strong id="noticeTotalCount">0</strong>
+                    </div>
+                    <div class="board-toolbar-right">
+                        <!-- 분류: 전체 / 일반공지 / 중요공지 / 점검 -->
+                        <select id="noticeCategorySelect" aria-label="분류">
+                            <option value="">전체 분류</option>
+                            <option value="NOTICE">일반공지</option>
+                            <option value="IMPORTANT">중요공지</option>
+                            <option value="MAINTENANCE">점검</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="board notice-board" id="noticeBoard">
+                    <div class="board-header">
+                        <div>번호</div>
+                        <div>분류</div>
+                        <div>제목</div>
+                        <div>작성자</div>
+                        <div>날짜</div>
+                        <div>조회</div>
+                    </div>
+                    <div id="noticeEmptyMessage" class="filter-empty-message" hidden>
+                        등록된 공지사항이 없습니다.
+                    </div>
+                </div>
+
+                <div class="pagination" id="noticePagination"></div>
+
+                <form class="search-area" id="noticeSearchForm">
+                    <input
+                        id="noticeSearchInput"
+                        type="search"
+                        placeholder="제목 또는 내용으로 검색"
+                    >
+                    <button type="submit" class="community-btn">검색</button>
+                </form>
+            </section>
+        </section>
+    </div>
+</main>
+
+<div id="footer"></div>
+<script src="../js/main.js"></script>
+<script src="../js/notice.js"></script>
+</body>
+</html>

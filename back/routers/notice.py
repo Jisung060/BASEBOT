@@ -27,26 +27,28 @@ def get_notices(
     params = {"limit": limit}
 
     if keyword:
-        conditions.append("(title LIKE :keyword OR content LIKE :keyword)")
+        conditions.append("(n.title LIKE :keyword OR n.content LIKE :keyword)")
         params["keyword"] = f"%{keyword}%"
 
     if category:
-        conditions.append("category = :category")
+        conditions.append("n.category = :category")
         params["category"] = category
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
     sql = text(f"""
         SELECT
-            notice_id,
-            category,
-            title,
-            is_pinned,
-            view_count,
-            created_at
-        FROM notice
+            n.notice_id,
+            n.category,
+            n.title,
+            n.is_pinned,
+            n.view_count,
+            n.created_at,
+            u.nickname AS writer
+        FROM notice n
+        LEFT JOIN users u ON u.user_id = n.admin_id
         {where}
-        ORDER BY is_pinned DESC, created_at DESC, notice_id DESC
+        ORDER BY n.is_pinned DESC, n.created_at DESC, n.notice_id DESC
         LIMIT :limit
     """)
 
@@ -60,7 +62,8 @@ def get_notices(
                 "title": row["title"],
                 "is_pinned": bool(row["is_pinned"]),
                 "view_count": row["view_count"],
-                "created_at": row["created_at"]
+                "created_at": row["created_at"],
+                "writer": row["writer"]
             }
             for row in rows
         ]

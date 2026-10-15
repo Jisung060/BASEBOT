@@ -1,0 +1,159 @@
+/* =========================================
+   공지사항 목록 페이지
+   - 상단 고정 공지 먼저, 그다음 최신순 (서버에서 정렬)
+   - 분류 선택, 검색(제목+내용), 페이지 나누기
+========================================= */
+
+const NOTICES_PER_PAGE = 15;
+
+const NOTICE_CATEGORY = {
+    NOTICE: { name: "일반공지", className: "notice" },
+    IMPORTANT: { name: "중요공지", className: "important" },
+    MAINTENANCE: { name: "점검", className: "maintenance" }
+};
+
+let notices = [];          // 서버에서 받은 공지 목록
+let currentNoticePage = 1;
+
+
+// HTML 특수문자 변환 (제목이 코드로 실행되지 않게)
+function escapeNoticeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+
+// "2026-10-15T14:30:00" → "2026.10.15"
+function formatNoticeListDate(value) {
+    return value ? value.slice(0, 10).replace(/-/g, ".") : "-";
+}
+
+
+/* =========================================
+   서버에서 공지 목록 가져오기
+========================================= */
+async function loadNotices() {
+    const keyword = document.getElementById("noticeSearchInput").value.trim();
+    const category = document.getElementById("noticeCategorySelect").value;
+
+    const params = new URLSearchParams({ limit: 100 });
+    if (keyword) params.set("keyword", keyword);
+    if (category) params.set("category", category);
+
+    try {
+        const response = await fetch(`/api/notices?${params}`);
+        if (!response.ok) {
+            throw new Error("공지사항 목록 조회 실패");
+        }
+        notices = (await response.json()).notices || [];
+    } catch (error) {
+        console.error("공지사항 목록 조회 오류:", error);
+        notices = [];
+    }
+
+    currentNoticePage = 1;
+    renderNotices();
+}
+
+
+/* =========================================
+   현재 페이지 공지 그리기
+========================================= */
+function renderNotices() {
+    const board = document.getElementById("noticeBoard");
+    const emptyMessage = document.getElementById("noticeEmptyMessage");
+
+    // 기존 행 지우기
+    board.querySelectorAll(".board-row").forEach(row => row.remove());
+
+    document.getElementById("noticeTotalCount").textContent = notices.length;
+    emptyMessage.hidden = notices.length !== 0;
+
+    const start = (currentNoticePage - 1) * NOTICES_PER_PAGE;
+    const pageNotices = notices.slice(start, start + NOTICES_PER_PAGE);
+
+    pageNotices.forEach(notice => {
+        const category = NOTICE_CATEGORY[notice.category] || { name: notice.category, className: "" };
+
+        const row = document.createElement("a");
+        row.className = notice.is_pinned ? "board-row pinned" : "board-row";
+        row.href = `notice-view.html?id=${encodeURIComponent(notice.notice_id)}`;
+
+        row.innerHTML = `
+            <div>${notice.is_pinned ? "공지" : notice.notice_id}</div>
+
+            <div>
+                <span class="category-label ${category.className}">${category.name}</span>
+            </div>
+
+            <div class="col-title">
+                ${notice.is_pinned ? '<span class="notice-pin-mark">고정</span>' : ""}
+                <span class="board-title">${escapeNoticeHtml(notice.title)}</span>
+            </div>
+
+            <div>${escapeNoticeHtml(notice.writer || "관리자")}</div>
+
+            <div>${formatNoticeListDate(notice.created_at)}</div>
+
+            <div>${Number(notice.view_count || 0).toLocaleString()}</div>
+        `;
+
+        board.appendChild(row);
+    });
+
+    renderNoticePagination(Math.ceil(notices.length / NOTICES_PER_PAGE));
+}
+
+
+/* =========================================
+   페이지 번호 버튼
+========================================= */
+function renderNoticePagination(totalPages) {
+    const pagination = document.getElementById("noticePagination");
+    pagination.innerHTML = "";
+
+    if (totalPages <= 1) {
+        return;
+    }
+
+    function addPageButton(text, page, isActive = false) {
+        const button = document.createElement("a");
+        button.href = "#";
+        button.textContent = text;
+        if (isActive) button.classList.add("active");
+
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            currentNoticePage = page;
+            renderNotices();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+
+        pagination.appendChild(button);
+    }
+
+    if (currentNoticePage > 1) addPageButton("‹", currentNoticePage - 1);
+    for (let page = 1; page <= totalPages; page++) {
+        addPageButton(page, page, page === currentNoticePage);
+    }
+    if (currentNoticePage < totalPages) addPageButton("›", currentNoticePage + 1);
+}
+
+
+/* =========================================
+   시작: 분류 변경 / 검색 연결
+========================================= */
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("noticeCategorySelect").addEventListener("change", loadNotices);
+
+    document.getElementById("noticeSearchForm").addEventListener("submit", event => {
+        event.preventDefault();   // 페이지 새로고침 막기
+        loadNotices();
+    });
+
+    loadNotices();
+});

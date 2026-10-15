@@ -1,0 +1,46 @@
+/* =========================================
+   공지사항 목록
+   community.css 양식을 그대로 쓰고, 다른 부분만 덮어씀
+========================================= */
+
+/* 열 6개: 번호 / 분류 / 제목 / 작성자 / 날짜 / 조회 */
+.notice-board .board-header,
+.notice-board .board-row {
+    grid-template-columns: 60px 80px minmax(250px, 1fr) 115px 90px 65px;
+}
+
+/* 분류 선택창 너비 */
+.board-toolbar-right #noticeCategorySelect {
+    width: 120px;
+}
+
+/* 분류 색: 중요(빨강) / 점검(주황) / 일반(파랑) */
+.category-label.important { background: #fdecec; color: #c62828; }
+.category-label.maintenance { background: #fff5e9; color: #a25c0b; }
+.category-label.notice { background: #edf2ff; color: #3157a5; }
+
+/* 상단 고정 공지: 연한 배경 + 굵은 제목 */
+.notice-board .board-row.pinned {
+    background: #f7f9fd;
+}
+
+.notice-board .board-row.pinned .board-title {
+    font-weight: 700;
+}
+
+.notice-pin-mark {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #172033;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+@media (max-width: 900px) {
+    .notice-board .board-header,
+    .notice-board .board-row {
+        min-width: 680px;
+    }
+}
