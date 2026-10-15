@@ -5,55 +5,337 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>야구 데이터 관리 | BASEBOT ADMIN</title>
     <link rel="stylesheet" href="../../css/admin/admin.css">
+    <style>
+        /* 정렬 가능한 테이블 헤더 스타일 */
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        th.sortable:hover {
+            background-color: #eff6ff !important;
+            color: var(--admin-blue) !important;
+        }
+        th.sortable .sort-icon {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        th.sortable.asc .sort-icon,
+        th.sortable.desc .sort-icon {
+            color: var(--admin-blue);
+            font-weight: 900;
+        }
+
+        /* 수동 수집 & 자동화 2열 그리드 레이아웃 */
+        .sync-management-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+            gap: 22px;
+            align-items: stretch;
+        }
+        .sync-sub-box {
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            padding: 20px;
+            background: #fcfdff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .sync-sub-box h3 {
+            margin: 0 0 6px;
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--admin-navy);
+        }
+        .sync-sub-box p.sub-desc {
+            margin: 0 0 18px;
+            font-size: 12px;
+            color: var(--admin-muted);
+        }
+
+        /* 자동화 스케줄 테이블형 리스트 */
+        .schedule-item-row {
+            display: grid;
+            grid-template-columns: minmax(160px, 1.4fr) 120px 100px 95px 70px;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .schedule-item-row:last-child {
+            border-bottom: none;
+        }
+        .schedule-title strong {
+            display: block;
+            font-size: 13px;
+            color: #1e293b;
+        }
+        .schedule-title small {
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        /* 테이블 스크롤 고정 높이 */
+        .data-table-scroll {
+            max-height: 480px;
+            overflow-y: auto;
+            border-bottom: 1px solid var(--admin-border);
+        }
+        .data-table-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        @media (max-width: 1100px) {
+            .sync-management-grid {
+                grid-template-columns: 1fr;
+            }
+            .schedule-item-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
 </head>
 <body class="admin-page" data-page="baseball-data">
     <div class="admin-layout">
-        <aside
-            class="admin-sidebar"
-            id="admin-sidebar-container"
-        ></aside>
+        <aside class="admin-sidebar" id="admin-sidebar-container"></aside>
 
         <main class="admin-main">
-            <header
-                class="admin-topbar"
-                id="admin-topbar-container"
-            ></header>
-            <div class="admin-content">
+            <header class="admin-topbar" id="admin-topbar-container"></header>
 
-<section class="page-intro"><p>MLB 팀, 선수, 경기 및 박스스코어 데이터의 상태를 확인하고 데이터 오류를 검토합니다.</p></section>
-<section class="stat-grid stat-grid-4">
-    <article class="stat-card"><span>등록 팀</span><strong>—</strong><small>teams</small></article>
-    <article class="stat-card"><span>등록 선수</span><strong>—</strong><small>players</small></article>
-    <article class="stat-card"><span>등록 경기</span><strong>—</strong><small>games</small></article>
-    <article class="stat-card"><span>검토 필요 데이터</span><strong>—</strong><small>검증 로직 연동 필요</small></article>
-</section>
-<section class="panel">
-    <div class="panel-heading"><div><h2>데이터 유형</h2><p>조회할 데이터 유형을 선택합니다.</p></div></div>
-    <div class="tabs">
-        <a class="tab active" href="#teams">팀 정보</a><a class="tab" href="#players">선수 정보</a><a class="tab" href="#games">경기 일정·결과</a><a class="tab" href="#boxscores">박스스코어</a>
-    </div>
-    <form class="filter-form" action="#" method="get">
-        <label>검색어<input type="search" name="keyword" placeholder="팀명 / 선수명 / 경기 ID"></label>
-        <label>시즌<select name="season"><option value="">전체 시즌</option><option>2026</option><option>2025</option><option>2024</option></select></label>
-        <label>경기 상태<select name="game_status"><option value="">전체 상태</option><option>SCHEDULED</option><option>IN_PROGRESS</option><option>FINAL</option><option>CANCELLED</option></select></label>
-        <button class="button button-primary" type="submit">조회</button>
-    </form>
-</section>
-<section class="panel" id="teams">
-    <div class="panel-heading"><div><h2>데이터 목록</h2><p>선택한 유형의 데이터를 표시하는 영역입니다.</p></div><button class="button button-secondary" type="button">데이터 검증</button></div>
-    <div class="table-wrap"><table><thead><tr><th>데이터 ID</th><th>이름 / 경기</th><th>유형</th><th>최종 갱신</th><th>검증 결과</th><th>관리</th></tr></thead><tbody><tr><td colspan="6" class="table-empty">야구 데이터 API를 연결해 주세요.</td></tr></tbody></table></div>
-</section>
-<section class="panel">
-    <div class="panel-heading"><div><h2>데이터 수집 기록</h2><p>수집 작업의 성공·실패와 마지막 실행 시각을 확인합니다.</p></div><a class="text-link" href="system-status.html">시스템 상태 보기 →</a></div>
-    <div class="empty-state"><strong>수집 기록이 없습니다.</strong><p>수집 작업 로그 저장 기능이 구현되면 이곳에 표시됩니다.</p></div>
-</section>
+            <div class="admin-content">
+                <section class="page-intro">
+                    <p>MLB 타자·투수 세이버메트릭스, 경기 일정·결과, 구단 데이터를 통합 조회하고 수집 스크립트 및 자동화 주기를 관리합니다.</p>
+                </section>
+
+                <!-- 1. 상단 요약 대시보드 카드 (유지 & 실데이터 연동) -->
+                <section class="stat-grid stat-grid-4">
+                    <article class="stat-card">
+                        <span>등록 팀</span>
+                        <strong id="statTeamsCount">—</strong>
+                        <small>teams (MLB 30개 구단)</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>등록 선수</span>
+                        <strong id="statPlayersCount">—</strong>
+                        <small>players (타자 · 투수 통합)</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>등록 경기</span>
+                        <strong id="statGamesCount">—</strong>
+                        <small>games (일정 및 결과)</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>검토 필요 데이터</span>
+                        <strong id="statReviewCount">—</strong>
+                        <small id="statReviewDetail">결측치 자동 감지</small>
+                    </article>
+                </section>
+
+                <!-- 2. 통합 항목별 데이터 조회 패널 (탭 + 검색 필터 + 정렬 테이블 통합) -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>항목별 야구 데이터 통합 조회</h2>
+                            <p>수집된 타자, 투수, 경기 정보, 구단 데이터를 조회합니다. 컬럼 제목을 클릭하면 오름차순/내림차순 정렬됩니다.</p>
+                        </div>
+                        <div class="button-row">
+                            <span class="count-label" id="dataCountLabel" style="align-self: center; margin-right: 8px;">총 0건</span>
+                            <button class="button button-secondary" type="button" id="btnVerifyAndRepair">
+                                🛠️ 결측 데이터 일괄 보정
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 데이터 항목 탭 -->
+                    <div class="tabs" id="dataCategoryTabs">
+                        <a class="tab active" href="#" data-category="batters">⚾ 타자 기록 (Batters)</a>
+                        <a class="tab" href="#" data-category="pitchers">🔥 투수 기록 (Pitchers)</a>
+                        <a class="tab" href="#" data-category="games">📅 경기 일정·결과 (Games)</a>
+                        <a class="tab" href="#" data-category="teams">🏟️ 구단 정보 (Teams)</a>
+                    </div>
+
+                    <!-- 검색 및 필터 바 -->
+                    <form class="filter-form" id="dataFilterForm">
+                        <label class="grow">
+                            검색어
+                            <input type="search" id="filterKeyword" placeholder="선수명 / 구단명 / 경기 ID / 구장명 검색...">
+                        </label>
+                        <label id="filterSeasonWrap">
+                            시즌
+                            <select id="filterSeason">
+                                <option value="">전체 시즌</option>
+                                <option value="2026">2026 시즌</option>
+                                <option value="2025">2025 시즌</option>
+                                <option value="2024" selected>2024 시즌</option>
+                            </select>
+                        </label>
+                        <label id="filterGameStatusWrap" style="display: none;">
+                            경기 상태
+                            <select id="filterGameStatus">
+                                <option value="">전체 상태</option>
+                                <option value="SCHEDULED">SCHEDULED (예정)</option>
+                                <option value="IN_PROGRESS">IN_PROGRESS (진행중)</option>
+                                <option value="FINAL">FINAL (종료)</option>
+                            </select>
+                        </label>
+                        <button class="button button-primary" type="submit">조회</button>
+                    </form>
+
+                    <!-- 데이터 목록 테이블 (컬럼 클릭 정렬 지원) -->
+                    <div class="table-wrap data-table-scroll">
+                        <table id="baseballDataTable">
+                            <thead id="baseballDataThead"></thead>
+                            <tbody id="baseballDataTbody">
+                                <tr>
+                                    <td colspan="10" class="table-empty">데이터를 불러오는 중입니다...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 3. 데이터 가져오기(수동 실행) 및 자동화(스케줄러) 관리 패널 -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>데이터 가져오기 및 자동화 관리</h2>
+                            <p>스크립트를 즉시 실행하여 원하는 연도·기간의 데이터를 가져오거나, 주기적인 자동 수집 스케줄을 설정합니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="sync-management-grid">
+                        <!-- 좌측: 수동 데이터 가져오기 -->
+                        <div class="sync-sub-box">
+                            <div>
+                                <h3>📥 수동 데이터 가져오기 (즉시 실행)</h3>
+                                <p class="sub-desc">수집할 데이터 항목과 대상 연도(또는 경기 날짜 범위)를 선택한 뒤 즉시 동기화합니다.</p>
+
+                                <div class="form-grid">
+                                    <label class="full-width">
+                                        가져올 데이터 항목 선택
+                                        <select id="manualSyncType">
+                                            <optgroup label="⭐ 통합 파이프라인 (권장 순서 자동 실행)">
+                                                <option value="PIPELINE_PLAYERS" selected>
+                                                    [선수 통합 파이프라인] 1.타자/투수 수집 ➔ 2.선수 메타데이터 ➔ 3.Savant 심화/백분위
+                                                </option>
+                                                <option value="PIPELINE_GAMES">
+                                                    [경기 통합 파이프라인] 1.경기 일정/결과 ➔ 2.박스스코어/라인스코어 ➔ 3.시간/구장/승리팀 보정
+                                                </option>
+                                            </optgroup>
+                                            <optgroup label="⚾ 선수 데이터 개별 스크립트 실행">
+                                                <option value="STEP_BATTERS">1-A. 타자 성적 수집 (collector_batters_integrated.py)</option>
+                                                <option value="STEP_PITCHERS">1-B. 투수 성적 수집 (collector_pitchers_integrated.py)</option>
+                                                <option value="STEP_PLAYERS_META">2. 선수 메타데이터 갱신 (collector_players_meta.py)</option>
+                                                <option value="STEP_SAVANT_REPAIR">3. Savant 심화 지표 수집 (collector_savant_value_repair.py)</option>
+                                            </optgroup>
+                                            <optgroup label="📅 경기 및 구단 개별 스크립트 실행">
+                                                <option value="STEP_GAMES">1. 경기 일정·스코어 수집 (collector_games.py)</option>
+                                                <option value="STEP_BOXSCORES">2. 박스스코어·라인스코어 수집 (collector_boxscores.py)</option>
+                                                <option value="STEP_REPAIR_GAMES">3. 경기 시간·구장·승리팀 보정 (repair_games_data.py)</option>
+                                                <option value="STEP_SEED_TEAMS">MLB 30개 구단 초기 적재 (seed_teams.py)</option>
+                                            </optgroup>
+                                        </select>
+                                    </label>
+
+                                    <!-- 시즌 선택 (타자/투수 스탯 선택 시 표시) -->
+                                    <label class="full-width" id="manualSeasonBox">
+                                        대상 시즌 연도 선택
+                                        <select id="manualSeasonSelect">
+                                            <option value="2026">2026 시즌</option>
+                                            <option value="2025">2025 시즌</option>
+                                            <option value="2024" selected>2024 시즌</option>
+                                            <option value="2023">2023 시즌</option>
+                                        </select>
+                                    </label>
+
+                                    <!-- 날짜 범위 선택 (경기 일정·결과 선택 시 표시) -->
+                                    <label id="manualStartDateBox" style="display: none;">
+                                        시작 날짜 (Start Date)
+                                        <input type="date" id="manualStartDate" min="2015-03-01" value="2025-04-01">
+                                    </label>
+                                    <label id="manualEndDateBox" style="display: none;">
+                                        종료 날짜 (End Date)
+                                        <input type="date" id="manualEndDate" min="2015-03-01" value="2025-04-30">
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                                <button type="button" class="button button-primary" id="btnRunManualSync">
+                                    🚀 선택한 데이터 즉시 가져오기
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 우측: 주기적 자동화 스케줄 관리 -->
+                        <div class="sync-sub-box">
+                            <div>
+                                <h3>⏰ 주기적 데이터 가져오기 자동화 설정</h3>
+                                <p class="sub-desc">항목별로 자동 수집 활성화 여부와 실행 주기, 대상 옵션을 설정합니다.</p>
+
+                                <div id="scheduleListContainer">
+                                    <!-- JS에서 스케줄 설정 행 렌더링 -->
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px;">
+                                <button type="button" class="button button-primary" id="btnSaveSchedules">
+                                    💾 자동화 설정 저장
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. 데이터 수집 기록 (로그 테이블 + 컬럼 정렬) -->
+                <section class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>데이터 수집 기록</h2>
+                            <p>수동 및 자동 수집 작업의 실행 일시, 대상 옵션, 처리 건수, 성공·실패 여부를 확인합니다. (컬럼 클릭 정렬 지원)</p>
+                        </div>
+                        <button type="button" class="button button-secondary" id="btnRefreshLogs">
+                            🔄 기록 새로고침
+                        </button>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table id="syncLogsTable">
+                            <thead id="syncLogsThead">
+                                <tr>
+                                    <th class="sortable" data-col="log_id">로그 ID <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="data_type">수집 데이터 항목 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="trigger_type">실행 방식 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="target_param">대상 (시즌/기간) <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="records_affected">반영 건수 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="duration_sec">소요 시간 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="started_at">실행 일시 <span class="sort-icon">↕</span></th>
+                                    <th class="sortable" data-col="status">상태 <span class="sort-icon">↕</span></th>
+                                    <th>상세 메시지</th>
+                                </tr>
+                            </thead>
+                            <tbody id="syncLogsTbody">
+                                <tr>
+                                    <td colspan="9" class="table-empty">수집 기록을 불러오는 중입니다...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-            <footer
-                class="admin-footer"
-                id="admin-footer-container"
-            ></footer>
+
+            <footer class="admin-footer" id="admin-footer-container"></footer>
         </main>
     </div>
+
     <script src="/js/admin/admin-common.js"></script>
+    <script src="/js/admin/baseball-data.js"></script>
 </body>
 </html>

@@ -24,12 +24,15 @@ HEADERS = {
 }
 
 # ----------------------------------------------------
-# 1. MLB 공식 API: 기본 타격 성적 수집
+# 1. MLB 공식 API: 기본 타격 성적 수집 (playerPool=ALL 필수!)
 # ----------------------------------------------------
 def fetch_mlb_batters(season: int = 2024) -> pd.DataFrame:
-    print(f"\n[1/4] MLB 공식 API에서 {season} 시즌 타자 기본 성적 수집 중...")
-    url = f"https://statsapi.mlb.com/api/v1/stats?stats=season&season={season}&group=hitting&sportId=1&limit=1500"
-    resp = requests.get(url, headers=HEADERS, timeout=15)
+    print(f"\n[1/4] MLB 공식 API에서 {season} 시즌 타자 전체(playerPool=ALL) 기본 성적 수집 중...")
+    url = (
+        f"https://statsapi.mlb.com/api/v1/stats"
+        f"?stats=season&season={season}&group=hitting&sportId=1&playerPool=ALL&limit=2000"
+    )
+    resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     splits = resp.json().get("stats", [{}])[0].get("splits", [])
     
@@ -52,6 +55,7 @@ def fetch_mlb_batters(season: int = 2024) -> pd.DataFrame:
             "hits": int(s.get("hits", 0)),
             "home_runs": int(s.get("homeRuns", 0)),
             "rbi": int(s.get("rbi", 0)),
+            "stolen_bases": int(s.get("stolenBases", 0)),
             "batting_avg": float(s.get("avg", 0.000)),
             "obp": float(s.get("obp", 0.000)),
             "slg": float(s.get("slg", 0.000)),
@@ -61,11 +65,16 @@ def fetch_mlb_batters(season: int = 2024) -> pd.DataFrame:
         })
         
     df = pd.DataFrame(records)
+    if not df.empty:
+        # 한 시즌 내 복수 구단 기록이 있는 경우 타수가 가장 많은 주 소속팀/통합 기록 유지
+        df = df.sort_values(by=["player_id", "at_bats"], ascending=[True, False])
+        df = df.drop_duplicates(subset=["player_id"], keep="first").copy()
+
     print(f" -> MLB 공식 타자 {len(df)}명 확보 완료")
     return df
 
 # ----------------------------------------------------
-# 2. FanGraphs: fWAR, wRC+ 수집 (API 직접 조회 + Fallback)
+# 2. FanGraphs: fWAR, wRC+ 수집
 # ----------------------------------------------------
 def fetch_fangraphs_batters(season: int = 2024) -> pd.DataFrame:
     print(f"\n[2/4] FanGraphs에서 {season} fWAR 및 wRC+ 수집 중...")
@@ -88,7 +97,7 @@ def fetch_fangraphs_batters(season: int = 2024) -> pd.DataFrame:
                         "fwar": round(float(row.get("WAR", 0.0)), 1)
                     })
             print(f" -> FanGraphs 데이터 {len(records)}명 확보 완료")
-            return pd.DataFrame(records)
+            return pd.DataFrame(records).drop_duplicates(subset=["player_id"])
         else:
             print(f"※ FanGraphs 타자 응답 코드: {resp.status_code} (Fallback 수식 계산 전환)")
     except Exception as e:
@@ -103,8 +112,8 @@ def fetch_savant_statcast_all(season: int = 2024) -> pd.DataFrame:
     print(f"\n[3/4] Baseball Savant에서 Statcast 기대치(xBA, xSLG, xwOBA) 및 타구질 수집 중...")
     url = (
         f"https://baseballsavant.mlb.com/leaderboard/custom"
-        f"?year={season}&type=batter&filter=&sort=4&sortDir=desc&min=15&selections="
-        f"player_id,exit_velocity_avg,launch_angle_avg,sweet_spot_percent,barrel_batted_rate,hard_hit_percent,xba,xslg,xwoba&csv=true"
+        f"?year={season}&type=batter&filter=&sort=4&sortDir=desc&min=10&selections="
+        f"player_id,exit_velocity_avg,launch_angle_avg,sweet_spot_percent,barrel_batted_rate,hard_hit_percent,xba,xslg,xwoba,sprint_speed&csv=true"
     )
 
     try:
@@ -131,7 +140,8 @@ def fetch_savant_statcast_all(season: int = 2024) -> pd.DataFrame:
             'xba': ['xba', 'est_ba'],
             'xslg': ['xslg', 'est_slg'],
             'xwoba': ['xwoba', 'est_woba'],
-            'sweet_spot_percentage': ['sweet_spot_percent', 'sweet_spot']
+            'sweet_spot_percentage': ['sweet_spot_percent', 'sweet_spot'],
+            'sprint_speed': ['sprint_speed', 'spd']
         }
 
         result_df = pd.DataFrame({'player_id': raw_df['player_id']})
@@ -146,7 +156,7 @@ def fetch_savant_statcast_all(season: int = 2024) -> pd.DataFrame:
 
     except Exception as e:
         print(f"※ Savant 타구질 수집 예외: {e}")
-        return pd.DataFrame(columns=['player_id', 'avg_exit_velocity', 'launch_angle_avg', 'barrel_percentage', 'hard_hit_percentage', 'xba', 'xslg', 'xwoba', 'sweet_spot_percentage'])
+        return pd.DataFrame(columns=['player_id', 'avg_exit_velocity', 'launch_angle_avg', 'barrel_percentage', 'hard_hit_percentage', 'xba', 'xslg', 'xwoba', 'sweet_spot_percentage', 'sprint_speed'])
 
 # ----------------------------------------------------
 # 4. Baseball Savant: 타자 Plate Discipline (whiff%, chase%)
@@ -155,7 +165,7 @@ def fetch_savant_batter_discipline(season: int = 2024) -> pd.DataFrame:
     print(f"\n[4/4] Baseball Savant에서 타자 Whiff% & Chase% 수집 중...")
     url = (
         f"https://baseballsavant.mlb.com/leaderboard/custom"
-        f"?year={season}&type=batter&filter=&sort=4&sortDir=desc&min=15&selections="
+        f"?year={season}&type=batter&filter=&sort=4&sortDir=desc&min=10&selections="
         f"player_id,whiff_percent,oz_swing_percent,chase_percent&csv=true"
     )
     try:
@@ -204,52 +214,47 @@ def collect_batters_comprehensive(season: int = 2024):
 
     print("\n데이터 병합 및 세이버메트릭스 정밀 계산 중...")
     
-    # 중복 컬럼 방지 병합
     df = mlb_df.copy()
     for extra_df in [savant_df, disc_df, fg_df]:
         if not extra_df.empty:
             add_cols = ['player_id'] + [c for c in extra_df.columns if c != 'player_id' and c not in df.columns]
             df = pd.merge(df, extra_df[add_cols], on='player_id', how='left')
 
-    if 'fwar' not in df.columns:
-        df['fwar'] = np.nan
-    if 'wrc_plus' not in df.columns:
-        df['wrc_plus'] = np.nan
+    for col in ['fwar', 'wrc_plus', 'sprint_speed']:
+        if col not in df.columns:
+            df[col] = np.nan
 
     df = df.loc[:, ~df.columns.duplicated()].copy()
 
-    # 리그 보정 산출
-    league_avg_ops = df['ops'].mean()
-    league_avg_obp = df['obp'].mean()
-    league_avg_slg = df['slg'].mean()
+    league_avg_ops = df['ops'].mean() or 0.715
+    league_avg_obp = df['obp'].mean() or 0.312
+    league_avg_slg = df['slg'].mean() or 0.403
 
     for idx, row in df.iterrows():
+        pa = row['at_bats'] + row['walks']
+        df.at[idx, 'k_percentage'] = round((row['strikeouts'] / pa) * 100, 1) if pa > 0 else None
+        df.at[idx, 'bb_percentage'] = round((row['walks'] / pa) * 100, 1) if pa > 0 else None
+
         df.at[idx, 'bwar'] = round(((row['ops'] - league_avg_ops) * (row['at_bats'] / 95.0)), 1)
         if pd.isna(row.get('wrc_plus')):
             ops_plus = int(round((row['obp'] / league_avg_obp + row['slg'] / league_avg_slg - 1.0) * 100))
             df.at[idx, 'wrc_plus'] = max(30, min(250, ops_plus))
         if pd.isna(row.get('fwar')):
             wrc = df.at[idx, 'wrc_plus']
-            pa = row['at_bats'] + row['walks']
             df.at[idx, 'fwar'] = round(((wrc - 100) * (pa / 600.0) * 0.04) + (pa / 600.0 * 1.5), 1)
 
-    # Savant 백분위수 (Percentile: 0 ~ 100)
     percentile_mappings = [
         ('avg_exit_velocity', 'exit_velo_percentile'),
         ('barrel_percentage', 'barrel_percentile'),
         ('hard_hit_percentage', 'hard_hit_percentile'),
-        ('xwoba', 'xwoba_percentile')
+        ('xwoba', 'xwoba_percentile'),
+        ('sprint_speed', 'sprint_speed_percentile')
     ]
 
     for source_col, target_pct in percentile_mappings:
         if source_col in df.columns:
-            series = df[source_col]
-            if isinstance(series, pd.DataFrame):
-                series = series.iloc[:, 0]
-                df[source_col] = series
-            
-            valid_cnt = int(series.notnull().to_numpy().sum())
-            if valid_cnt > 0:
+            series = pd.to_numeric(df[source_col], errors='coerce')
+            if series.notnull().sum() > 0:
                 df[target_pct] = (series.rank(pct=True, ascending=True) * 100).round(0)
             else:
                 df[target_pct] = np.nan
@@ -258,65 +263,103 @@ def collect_batters_comprehensive(season: int = 2024):
 
     df = df.replace({np.nan: None})
 
-    # DB 적재
     print(f"\n총 {len(df)}명 타자 데이터 DB 적재 시작...")
     with engine.begin() as conn:
+        existing_teams = set(conn.execute(text("SELECT team_id FROM teams")).scalars().all())
+
+        # 기존에 잘못 생성된 경기수 0짜리 껍데기 타자 행 정리
+        conn.execute(text("""
+            DELETE FROM player_season_stats 
+            WHERE season = :season AND is_pitcher = FALSE AND (games IS NULL OR games = 0)
+        """), {"season": season})
+
+        upsert_player_sql = text("""
+            INSERT INTO players (player_id, team_id, player_name, headshot_url)
+            VALUES (:player_id, :team_id, :player_name, :headshot)
+            ON DUPLICATE KEY UPDATE
+                team_id = COALESCE(VALUES(team_id), team_id),
+                player_name = VALUES(player_name),
+                headshot_url = COALESCE(headshot_url, VALUES(headshot_url));
+        """)
+
         upsert_sql = text("""
             INSERT INTO player_season_stats (
-                player_id, season, is_pitcher, games, batting_avg, hits, home_runs, rbi,
-                strikeouts, walks,
+                player_id, season, team_id, is_pitcher, games, batting_avg, hits, home_runs, rbi, stolen_bases,
+                strikeouts, walks, k_percentage, bb_percentage,
                 bwar, fwar, wrc_plus,
                 avg_exit_velocity, barrel_percentage, hard_hit_percentage,
-                xba, xslg, xwoba, launch_angle_avg, sweet_spot_percentage,
+                xba, xslg, xwoba, launch_angle_avg, sweet_spot_percentage, sprint_speed,
                 whiff_percentage, chase_percentage,
-                exit_velo_percentile, barrel_percentile, hard_hit_percentile, xwoba_percentile
+                exit_velo_percentile, barrel_percentile, hard_hit_percentile, xwoba_percentile, sprint_speed_percentile
             ) VALUES (
-                :player_id, :season, FALSE, :games, :batting_avg, :hits, :home_runs, :rbi,
-                :strikeouts, :walks, 
+                :player_id, :season, :team_id, FALSE, :games, :batting_avg, :hits, :home_runs, :rbi, :stolen_bases,
+                :strikeouts, :walks, :k_percentage, :bb_percentage,
                 :bwar, :fwar, :wrc_plus,
                 :avg_exit_velocity, :barrel_percentage, :hard_hit_percentage,
-                :xba, :xslg, :xwoba, :launch_angle_avg, :sweet_spot_percentage,
+                :xba, :xslg, :xwoba, :launch_angle_avg, :sweet_spot_percentage, :sprint_speed,
                 :whiff_percentage, :chase_percentage,
-                :exit_velo_percentile, :barrel_percentile, :hard_hit_percentile, :xwoba_percentile
+                :exit_velo_percentile, :barrel_percentile, :hard_hit_percentile, :xwoba_percentile, :sprint_speed_percentile
             )
             ON DUPLICATE KEY UPDATE
+                team_id = COALESCE(VALUES(team_id), team_id),
                 games = VALUES(games),
                 batting_avg = VALUES(batting_avg),
                 hits = VALUES(hits),
                 home_runs = VALUES(home_runs),
                 rbi = VALUES(rbi),
+                stolen_bases = VALUES(stolen_bases),
                 strikeouts = VALUES(strikeouts),
                 walks = VALUES(walks),
+                k_percentage = VALUES(k_percentage),
+                bb_percentage = VALUES(bb_percentage),
                 bwar = VALUES(bwar),
                 fwar = VALUES(fwar),
                 wrc_plus = VALUES(wrc_plus),
-                avg_exit_velocity = VALUES(avg_exit_velocity),
-                barrel_percentage = VALUES(barrel_percentage),
-                hard_hit_percentage = VALUES(hard_hit_percentage),
-                xba = VALUES(xba),
-                xslg = VALUES(xslg),
-                xwoba = VALUES(xwoba),
-                launch_angle_avg = VALUES(launch_angle_avg),
-                sweet_spot_percentage = VALUES(sweet_spot_percentage),
-                whiff_percentage = VALUES(whiff_percentage),
-                chase_percentage = VALUES(chase_percentage),
-                exit_velo_percentile = VALUES(exit_velo_percentile),
-                barrel_percentile = VALUES(barrel_percentile),
-                hard_hit_percentile = VALUES(hard_hit_percentile),
-                xwoba_percentile = VALUES(xwoba_percentile);
+                avg_exit_velocity = COALESCE(VALUES(avg_exit_velocity), avg_exit_velocity),
+                barrel_percentage = COALESCE(VALUES(barrel_percentage), barrel_percentage),
+                hard_hit_percentage = COALESCE(VALUES(hard_hit_percentage), hard_hit_percentage),
+                xba = COALESCE(VALUES(xba), xba),
+                xslg = COALESCE(VALUES(xslg), xslg),
+                xwoba = COALESCE(VALUES(xwoba), xwoba),
+                launch_angle_avg = COALESCE(VALUES(launch_angle_avg), launch_angle_avg),
+                sweet_spot_percentage = COALESCE(VALUES(sweet_spot_percentage), sweet_spot_percentage),
+                sprint_speed = COALESCE(VALUES(sprint_speed), sprint_speed),
+                whiff_percentage = COALESCE(VALUES(whiff_percentage), whiff_percentage),
+                chase_percentage = COALESCE(VALUES(chase_percentage), chase_percentage),
+                exit_velo_percentile = COALESCE(VALUES(exit_velo_percentile), exit_velo_percentile),
+                barrel_percentile = COALESCE(VALUES(barrel_percentile), barrel_percentile),
+                hard_hit_percentile = COALESCE(VALUES(hard_hit_percentile), hard_hit_percentile),
+                xwoba_percentile = COALESCE(VALUES(xwoba_percentile), xwoba_percentile),
+                sprint_speed_percentile = COALESCE(VALUES(sprint_speed_percentile), sprint_speed_percentile);
         """)
 
         for _, row in df.iterrows():
+            pid = int(row['player_id'])
+            raw_tid = int(row['team_id']) if row.get('team_id') else None
+            valid_tid = raw_tid if raw_tid in existing_teams else None
+            headshot = f"https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/{pid}/headshot/67/current"
+
+            conn.execute(upsert_player_sql, {
+                'player_id': pid,
+                'team_id': valid_tid,
+                'player_name': str(row['player_name']),
+                'headshot': headshot
+            })
+
             conn.execute(upsert_sql, {
-                'player_id': int(row['player_id']),
+                'player_id': pid,
                 'season': season,
+                'team_id': valid_tid,
                 'games': int(row['games']),
                 'batting_avg': float(row['batting_avg']),
                 'hits': int(row['hits']),
                 'home_runs': int(row['home_runs']),
                 'rbi': int(row['rbi']),
-                "strikeouts": int(row["strikeouts"]) if pd.notna(row.get("strikeouts")) else 0,
-                "walks": int(row["walks"]) if pd.notna(row.get("walks")) else 0,
+                'stolen_bases': int(row['stolen_bases']) if row.get('stolen_bases') is not None else 0,
+                'strikeouts': int(row['strikeouts']) if row.get('strikeouts') is not None else 0,
+                'walks': int(row['walks']) if row.get('walks') is not None else 0,
+                'k_percentage': float(row['k_percentage']) if row.get('k_percentage') is not None else None,
+                'bb_percentage': float(row['bb_percentage']) if row.get('bb_percentage') is not None else None,
                 'bwar': float(row['bwar']) if row.get('bwar') is not None else None,
                 'fwar': float(row['fwar']) if row.get('fwar') is not None else None,
                 'wrc_plus': int(row['wrc_plus']) if row.get('wrc_plus') is not None else None,
@@ -328,15 +371,17 @@ def collect_batters_comprehensive(season: int = 2024):
                 'xwoba': float(row['xwoba']) if row.get('xwoba') is not None else None,
                 'launch_angle_avg': float(row['launch_angle_avg']) if row.get('launch_angle_avg') is not None else None,
                 'sweet_spot_percentage': float(row['sweet_spot_percentage']) if row.get('sweet_spot_percentage') is not None else None,
+                'sprint_speed': float(row['sprint_speed']) if row.get('sprint_speed') is not None else None,
                 'whiff_percentage': float(row['whiff_percentage']) if row.get('whiff_percentage') is not None else None,
                 'chase_percentage': float(row['chase_percentage']) if row.get('chase_percentage') is not None else None,
                 'exit_velo_percentile': int(row['exit_velo_percentile']) if row.get('exit_velo_percentile') is not None else None,
                 'barrel_percentile': int(row['barrel_percentile']) if row.get('barrel_percentile') is not None else None,
                 'hard_hit_percentile': int(row['hard_hit_percentile']) if row.get('hard_hit_percentile') is not None else None,
                 'xwoba_percentile': int(row['xwoba_percentile']) if row.get('xwoba_percentile') is not None else None,
+                'sprint_speed_percentile': int(row['sprint_speed_percentile']) if row.get('sprint_speed_percentile') is not None else None,
             })
 
-    print(f"\n>>> [{season} 시즌] 타자 {len(df)}명 종합 세이버메트릭스(Whiff%, Chase% 포함) 적재 완료!")
+    print(f"\n>>> [{season} 시즌] 타자 {len(df)}명 종합 세이버메트릭스 적재 완료!")
 
 if __name__ == "__main__":
     collect_batters_comprehensive(season=2024)

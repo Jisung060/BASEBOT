@@ -283,46 +283,42 @@ def upsert_metric(
         print(f"SKIP empty frame: {columns}")
         return
 
-    # player_season_stats.player_id has an FK to players.player_id.  Savant
-    # leaderboards include historical/retired players that may not yet exist
-    # in the application's players table, so never attempt an invalid child
-    # insert.  Keep the skipped IDs visible for later player-table repair.
+    target_season = int(frame["season"].iloc[0])
+
+    # ★ 핵심 수정: 해당 시즌 + 해당 투/타 역할로 이미 기본 성적이 존재하는 선수만 UPDATE!
+    # (기본 성적 없이 Savant 지표만 들어가 경기수 0인 유령 행이 생성되는 현상 원천 차단)
     with engine.connect() as connection:
-        existing = pd.read_sql(
-            text("SELECT player_id FROM players"), connection
+        existing_stats = pd.read_sql(
+            text("""
+                SELECT player_id 
+                FROM player_season_stats 
+                WHERE season = :season AND is_pitcher = :is_pitcher AND games > 0
+            """),
+            connection,
+            params={"season": target_season, "is_pitcher": bool(is_pitcher)}
         )["player_id"].astype("int64")
-    existing_ids = set(existing.tolist())
-    source_ids = set(frame["player_id"].astype(int).tolist())
-    missing_ids = sorted(source_ids - existing_ids)
-    if missing_ids:
-        print(
-            f"SKIP {len(missing_ids)} player IDs missing from players "
-            f"for {columns}: {missing_ids[:20]}"
-            + (" ..." if len(missing_ids) > 20 else "")
-        )
-        frame = frame[frame["player_id"].isin(existing_ids)].copy()
+
+    valid_ids = set(existing_stats.tolist())
+    frame = frame[frame["player_id"].astype(int).isin(valid_ids)].copy()
     if frame.empty:
-        print(f"SKIP no FK-valid rows remain: {columns}")
+        print(f"SKIP no matching season rows in player_season_stats: {columns}")
         return
 
     if preserve_existing:
-        # Fallback mode: fill only database NULLs; never replace an official
-        # value with a locally calculated value.
         assignments = ", ".join(
-            f"{column}=COALESCE({column}, VALUES({column}))" for column in columns
+            f"{column} = COALESCE({column}, :{column})" for column in columns
         )
     else:
-        # Official-source mode: the source value takes precedence.  A NULL
-        # source value still preserves the existing database value.
         assignments = ", ".join(
-            f"{column}=COALESCE(VALUES({column}), {column})" for column in columns
+            f"{column} = COALESCE(:{column}, {column})" for column in columns
         )
+
     statement = text(
-        f"INSERT INTO player_season_stats "
-        f"(player_id, season, is_pitcher, {', '.join(columns)}) "
-        f"VALUES (:player_id, :season, :is_pitcher, {', '.join(':' + c for c in columns)}) "
-        f"ON DUPLICATE KEY UPDATE {assignments}"
+        f"UPDATE player_season_stats "
+        f"SET {assignments} "
+        f"WHERE player_id = :player_id AND season = :season AND is_pitcher = :is_pitcher"
     )
+
     params = []
     for _, row in frame.iterrows():
         item = {
@@ -335,12 +331,14 @@ def upsert_metric(
                 "outs_above_average", "batting_run_value", "baserunning_run_value", "pitching_run_value"
             })
         params.append(item)
+
     if dry_run:
         print(f"DRY RUN {len(params)} rows: {columns}, pitcher={is_pitcher}")
         return
+
     with engine.begin() as connection:
         result = connection.execute(statement, params)
-    print(f"UPSERT {result.rowcount} affected rows: {columns}, pitcher={is_pitcher}")
+    print(f"UPDATE {result.rowcount} affected rows: {columns}, pitcher={is_pitcher}")
 
 
 def main():

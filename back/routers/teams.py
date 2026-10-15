@@ -220,7 +220,7 @@ def get_team_detail_and_roster(
                 s.xba, s.xslg, s.xwoba
             FROM player_season_stats s
             JOIN players p ON s.player_id = p.player_id
-            WHERE COALESCE(s.team_id, p.team_id) = :team_id 
+            WHERE s.team_id = :team_id AND s.games > 0
               AND s.season = :season 
               AND s.is_pitcher = FALSE
             ORDER BY s.bwar DESC, s.games DESC
@@ -239,7 +239,7 @@ def get_team_detail_and_roster(
                 s.bwar, s.fwar
             FROM player_season_stats s
             JOIN players p ON s.player_id = p.player_id
-            WHERE COALESCE(s.team_id, p.team_id) = :team_id 
+            WHERE s.team_id = :team_id AND s.games > 0
               AND s.season = :season 
               AND s.is_pitcher = TRUE
             ORDER BY s.innings_pitched DESC, s.bwar DESC
