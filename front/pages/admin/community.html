@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>커뮤니티 관리 | BASEBOT ADMIN</title>
     <link rel="stylesheet" href="../../css/admin/admin.css">
+    <link rel="stylesheet" href="../../css/admin/admin-community.css">
 </head>
 <body class="admin-page" data-page="community">
     <div class="admin-layout">
@@ -20,36 +21,414 @@
             ></header>
             <div class="admin-content">
 
-<section class="page-intro"><p>게시글, 댓글 및 신고 내역을 확인하고 커뮤니티 운영 정책에 따라 처리합니다.</p></section>
-<section class="panel">
-    <div class="panel-heading"><div><h2>콘텐츠 검색</h2><p>게시글 제목 또는 작성자 기준으로 검색합니다.</p></div></div>
-    <form class="filter-form" action="#" method="get">
-        <label>콘텐츠 유형<select name="type"><option value="all">전체</option><option value="post">게시글</option><option value="comment">댓글</option><option value="report">신고</option></select></label>
+                <!-- ========================================
+                     페이지 제목
+                ========================================= -->
+                <section class="page-intro">
+                    <p>
+                        게시글, 댓글 및 신고 내역을 확인하고
+                        커뮤니티 운영 정책에 따라 처리합니다.
+                    </p>
+                </section>
 
-        <label>신고 상태
-            <select name="report_status">
-                <option value="">전체 상태</option>
-                <option value="PENDING">처리 대기</option>
-                <option value="REVIEWED">검토 완료</option>
-                <option value="ACCEPTED">조치 승인</option>
-                <option value="REJECTED">반려</option>
-            </select>
-        </label>
 
-        <label class="grow">검색어<input type="search" name="keyword" placeholder="제목 / 작성자 / 신고 사유"></label>
-        <button class="button button-primary" type="submit">검색</button>
-    </form>
-</section>
-<section class="panel">
-    <div class="panel-heading"><div><h2>게시글 및 댓글</h2><p>community_posts, comments 데이터 연동 영역</p></div><span class="count-label">총 —건</span></div>
-    <div class="table-wrap"><table><thead><tr><th>유형</th><th>제목 / 내용</th><th>작성자</th><th>작성일</th><th>신고 수</th><th>상태</th><th>관리</th></tr></thead><tbody><tr><td colspan="7" class="table-empty">표시할 콘텐츠가 없습니다.</td></tr></tbody></table></div>
-</section>
-<section class="panel">
-    <div class="panel-heading"><div><h2>신고 처리</h2><p>신고 사유를 확인한 뒤 조치 또는 반려 결과를 기록합니다.</p></div><span class="tag tag-warning">처리 대기 —건</span></div>
-    <div class="table-wrap"><table><thead><tr><th>신고 번호</th><th>대상</th><th>신고 사유</th><th>신고자</th><th>접수일</th><th>상태</th><th>처리</th></tr></thead><tbody><tr><td colspan="7" class="table-empty">신고 데이터가 없습니다.</td></tr></tbody></table></div>
-    <p class="table-note">삭제·숨김·신고 처리 버튼은 실제 API 및 처리 이력 기록과 연결한 뒤 활성화하세요.</p>
-</section>
+                <!-- ========================================
+                     커뮤니티 현황 카드
+                ========================================= -->
+                <section class="community-summary">
+
+                    <!-- 전체 게시글 -->
+                    <div class="summary-card"
+                    data-tab="contents">
+                        <div class="summary-icon post">
+                            📝
+                        </div>
+
+                        <div class="summary-info">
+                            <span>전체 게시글</span>
+                            <strong id="totalPostCount">0</strong>
+                            <small>등록된 게시글</small>
+                        </div>
+                    </div>
+
+
+                    <!-- 전체 댓글 -->
+                    <div class="summary-card" data-tab="comments">
+                        <div class="summary-icon comment">
+                            💬
+                        </div>
+
+                        <div class="summary-info">
+                            <span>전체 댓글</span>
+                            <strong id="totalCommentCount">0</strong>
+                            <small>등록된 댓글</small>
+                        </div>
+                    </div>
+
+
+                    <!-- 신고 접수 -->
+                    <div class="summary-card" data-tab="reports">
+                        <div class="summary-icon report">
+                            ⚠
+                        </div>
+
+                        <div class="summary-info">
+                            <span>신고 접수</span>
+                            <strong id="totalReportCount">0</strong>
+                            <small>누적 신고</small>
+                        </div>
+                    </div>
+
+
+                    <!-- 처리 완료 -->
+                    <div class="summary-card" data-tab="history">
+                        <div class="summary-icon complete">
+                            ✓
+                        </div>
+
+                        <div class="summary-info">
+                            <span>처리 완료</span>
+                            <strong id="completedReportCount">0</strong>
+                            <small>처리된 신고</small>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- ========================================
+                     커뮤니티 메뉴
+                ========================================= -->
+                <nav class="community-menu" aria-label="커뮤니티 관리 메뉴">
+
+                    <button
+                        type="button"
+                        class="community-menu-item active"
+                        data-tab="contents"
+                    >
+                        게시글 / 댓글
+                    </button>
+
+                    <button
+                        type="button"
+                        class="community-menu-item"
+                        data-tab="reports"
+                    >
+                        신고 처리
+                    </button>
+
+                    <button
+                        type="button"
+                        class="community-menu-item"
+                        data-tab="history"
+                    >
+                        처리 내역
+                    </button>
+
+                    <!-- 새로고침 (탭 메뉴 오른쪽 끝) -->
+                    <div class="community-refresh">
+                        <span
+                            class="refresh-time"
+                            id="lastRefreshedTime"
+                        >
+                            —
+                        </span>
+
+                        <button
+                            type="button"
+                            class="refresh-button"
+                            id="communityRefreshButton"
+                            aria-label="목록 새로고침"
+                        >
+                            <span class="refresh-icon" aria-hidden="true">↻</span>
+                            새로고침
+                        </button>
+                    </div>
+
+                </nav>
+
+                </nav>
+
+
+                <!-- ========================================
+                     커뮤니티 검색
+                ========================================= -->
+                <section class="community-search-panel">
+
+                    <div class="community-search">
+
+                        <form
+                            class="filter-form"
+                            id="communitySearchForm"
+                            action="#"
+                            method="get"
+                        >
+
+                            <label data-filter="type">
+                            <span class="filter-label-text">콘텐츠 유형</span>
+
+                            <select name="type" id="contentTypeFilter">
+                                <option value="all">전체</option>
+                                <option value="post">게시글</option>
+                                <option value="comment">댓글</option>
+                            </select>
+                        </label>
+
+                        <label data-filter="status">
+                            <span class="filter-label-text">신고 상태</span>
+
+                            <select name="report_status" id="reportStatusFilter">
+                                <option value="">전체 상태</option>
+                            </select>
+                        </label>
+
+                            <label class="grow">
+                                검색어
+
+                                <input
+                                    type="search"
+                                    name="keyword"
+                                    id="communitySearchInput"
+                                    placeholder="제목 / 작성자 / 신고 사유"
+                                >
+                            </label>
+
+                            <button
+                                class="button button-primary"
+                                type="submit"
+                                id="communitySearchButton"
+                            >
+                                검색
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </section>
+
+
+                <!-- ========================================
+                     게시글 / 댓글 목록
+                ========================================= -->
+                <section
+                    class="panel community-content-panel"
+                    id="contentsPanel"
+                >
+
+                    <div class="panel-heading">
+
+                        <div>
+                            <h2>게시글 및 댓글</h2>
+
+                            <p>
+                                게시글과 댓글을 확인할 수 있습니다.
+                            </p>
+                        </div>
+
+                        <span
+                            class="count-label"
+                            id="contentTotalCount"
+                        >
+                            총 0건
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrap">
+
+                        <table class="community-table">
+
+                            <thead>
+                                <tr>
+                                    <th>유형</th>
+                                    <th>제목 / 내용</th>
+                                    <th>작성자</th>
+                                    <th>작성일</th>
+                                    <th>신고 수</th>
+                                    <th>상태</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+
+
+                            <tbody id="communityContentTableBody">
+
+                                <tr>
+                                    <td
+                                        colspan="7"
+                                        class="table-empty"
+                                    >
+                                        표시할 콘텐츠가 없습니다.
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+
+                <!-- ========================================
+                     신고 처리
+                ========================================= -->
+                <section
+                    class="panel community-report-panel"
+                    id="reportsPanel"
+                >
+
+                    <div class="panel-heading">
+
+                        <div>
+                            <h2>신고 처리</h2>
+
+                            <p>
+                                신고 사유를 확인한 뒤
+                                조치 또는 반려 결과를 기록합니다.
+                            </p>
+                        </div>
+
+                        <span
+                            class="tag tag-warning"
+                            id="pendingReportCount"
+                        >
+                            처리 대기 0건
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrap">
+
+                        <table class="community-table">
+
+                            <thead>
+                                <tr>
+                                    <th>번호</th>
+                                    <th>대상</th>
+                                    <th>신고 사유</th>
+                                    <th>신고자</th>
+                                    <th>접수일</th>
+                                    <th>상태</th>
+                                    <th>처리</th>
+                                </tr>
+                            </thead>
+
+
+                            <tbody id="communityReportTableBody">
+
+                                <tr>
+                                    <td
+                                        colspan="7"
+                                        class="table-empty"
+                                    >
+                                        신고 데이터가 없습니다.
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+                <!-- ========================================
+                     처리 내역
+                ========================================= -->
+                <section
+                    class="panel community-history-panel"
+                    id="historyPanel"
+                    hidden
+                >
+
+                    <div class="panel-heading">
+
+                        <div>
+                            <h2>처리 내역</h2>
+
+                            <p>
+                                신고 검토 및 처리 결과를 확인할 수 있습니다.
+                            </p>
+                        </div>
+
+                        <span
+                            class="count-label"
+                            id="historyTotalCount"
+                        >
+                            총 0건
+                        </span>
+
+                    </div>
+
+
+                    <div class="table-wrap">
+
+                        <table class="community-table">
+
+                            <thead>
+                                <tr>
+                                    <th>신고 번호</th>
+                                    <th>대상</th>
+                                    <th>신고 사유</th>
+                                    <th>신고자</th>
+                                    <th>처리일</th>
+                                    <th>처리 상태</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="communityHistoryTableBody">
+
+                                <tr>
+                                    <td
+                                        colspan="6"
+                                        class="table-empty"
+                                    >
+                                        처리 내역이 없습니다.
+                                    </td>
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </section>
+
+
+                <!-- ========================================
+                     처리 안내
+                ========================================= -->
+                <section class="community-admin-notice">
+
+                    <div class="notice-icon">
+                        💡
+                    </div>
+
+                    <div>
+                        <h3>커뮤니티 관리 안내</h3>
+
+                        <p>
+                            신고된 게시글과 댓글은 신고 사유를 확인한 후
+                            적절한 조치를 진행해주세요.
+                        </p>
+
+                        <p>
+                            게시글 숨김 처리 시 일반 사용자에게
+                            해당 게시글이 노출되지 않습니다.
+                        </p>
+                    </div>
+
+                </section>
+
             </div>
+
+
             <footer
                 class="admin-footer"
                 id="admin-footer-container"
