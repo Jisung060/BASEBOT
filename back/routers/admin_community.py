@@ -113,7 +113,7 @@ def get_admin_community_posts(
                 "nickname": nickname,
                 "created_at": post.created_at,
                 "report_count": report_count,
-                "status": "ACTIVE",
+                "status": post.status,
                 "category": post.category,
                 "comment_count": post.comment_count,
             }
@@ -344,6 +344,7 @@ def get_admin_community_reports(
                 "nickname": nickname,
                 "status": report.status,
                 "reported_at": report.created_at,
+                "reviewed_at": report.reviewed_at,
             }
             for report, title, nickname in rows
         ],

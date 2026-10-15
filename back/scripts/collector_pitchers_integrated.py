@@ -24,12 +24,15 @@ HEADERS = {
 }
 
 # ----------------------------------------------------
-# 1. MLB 공식 API: 투수 기본 성적 수집
+# 1. MLB 공식 API: 투수 기본 성적 수집 (playerPool=ALL 필수!)
 # ----------------------------------------------------
 def fetch_mlb_pitchers(season: int = 2024) -> pd.DataFrame:
-    print(f"\n[1/4] MLB 공식 API에서 {season} 시즌 투수 기본 성적 수집 중...")
-    url = f"https://statsapi.mlb.com/api/v1/stats?stats=season&season={season}&group=pitching&sportId=1&limit=1500"
-    resp = requests.get(url, headers=HEADERS, timeout=15)
+    print(f"\n[1/4] MLB 공식 API에서 {season} 시즌 투수 전체(playerPool=ALL) 기본 성적 수집 중...")
+    url = (
+        f"https://statsapi.mlb.com/api/v1/stats"
+        f"?stats=season&season={season}&group=pitching&sportId=1&playerPool=ALL&limit=2000"
+    )
+    resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     splits = resp.json().get("stats", [{}])[0].get("splits", [])
     
@@ -60,6 +63,10 @@ def fetch_mlb_pitchers(season: int = 2024) -> pd.DataFrame:
         })
         
     df = pd.DataFrame(records)
+    if not df.empty:
+        df = df.sort_values(by=["player_id", "innings_pitched"], ascending=[True, False])
+        df = df.drop_duplicates(subset=["player_id"], keep="first").copy()
+
     print(f" -> MLB 공식 투수 {len(df)}명 확보 완료")
     return df
 
@@ -87,7 +94,7 @@ def fetch_fangraphs_pitchers(season: int = 2024) -> pd.DataFrame:
                         "fwar": round(float(row.get("WAR", 0.0)), 1)
                     })
             print(f" -> FanGraphs 투수 데이터 {len(records)}명 확보 완료")
-            return pd.DataFrame(records)
+            return pd.DataFrame(records).drop_duplicates(subset=["player_id"])
         else:
             print(f"※ FanGraphs 투수 응답 코드: {resp.status_code} (Fallback 수식 계산 전환)")
     except Exception as e:
@@ -102,7 +109,7 @@ def fetch_savant_pitcher_statcast(season: int = 2024) -> pd.DataFrame:
     print(f"\n[3/4] Baseball Savant에서 투수 Statcast 지표(xERA, 피타구속도, 피배럴%) 수집 중...")
     url = (
         f"https://baseballsavant.mlb.com/leaderboard/custom"
-        f"?year={season}&type=pitcher&filter=&sort=4&sortDir=asc&min=15&selections="
+        f"?year={season}&type=pitcher&filter=&sort=4&sortDir=asc&min=10&selections="
         f"player_id,exit_velocity_avg,launch_angle_avg,barrel_batted_rate,hard_hit_percent,xera&csv=true"
     )
 
@@ -150,7 +157,7 @@ def fetch_savant_pitcher_discipline(season: int = 2024) -> pd.DataFrame:
     print(f"\n[4/4] Baseball Savant에서 투수 Whiff% & Chase% 유도율 수집 중...")
     url = (
         f"https://baseballsavant.mlb.com/leaderboard/custom"
-        f"?year={season}&type=pitcher&filter=&sort=4&sortDir=desc&min=15&selections="
+        f"?year={season}&type=pitcher&filter=&sort=4&sortDir=desc&min=10&selections="
         f"player_id,whiff_percent,oz_swing_percent,chase_percent&csv=true"
     )
     try:
@@ -212,7 +219,6 @@ def collect_pitchers_comprehensive(season: int = 2024):
 
     df = df.loc[:, ~df.columns.duplicated()].copy()
 
-    # 리그 상수 및 FIP 산출
     league_fip_constant = 3.10
     league_avg_era = 4.15
 
@@ -235,7 +241,6 @@ def collect_pitchers_comprehensive(season: int = 2024):
             fwar_val = round(((league_avg_era - fip) / 9.0 * ip / 10.0) + (ip / 200.0), 1)
             df.at[idx, 'fwar'] = max(-2.0, min(12.0, fwar_val))
 
-    # 투수 백분위수 (낮을수록 우수하므로 피안타/타구질은 ascending=False)
     percentile_mappings = [
         ('avg_exit_velocity', 'exit_velo_percentile', False),
         ('barrel_percentage', 'barrel_percentile', False),
@@ -245,13 +250,8 @@ def collect_pitchers_comprehensive(season: int = 2024):
 
     for source_col, target_pct, is_asc in percentile_mappings:
         if source_col in df.columns:
-            series = df[source_col]
-            if isinstance(series, pd.DataFrame):
-                series = series.iloc[:, 0]
-                df[source_col] = series
-            
-            valid_cnt = int(series.notnull().to_numpy().sum())
-            if valid_cnt > 0:
+            series = pd.to_numeric(df[source_col], errors='coerce')
+            if series.notnull().sum() > 0:
                 df[target_pct] = (series.rank(pct=True, ascending=is_asc) * 100).round(0)
             else:
                 df[target_pct] = np.nan
@@ -262,8 +262,13 @@ def collect_pitchers_comprehensive(season: int = 2024):
 
     print(f"\n총 {len(df)}명 투수 데이터 DB 적재 시작...")
     with engine.begin() as conn:
-        existing_teams = conn.execute(text("SELECT team_id FROM teams")).scalars().all()
-        valid_team_ids = set(existing_teams)
+        existing_teams = set(conn.execute(text("SELECT team_id FROM teams")).scalars().all())
+
+        # 기존에 잘못 생성된 경기수 0짜리 껍데기 투수 행 정리
+        conn.execute(text("""
+            DELETE FROM player_season_stats 
+            WHERE season = :season AND is_pitcher = TRUE AND (games IS NULL OR games = 0)
+        """), {"season": season})
 
         upsert_player_sql = text("""
             INSERT INTO players (player_id, team_id, player_name, headshot_url)
@@ -271,19 +276,19 @@ def collect_pitchers_comprehensive(season: int = 2024):
             ON DUPLICATE KEY UPDATE
                 team_id = COALESCE(VALUES(team_id), team_id),
                 player_name = VALUES(player_name),
-                headshot_url = VALUES(headshot_url);
+                headshot_url = COALESCE(headshot_url, VALUES(headshot_url));
         """)
 
         upsert_stats_sql = text("""
             INSERT INTO player_season_stats (
-                player_id, season, is_pitcher, games,
+                player_id, season, team_id, is_pitcher, games,
                 wins, losses, era, innings_pitched, strikeouts, walks, whip,
                 bwar, fwar, fip, xera,
                 avg_exit_velocity, barrel_percentage, hard_hit_percentage,
                 whiff_percentage, chase_percentage,
                 exit_velo_percentile, barrel_percentile, hard_hit_percentile, xwoba_percentile
             ) VALUES (
-                :player_id, :season, TRUE, :games,
+                :player_id, :season, :team_id, TRUE, :games,
                 :wins, :losses, :era, :innings_pitched, :strikeouts, :walks, :whip,
                 :bwar, :fwar, :fip, :xera,
                 :avg_exit_velocity, :barrel_percentage, :hard_hit_percentage,
@@ -291,6 +296,7 @@ def collect_pitchers_comprehensive(season: int = 2024):
                 :exit_velo_percentile, :barrel_percentile, :hard_hit_percentile, :xwoba_percentile
             )
             ON DUPLICATE KEY UPDATE
+                team_id = COALESCE(VALUES(team_id), team_id),
                 is_pitcher = TRUE,
                 games = VALUES(games),
                 wins = VALUES(wins),
@@ -303,22 +309,22 @@ def collect_pitchers_comprehensive(season: int = 2024):
                 bwar = VALUES(bwar),
                 fwar = VALUES(fwar),
                 fip = VALUES(fip),
-                xera = VALUES(xera),
-                avg_exit_velocity = VALUES(avg_exit_velocity),
-                barrel_percentage = VALUES(barrel_percentage),
-                hard_hit_percentage = VALUES(hard_hit_percentage),
-                whiff_percentage = VALUES(whiff_percentage),
-                chase_percentage = VALUES(chase_percentage),
-                exit_velo_percentile = VALUES(exit_velo_percentile),
-                barrel_percentile = VALUES(barrel_percentile),
-                hard_hit_percentile = VALUES(hard_hit_percentile),
-                xwoba_percentile = VALUES(xwoba_percentile);
+                xera = COALESCE(VALUES(xera), xera),
+                avg_exit_velocity = COALESCE(VALUES(avg_exit_velocity), avg_exit_velocity),
+                barrel_percentage = COALESCE(VALUES(barrel_percentage), barrel_percentage),
+                hard_hit_percentage = COALESCE(VALUES(hard_hit_percentage), hard_hit_percentage),
+                whiff_percentage = COALESCE(VALUES(whiff_percentage), whiff_percentage),
+                chase_percentage = COALESCE(VALUES(chase_percentage), chase_percentage),
+                exit_velo_percentile = COALESCE(VALUES(exit_velo_percentile), exit_velo_percentile),
+                barrel_percentile = COALESCE(VALUES(barrel_percentile), barrel_percentile),
+                hard_hit_percentile = COALESCE(VALUES(hard_hit_percentile), hard_hit_percentile),
+                xwoba_percentile = COALESCE(VALUES(xwoba_percentile), xwoba_percentile);
         """)
 
         for _, row in df.iterrows():
             pid = int(row['player_id'])
             raw_team_id = int(row['team_id']) if row.get('team_id') else None
-            assigned_team = raw_team_id if raw_team_id in valid_team_ids else None
+            assigned_team = raw_team_id if raw_team_id in existing_teams else None
             headshot = f"https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/{pid}/headshot/67/current"
 
             conn.execute(upsert_player_sql, {
@@ -331,6 +337,7 @@ def collect_pitchers_comprehensive(season: int = 2024):
             conn.execute(upsert_stats_sql, {
                 'player_id': pid,
                 'season': season,
+                'team_id': assigned_team,
                 'games': int(row['games']),
                 'wins': int(row['wins']),
                 'losses': int(row['losses']),
@@ -354,7 +361,7 @@ def collect_pitchers_comprehensive(season: int = 2024):
                 'xwoba_percentile': int(row['xwoba_percentile']) if row.get('xwoba_percentile') is not None else None,
             })
 
-    print(f"\n>>> [{season} 시즌] 투수 {len(df)}명 데이터(Whiff%, Chase% 포함) 영구 적재 완료!")
+    print(f"\n>>> [{season} 시즌] 투수 {len(df)}명 데이터 영구 적재 완료!")
 
 if __name__ == "__main__":
     collect_pitchers_comprehensive(season=2024)
