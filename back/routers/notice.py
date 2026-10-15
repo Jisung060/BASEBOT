@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -64,4 +64,52 @@ def get_notices(
             }
             for row in rows
         ]
+    }
+
+
+# =========================================
+# 공지사항 상세 조회 (조회 수 +1)
+# =========================================
+@router.get("/{notice_id}")
+def get_notice_detail(
+        notice_id: int,
+        db: Session = Depends(get_session)
+):
+    params = {"notice_id": notice_id}
+
+    db.execute(
+        text("UPDATE notice SET view_count = view_count + 1 WHERE notice_id = :notice_id"),
+        params
+    )
+    db.commit()
+
+    row = db.execute(text("""
+        SELECT
+            n.notice_id,
+            n.category,
+            n.title,
+            n.content,
+            n.is_pinned,
+            n.view_count,
+            n.created_at,
+            n.updated_at,
+            u.nickname AS writer
+        FROM notice n
+        LEFT JOIN users u ON u.user_id = n.admin_id
+        WHERE n.notice_id = :notice_id
+    """), params).mappings().first()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="공지사항을 찾을 수 없습니다.")
+
+    return {
+        "notice_id": row["notice_id"],
+        "category": row["category"],
+        "title": row["title"],
+        "content": row["content"],
+        "is_pinned": bool(row["is_pinned"]),
+        "view_count": row["view_count"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "writer": row["writer"]
     }

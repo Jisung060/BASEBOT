@@ -1551,6 +1551,7 @@ input {
 }
 
 
+.notice-list .notice-title a,
 .notice-list .notice-title strong {
 
     overflow: hidden;

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BASEBOT</title>
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/main.css?v=20261015b">
+    <link rel="stylesheet" href="/css/main.css?v=20261015c">
 </head>
 
 
@@ -299,16 +299,21 @@
                  공지사항 (고정 공지 먼저, 최신순)
             ================================================== -->
             <div class="content-box">
-                <div class="section-title">
-                    <h2>공지사항</h2>
-                </div>
+    <div class="section-title">
+        <h2>공지사항</h2>
 
-                <ul class="news-list notice-list" id="main-notice-list">
-                    <li>
-                        <span>공지사항을 불러오는 중입니다.</span>
-                    </li>
-                </ul>
-            </div>
+        <!-- ▼ [더보기 +] 클릭 시 공지사항 전체 페이지로 이동 -->
+        <a href="/notices.html">
+            더보기 +
+        </a>
+    </div>
+
+    <ul class="news-list notice-list" id="main-notice-list">
+        <li>
+            <span>공지사항을 불러오는 중입니다.</span>
+        </li>
+    </ul>
+</div>
             <!-- ==================================================
                  커뮤니티 최신 게시글
             ================================================== -->
@@ -463,7 +468,7 @@
                             <p class="notice-title">
                                 ${n.is_pinned ? '<em class="notice-pin">고정</em>' : ''}
                                 <em class="notice-badge ${category}">${CATEGORY_LABEL[n.category] || ''}</em>
-                                <strong>${esc(n.title)}</strong>
+                                <a href="/notice-view.html?id=${encodeURIComponent(n.notice_id)}"><strong>${esc(n.title)}</strong></a>
                             </p>
                             <span>${date}</span>
                         </li>`;
