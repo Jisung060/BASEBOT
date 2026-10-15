@@ -91,7 +91,9 @@
 
             <section class="board-section">
                 <div class="board-toolbar">
-                    <div class="board-total">전체 게시글 <strong>8</strong></div>
+                    <div class="board-total">
+                        전체 게시글 <strong id="boardTotalCount">0</strong>
+                    </div>
                     <div class="board-toolbar-right">
                         <select id="sortSelect">
                             <option value="latest">최신순</option>
@@ -116,128 +118,7 @@
                         <div>조회</div>
                         <div>추천</div>
                     </div>
-
-                    <a class="board-row" href="community-view.html?postId=130"
-                       data-league="AL" data-division="EAST" data-team="TB" data-category="ANALYSIS" data-date="2026-10-05" data-views="842" data-likes="36">
-                        <div>130</div>
-                        <div><span class="category-label analysis">분석</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">AL · 동부 · 탬파베이 레이스</div>
-                            <span class="board-title">레이스 이번 시즌 타선과 불펜 분석</span>
-                            <span class="comment-count">[14]</span>
-                        </div>
-                        <div>ray_fan</div>
-                        <div>10.05</div>
-                        <div>842</div>
-                        <div>36</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=129"
-                       data-league="AL" data-division="EAST" data-team="NYY" data-category="GAME_THREAD" data-date="2026-10-05" data-views="932" data-likes="42">
-                        <div>129</div>
-                        <div><span class="category-label game">경기</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">AL · 동부 · 뉴욕 양키스</div>
-                            <span class="board-title">오늘 양키스 경기 선발 라인업 예상</span>
-                            <span class="comment-count">[24]</span>
-                        </div>
-                        <div>homerun_king</div>
-                        <div>10.05</div>
-                        <div>932</div>
-                        <div>42</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=128"
-                       data-league="AL" data-division="EAST" data-team="BOS" data-category="NEWS" data-date="2026-10-05" data-views="781" data-likes="31">
-                        <div>128</div>
-                        <div><span class="category-label news">뉴스</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">AL · 동부 · 보스턴 레드삭스</div>
-                            <span class="board-title">레드삭스 이번 주 주요 소식 정리</span>
-                            <span class="comment-count">[11]</span>
-                        </div>
-                        <div>baseball_news</div>
-                        <div>10.05</div>
-                        <div>781</div>
-                        <div>31</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=127"
-                       data-league="NL" data-division="WEST" data-team="LAD" data-category="ANALYSIS" data-date="2026-10-05" data-views="1204" data-likes="57">
-                        <div>127</div>
-                        <div><span class="category-label analysis">분석</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">NL · 서부 · LA 다저스</div>
-                            <span class="board-title">오타니 이번 시즌 타격 지표 분석</span>
-                            <span class="comment-count">[18]</span>
-                        </div>
-                        <div>sabermetrics</div>
-                        <div>10.05</div>
-                        <div>1,204</div>
-                        <div>57</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=126"
-                       data-league="AL" data-division="CENTRAL" data-team="DET" data-category="GAME_THREAD" data-date="2026-10-04" data-views="516" data-likes="19">
-                        <div>126</div>
-                        <div><span class="category-label game">경기</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">AL · 중부 · 디트로이트 타이거스</div>
-                            <span class="board-title">타이거스 경기 흐름과 승부처 정리</span>
-                            <span class="comment-count">[8]</span>
-                        </div>
-                        <div>detroit_fan</div>
-                        <div>10.04</div>
-                        <div>516</div>
-                        <div>19</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=125"
-                       data-league="NL" data-division="EAST" data-team="PHI" data-category="NEWS" data-date="2026-10-04" data-views="403" data-likes="15">
-                        <div>125</div>
-                        <div><span class="category-label news">뉴스</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">NL · 동부 · 필라델피아 필리스</div>
-                            <span class="board-title">필리스 로테이션 관련 최신 소식</span>
-                            <span class="comment-count">[6]</span>
-                        </div>
-                        <div>phillies_fan</div>
-                        <div>10.04</div>
-                        <div>403</div>
-                        <div>15</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=124"
-                       data-league="NL" data-division="WEST" data-team="SD" data-category="ANALYSIS" data-date="2026-10-04" data-views="638" data-likes="27">
-                        <div>124</div>
-                        <div><span class="category-label analysis">분석</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">NL · 서부 · 샌디에이고 파드리스</div>
-                            <span class="board-title">파드리스 중심 타선 장단점 분석</span>
-                            <span class="comment-count">[12]</span>
-                        </div>
-                        <div>petco_fan</div>
-                        <div>10.04</div>
-                        <div>638</div>
-                        <div>27</div>
-                    </a>
-
-                    <a class="board-row" href="community-view.html?postId=123"
-                       data-league="AL" data-division="WEST" data-team="SEA" data-category="ANALYSIS" data-date="2026-10-04" data-views="487" data-likes="21">
-                        <div>123</div>
-                        <div><span class="category-label analysis">분석</span></div>
-                        <div class="col-title">
-                            <div class="post-filter-info">AL · 서부 · 시애틀 매리너스</div>
-                            <span class="board-title">매리너스 선발진을 데이터로 살펴보기</span>
-                            <span class="comment-count">[9]</span>
-                        </div>
-                        <div>statcast</div>
-                        <div>10.04</div>
-                        <div>487</div>
-                        <div>21</div>
-                    </a>
-
-<div id="filterEmptyMessage" class="filter-empty-message" hidden>
+                    <div id="filterEmptyMessage" class="filter-empty-message" hidden>
                         선택한 리그 / 지구 / 팀에 해당하는 게시글이 없습니다.
                     </div>
                 </div>
@@ -308,6 +189,7 @@
 
 <div id="footer"></div>
 <script src="../js/main.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.17/purify.min.js"></script>
 <script src="../js/community.js"></script>
 </body>
 </html>

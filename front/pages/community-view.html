@@ -21,28 +21,23 @@
 
             <article class="post-detail">
                 <div class="post-head">
-                    <span class="category-label analysis">분석</span>
-                    <h2>오타니 이번 시즌 wRC+ 분석 (배럴 비율 중심)</h2>
+                    <span class="category-label" id="postCategory"></span>
+                    <h2 id="postTitle"></h2>
                 </div>
 
                 <div class="post-meta">
-                    <span>작성자 <strong>sabermetrics</strong></span>
-                    <span>작성일 <strong>2026.10.05 09:30</strong></span>
-                    <span>관련 구단 <strong>Los Angeles Dodgers</strong></span>
-                    <span>조회 <strong>1,204</strong></span>
+                    <span>작성자 <strong id="postAuthor"></strong></span>
+                    <span>작성일 <strong id="postDate"></strong></span>
+                    <span>관련 구단 <strong id="postTeam"></strong></span>
+                    <span>조회 <strong id="postViewCount"></strong></span>
                 </div>
 
-                <div class="post-body">
-                    <p>오타니 이번 시즌 기록을 정리해봤습니다.</p>
-                    <p>배럴 비율과 하드힛 비율이 시즌 후반으로 갈수록 올라가면서 wRC+도 함께 상승했습니다.</p>
-                    <div class="post-images">
-                        <div class="post-image-placeholder">첨부 이미지 영역</div>
-                    </div>
-                </div>
+                <div class="post-body" id="postBody"></div>
+
 
                 <div class="post-action-area">
                     <button type="button" class="post-action like" id="postLikeButton">
-                        ♥ 좋아요 <strong>57</strong>
+                        ♥ 좋아요 <strong>0</strong>
                     </button>
 
                     <button type="button" class="post-action" id="postScrapButton">
@@ -83,46 +78,8 @@
                     <button type="submit">댓글 등록</button>
                 </form>
 
-                <div id="commentList">
+                <div id="commentList"></div>
 
-                    <div class="comment-item">
-                        <div class="comment-head">
-                            <strong>homerun_king</strong>
-                            <span>2026.10.05 10:12</span>
-                        </div>
-                        <p class="comment-text">배럴 비율 정리 잘 봤습니다. 시즌 후반에 특히 올라간 게 인상적이네요.</p>
-                        <div class="comment-actions">
-                            <button type="button" class="comment-like-button">♥ 좋아요 <strong>5</strong></button>
-                            <button type="button" class="reply-button">답글</button>
-                        </div>
-
-                        <div class="reply-list">
-                            <div class="comment-item reply">
-                                <div class="comment-head">
-                                    <strong>sabermetrics</strong>
-                                    <span>2026.10.05 10:40</span>
-                                </div>
-                                <p class="comment-text">감사합니다. 시즌 후반 기록을 중심으로 봤습니다.</p>
-                                <div class="comment-actions">
-                                    <button type="button" class="comment-like-button">♥ 좋아요 <strong>3</strong></button>
-                                    <button type="button" class="reply-button">답글</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="comment-item">
-                        <div class="comment-head">
-                            <strong>newbie01</strong>
-                            <span>2026.10.05 11:05</span>
-                        </div>
-                        <p class="comment-text">입문자인데 도움이 많이 됐어요. 감사합니다!</p>
-                        <div class="comment-actions">
-                            <button type="button" class="comment-like-button">♥ 좋아요 <strong>1</strong></button>
-                            <button type="button" class="reply-button">답글</button>
-                        </div>
-                 </div>
-                </div>
             </section>
 
             <div class="post-bottom-area">
@@ -309,6 +266,7 @@
 
 <div id="footer"></div>
 <script src="../js/main.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.17/purify.min.js"></script>
 <script src="../js/community.js"></script>
 </body>
 </html>

@@ -536,14 +536,18 @@ async function loadPopularPosts() {
                     ? post.category.toLowerCase()
                     : "";
 
-            // 내용 미리보기
-            const preview =
+            // 내용 미리보기 (HTML 태그를 뺀 글자만 80자)
+            const previewText =
                 post.content
-                    ? post.content
-                        .replace(/<[^>]*>/g, "")
+                    ? new DOMParser()
+                        .parseFromString(post.content, "text/html")  // 코드를 실행하지 않고 읽기
+                        .body.textContent                            // 글자만 꺼내기 (&nbsp; 등도 정상 글자로 변환)
                         .trim()
                         .substring(0, 80)
                     : "";
+
+            // 글자를 HTML에 안전하게 넣기 위해 변환
+            const preview = escapeHtml(previewText);
 
             card.innerHTML = `
                 <div class="popular-card-top">
@@ -1776,7 +1780,7 @@ async function loadPostDetail() {
         if (body) {
 
             body.innerHTML =
-                post.content;
+                DOMPurify.sanitize(post.content);
         }
 
 
@@ -3302,7 +3306,7 @@ async function setupEditForm() {
             );
 
         editor.innerHTML =
-            post.content;
+            DOMPurify.sanitize(post.content);
 
 
     } catch (error) {
