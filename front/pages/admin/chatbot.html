@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -91,7 +92,126 @@
     </div>
 </section>
 
-<div class="notice-box"><strong>관리 안내</strong><p>대화 세션을 삭제하면 외래 키의 ON DELETE CASCADE 설정에 따라 해당 세션의 메시지도 함께 삭제됩니다. 관리자 권한을 확인하고 삭제 전에 사용자에게 확인을 요청하도록 API를 구현하세요.</p></div>
+<!-- 야구 지식 문서 관리: 기존 대화 관리 구조 아래에 추가 -->
+<section class="panel" id="rag-documents-panel">
+    <div class="panel-heading">
+        <div>
+            <h2>야구 지식 문서</h2>
+            <p>챗봇이 야구 규칙, 용어, 기록을 설명할 때 참고하는 RAG 문서를 관리합니다.</p>
+        </div>
+    </div>
+
+    <section class="stat-grid stat-grid-4">
+        <article class="stat-card">
+            <span>전체 문서</span>
+            <strong id="rag-total-documents">—</strong>
+            <small>rag_data</small>
+        </article>
+        <article class="stat-card">
+            <span>색인 완료</span>
+            <strong id="rag-indexed-documents">—</strong>
+            <small>Chroma 색인 정보 연동 필요</small>
+        </article>
+        <article class="stat-card">
+            <span>색인 대기</span>
+            <strong id="rag-pending-documents">—</strong>
+            <small>변경 문서 확인 필요</small>
+        </article>
+        <article class="stat-card">
+            <span>최근 색인</span>
+            <strong id="rag-last-indexed">—</strong>
+            <small>색인 실행 기록 연동 필요</small>
+        </article>
+    </section>
+
+    <form class="filter-form" id="rag-document-filter-form">
+        <label>
+            문서명
+            <input
+                type="search"
+                id="rag-document-keyword"
+                name="keyword"
+                placeholder="문서명 검색"
+            >
+        </label>
+
+        <label>
+            문서 분류
+            <select id="rag-document-category" name="category">
+                <option value="">전체</option>
+                <option value="rules">야구 규칙</option>
+                <option value="terms">야구 용어</option>
+                <option value="statistics">기록 및 통계</option>
+                <option value="positions">포지션</option>
+                <option value="strategy">야구 전략</option>
+                <option value="faq">자주 묻는 질문</option>
+            </select>
+        </label>
+
+        <button class="button button-primary" type="submit">조회</button>
+        <button class="button button-secondary" id="rag-refresh-documents" type="button">
+            문서 목록 새로고침
+        </button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>문서명</th>
+                    <th>문서 분류</th>
+                    <th>파일 형식</th>
+                    <th>수정일</th>
+                    <th>색인 상태</th>
+                    <th>상세</th>
+                </tr>
+            </thead>
+            <tbody id="rag-document-list">
+                <tr>
+                    <td colspan="6" class="table-empty">
+                        야구 지식 문서 목록 API를 연결해 주세요.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="button-row">
+        <button class="button button-secondary" id="rag-view-document" type="button">
+            문서 내용 확인
+        </button>
+        <button class="button button-primary" id="rag-reindex" type="button">
+            RAG 재색인 실행
+        </button>
+    </div>
+
+    <div id="rag-document-detail" hidden>
+        <div class="panel-heading">
+            <div>
+                <h2>문서 내용</h2>
+                <p id="rag-detail-filename">선택한 문서의 내용을 확인합니다.</p>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <pre id="rag-detail-content">문서를 선택해 주세요.</pre>
+        </div>
+
+        <div class="button-row">
+            <button class="button button-secondary" id="rag-close-detail" type="button">
+                내용 닫기
+            </button>
+        </div>
+    </div>
+
+    <div id="rag-operation-status" role="status" aria-live="polite" hidden></div>
+</section>
+
+<div class="notice-box">
+    <strong>관리 안내</strong>
+    <p>대화 세션을 삭제하면 외래 키의 ON DELETE CASCADE 설정에 따라 해당 세션의 메시지도 함께 삭제됩니다. 관리자 권한을 확인하고 삭제 전에 사용자에게 확인을 요청하도록 API를 구현하세요.</p>
+    <p>야구 지식 문서를 수정하거나 추가한 경우, 검색용 벡터 저장소에 변경 사항을 반영하기 위해 재색인이 필요할 수 있습니다. 재색인 API는 관리자 권한을 확인하고 실행 결과를 반환해야 합니다.</p>
+</div>
 
             </div>
             <footer
@@ -101,5 +221,7 @@
         </main>
     </div>
     <script src="/js/admin/admin-common.js"></script>
+    <script src="/js/admin/admin-chatbot.js"></script>
+    <script src="/js/admin/admin-chatbot-rag.js"></script>
 </body>
 </html>
