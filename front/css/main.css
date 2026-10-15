@@ -461,7 +461,7 @@ input {
     display: grid;
 
     grid-template-columns:
-        1fr 1fr;
+        repeat(3, 1fr);   /* 야구뉴스 / 공지사항 / 커뮤니티 */
 
     gap: 30px;
 
@@ -1392,4 +1392,73 @@ input {
             80px;
     }
 
+}
+
+/* ==================================================
+   메인 공지사항
+================================================== */
+
+.notice-list .notice-title {
+
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.notice-list .notice-title strong {
+
+    overflow: hidden;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+
+    font-weight: 400;
+}
+
+
+.notice-list li.pinned strong {
+
+    font-weight: 700;
+}
+
+
+.notice-list .notice-title em {
+
+    flex-shrink: 0;
+
+    padding: 2px 6px;
+
+    border-radius: 3px;
+
+    font-size: 11px;
+
+    font-style: normal;
+
+    color: #fff;
+
+    background: #888;
+}
+
+
+.notice-list .notice-pin { background: #222; }
+.notice-list .notice-badge.important { background: #d93025; }
+.notice-list .notice-badge.maintenance { background: #f29900; }
+.notice-list .notice-badge.notice { background: #1a73e8; }
+
+
+/* 화면이 좁으면 한 줄에 하나씩 */
+@media (max-width: 900px) {
+
+    .content-grid {
+
+        grid-template-columns: 1fr;
+    }
 }

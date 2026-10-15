@@ -32,6 +32,7 @@ from routers.admin_chatbot import router as admin_chatbot_router
 
 from routers import players, teams, games, predictions, rankings
 from routers.news import router as news_router # 뉴스추가
+from routers.notice import router as notice_router # 공지사항
 
 
 app = FastAPI(
@@ -83,6 +84,7 @@ app.include_router(predictions.router)
 app.include_router(chat_router)
 app.include_router(rankings.router)
 app.include_router(news_router) # 뉴스
+app.include_router(notice_router) # 공지사항
 
 
 # 정적 파일
