@@ -10,7 +10,7 @@ const ADMIN_PAGE_TITLES = {
     predictions: "경기 예측 관리",
     chatbot: "AI 챗봇 관리",
     notices: "공지사항 관리",
-    news: "뉴스 관리"
+    news: "뉴스 관리",
     "activity-logs": "관리자 활동 이력",
     "system-status": "시스템 및 수집 상태",
     settings: "서비스 운영 설정",
