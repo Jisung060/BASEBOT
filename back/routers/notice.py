@@ -3,6 +3,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.db_connection import get_session
+from auth.dependencies import get_current_user
+from models.user import User
 
 router = APIRouter(
     prefix="/api/notices",
@@ -13,12 +15,13 @@ router = APIRouter(
 # =========================================
 # 공지사항 목록 조회
 # - 상단 고정 공지 먼저, 그다음 최신순
-# - keyword: 제목/내용 검색
+# - keyword + search_type: title(제목) / title_content(제목+내용) / writer(작성자)
 # - category: NOTICE(일반공지), IMPORTANT(중요공지), MAINTENANCE(점검)
 # =========================================
 @router.get("")
 def get_notices(
         keyword: str | None = None,
+        search_type: str = Query("title_content", pattern="^(title|title_content|writer)$"),
         category: str | None = Query(None, pattern="^(NOTICE|IMPORTANT|MAINTENANCE)$"),
         limit: int = Query(10, ge=1, le=100),
         db: Session = Depends(get_session)
@@ -27,7 +30,13 @@ def get_notices(
     params = {"limit": limit}
 
     if keyword:
-        conditions.append("(n.title LIKE :keyword OR n.content LIKE :keyword)")
+        # 검색 기준에 따라 찾을 칸을 바꿈 (커뮤니티 검색과 동일)
+        search_columns = {
+            "title": "n.title LIKE :keyword",
+            "title_content": "(n.title LIKE :keyword OR n.content LIKE :keyword)",
+            "writer": "u.nickname LIKE :keyword",
+        }
+        conditions.append(search_columns[search_type])
         params["keyword"] = f"%{keyword}%"
 
     if category:
@@ -116,3 +125,28 @@ def get_notice_detail(
         "updated_at": row["updated_at"],
         "writer": row["writer"]
     }
+
+
+# =========================================
+# 공지사항 삭제 (관리자만 가능)
+# =========================================
+@router.delete("/{notice_id}")
+def delete_notice(
+        notice_id: int,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_session)
+):
+    # 화면에서 버튼을 숨기는 것과 별개로, 서버에서도 관리자인지 확인
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="관리자만 삭제할 수 있습니다.")
+
+    result = db.execute(
+        text("DELETE FROM notice WHERE notice_id = :notice_id"),
+        {"notice_id": notice_id}
+    )
+    db.commit()
+
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="공지사항을 찾을 수 없습니다.")
+
+    return {"message": "공지사항이 삭제되었습니다."}

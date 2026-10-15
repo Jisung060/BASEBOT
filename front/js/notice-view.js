@@ -1,49 +1,90 @@
-/* ==================================================
+/* =========================================
    공지사항 상세 페이지
    주소 예시: /notice-view.html?id=3
-================================================== */
+   구조와 팝업은 커뮤니티 게시글 상세(community.js)와 동일하게 맞춤
+========================================= */
 
-const NOTICE_CATEGORY_LABEL = {
-    NOTICE: "일반공지",
-    IMPORTANT: "중요공지",
-    MAINTENANCE: "점검"
+const NOTICE_CATEGORY = {
+    NOTICE: { name: "일반공지", className: "notice" },
+    IMPORTANT: { name: "중요공지", className: "important" },
+    MAINTENANCE: { name: "점검", className: "maintenance" }
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadNoticeDetail();
-});
 
+/* =========================================
+   BASEBOT 공통 팝업 (community.js와 같은 방식)
+========================================= */
 
-/* 주소창의 ?id= 값 읽기 */
-function getNoticeId() {
-    return new URLSearchParams(location.search).get("id");
+// 알림 팝업 (확인 버튼 하나)
+function showBasebotModal(title, message, callback = null) {
+    const modal = document.getElementById("basebotModal");
+    const button = document.getElementById("basebotModalButton");
+    const cancelButton = document.getElementById("basebotModalCancelButton");
+
+    document.getElementById("basebotModalTitle").textContent = title;
+    document.getElementById("basebotModalMessage").textContent = message;
+
+    cancelButton.style.display = "none";
+    button.textContent = "확인";
+    modal.classList.add("show");
+
+    button.onclick = function () {
+        modal.classList.remove("show");
+        if (callback) callback();
+    };
+}
+
+// 확인 팝업 (취소 + 확인 버튼)
+function showBasebotConfirm(title, message, confirmCallback, confirmText = "확인") {
+    const modal = document.getElementById("basebotModal");
+    const button = document.getElementById("basebotModalButton");
+    const cancelButton = document.getElementById("basebotModalCancelButton");
+
+    document.getElementById("basebotModalTitle").textContent = title;
+    document.getElementById("basebotModalMessage").textContent = message;
+
+    cancelButton.style.display = "inline-flex";
+    button.textContent = confirmText;
+    modal.classList.add("show");
+
+    cancelButton.onclick = function () {
+        modal.classList.remove("show");
+    };
+
+    button.onclick = function () {
+        modal.classList.remove("show");
+        confirmCallback();
+    };
 }
 
 
-/* 로그인한 사용자가 관리자인지 확인 (로그인 시 저장한 user 정보 사용) */
+/* =========================================
+   로그인한 사용자가 관리자인지 확인
+   (로그인할 때 저장한 user 정보의 role 사용)
+========================================= */
 function isAdminUser() {
     try {
         const user = JSON.parse(sessionStorage.getItem("user"));
-        return user?.role === "ADMIN";
+        return Boolean(sessionStorage.getItem("access_token")) && user?.role === "ADMIN";
     } catch (error) {
         return false;
     }
 }
 
 
-/* "2026-10-15T09:30:00" → "2026.10.15 09:30" */
+// "2026-10-15T14:30:00" → "2026.10.15 14:30" (커뮤니티 상세와 같은 모양)
 function formatNoticeDate(value) {
-    if (!value) {
-        return "-";
-    }
+    if (!value) return "-";
     return value.slice(0, 16).replace("T", " ").replace(/-/g, ".");
 }
 
 
-/* 공지사항 1개 조회 */
+/* =========================================
+   공지사항 1개 불러오기
+========================================= */
 async function loadNoticeDetail() {
-    const noticeId = getNoticeId();
-    const title = document.getElementById("notice-title");
+    const noticeId = new URLSearchParams(window.location.search).get("id");
+    const title = document.getElementById("noticeTitle");
 
     if (!noticeId) {
         title.textContent = "잘못된 접근입니다.";
@@ -57,7 +98,6 @@ async function loadNoticeDetail() {
             title.textContent = "공지사항을 찾을 수 없습니다.";
             return;
         }
-
         if (!response.ok) {
             throw new Error("공지사항 조회 실패");
         }
@@ -71,32 +111,95 @@ async function loadNoticeDetail() {
 }
 
 
-/* 화면에 채우기 (textContent를 써서 글 내용이 코드로 실행되지 않게 함) */
+/* =========================================
+   화면에 채우기
+   textContent를 써서 글 내용이 코드로 실행되지 않게 함
+========================================= */
 function renderNotice(notice) {
-    const category = document.getElementById("notice-category");
+    const category = NOTICE_CATEGORY[notice.category] || { name: notice.category, className: "" };
+    const categoryLabel = document.getElementById("noticeCategory");
 
     document.title = `${notice.title} | BASEBOT`;
-    document.getElementById("notice-pin").hidden = !notice.is_pinned;
 
-    category.textContent = NOTICE_CATEGORY_LABEL[notice.category] || "";
-    category.classList.add(notice.category.toLowerCase());
+    categoryLabel.textContent = category.name;
+    categoryLabel.className = `category-label ${category.className}`;
 
-    document.getElementById("notice-title").textContent = notice.title;
-    document.getElementById("notice-writer").textContent = `작성자 ${notice.writer || "관리자"}`;
-    document.getElementById("notice-date").textContent = formatNoticeDate(notice.created_at);
-    document.getElementById("notice-views").textContent = `조회 ${notice.view_count}`;
-    document.getElementById("notice-content").textContent = notice.content;
+    // 상단 고정 공지는 분류 앞에 '고정' 표시
+    if (notice.is_pinned) {
+        const pin = document.createElement("span");
+        pin.className = "notice-pin-mark";
+        pin.textContent = "고정";
+        categoryLabel.before(pin);
+    }
 
-    // 수정/삭제 버튼은 관리자에게만 보여줌 (기능은 다음 단계에서 연결)
-    if (isAdminUser()) {
-        document.getElementById("notice-admin-actions").hidden = false;
+    document.getElementById("noticeTitle").textContent = notice.title;
+    document.getElementById("noticeWriter").textContent = notice.writer || "관리자";
+    document.getElementById("noticeDate").textContent = formatNoticeDate(notice.created_at);
+    document.getElementById("noticeViewCount").textContent =
+        Number(notice.view_count || 0).toLocaleString();
 
-        document.getElementById("notice-edit-btn").addEventListener("click", () => {
-            alert("수정 기능은 준비 중입니다.");
+    const body = document.getElementById("noticeBody");
+    body.classList.add("notice-text");
+    body.textContent = notice.content;
+
+    setupAdminButtons(notice.notice_id);
+}
+
+
+/* =========================================
+   수정 / 삭제 버튼 (관리자에게만 보임)
+========================================= */
+function setupAdminButtons(noticeId) {
+    const adminArea = document.getElementById("noticeAdminArea");
+
+    // 관리자가 아니면 버튼 영역을 숨긴 채로 끝
+    if (!isAdminUser()) {
+        adminArea.style.display = "none";
+        return;
+    }
+    adminArea.style.display = "flex";
+
+    // 수정: 작성 페이지를 만들 때 연결 예정
+    document.getElementById("editNoticeButton").onclick = function (event) {
+        event.preventDefault();
+        showBasebotModal("준비 중", "공지사항 수정 기능은 작성 페이지와 함께 추가될 예정입니다.");
+    };
+
+    // 삭제: 확인 팝업 → 서버에 삭제 요청 (서버에서도 관리자인지 다시 확인함)
+    document.getElementById("deleteNoticeButton").onclick = function () {
+        showBasebotConfirm(
+            "공지사항 삭제",
+            "이 공지사항을 삭제하시겠습니까?",
+            () => deleteNotice(noticeId),
+            "삭제"
+        );
+    };
+}
+
+
+async function deleteNotice(noticeId) {
+    try {
+        const response = await fetch(`/api/notices/${encodeURIComponent(noticeId)}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${sessionStorage.getItem("access_token")}`
+            }
         });
 
-        document.getElementById("notice-delete-btn").addEventListener("click", () => {
-            alert("삭제 기능은 준비 중입니다.");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || "삭제에 실패했습니다.");
+        }
+
+        showBasebotModal("삭제 완료", "공지사항이 삭제되었습니다.", () => {
+            window.location.href = "/notice.html";
         });
+
+    } catch (error) {
+        console.error("공지사항 삭제 오류:", error);
+        showBasebotModal("삭제 오류", error.message);
     }
 }
+
+
+document.addEventListener("DOMContentLoaded", loadNoticeDetail);

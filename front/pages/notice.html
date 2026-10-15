@@ -53,13 +53,29 @@
 
                 <div class="pagination" id="noticePagination"></div>
 
-                <form class="search-area" id="noticeSearchForm">
+                <!-- 하단 검색 (커뮤니티와 동일한 구조) -->
+                <form class="search-area" onsubmit="return false;">
+
+                    <select id="searchType">
+                        <option value="title_content">제목+내용</option>
+                        <option value="title">제목</option>
+                        <option value="writer">작성자</option>
+                    </select>
+
                     <input
-                        id="noticeSearchInput"
+                        id="searchInput"
                         type="search"
-                        placeholder="제목 또는 내용으로 검색"
+                        placeholder="검색어를 입력하세요"
                     >
-                    <button type="submit" class="community-btn">검색</button>
+
+                    <button
+                        type="button"
+                        id="postSearchButton"
+                        class="community-btn"
+                    >
+                        검색
+                    </button>
+
                 </form>
             </section>
         </section>

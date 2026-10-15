@@ -5,43 +5,94 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공지사항 | BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/community.css">
+    <link rel="stylesheet" href="../css/notice.css">
     <link rel="stylesheet" href="../css/notice-view.css">
 </head>
 <body>
 <div id="header"></div>
 
-<main class="notice-view-main">
+<!-- 커뮤니티 게시글 상세(community-view.html)와 같은 구조 -->
+<main class="community-main">
+    <div class="community-layout no-sidebar">
 
-    <!-- 공지 머리 부분: 분류, 제목, 날짜, 조회 수 -->
-    <div class="notice-view-head">
-        <div class="notice-view-badges">
-            <em class="notice-view-pin" id="notice-pin" hidden>고정</em>
-            <em class="notice-view-badge" id="notice-category"></em>
-        </div>
+        <section class="community-content">
+            <div class="community-title">
+                <h1>공지사항</h1>
+                <p>BASEBOT의 새로운 소식과 안내를 확인하세요.</p>
+            </div>
 
-        <h1 class="notice-view-title" id="notice-title">공지사항을 불러오는 중입니다...</h1>
+            <article class="post-detail">
+                <div class="post-head">
+                    <span class="category-label" id="noticeCategory"></span>
+                    <h2 id="noticeTitle">공지사항을 불러오는 중입니다...</h2>
+                </div>
 
-        <div class="notice-view-meta">
-            <span id="notice-writer"></span>
-            <span id="notice-date"></span>
-            <span id="notice-views"></span>
-        </div>
+                <div class="post-meta">
+                    <span>작성자 <strong id="noticeWriter"></strong></span>
+                    <span>작성일 <strong id="noticeDate"></strong></span>
+                    <span>조회 <strong id="noticeViewCount"></strong></span>
+                </div>
+
+                <div class="post-body" id="noticeBody"></div>
+
+                <!-- 수정/삭제: 관리자에게만 보임 -->
+                <div class="post-owner-area" id="noticeAdminArea" style="display: none;">
+                    <a href="#"
+                       class="community-btn small"
+                       id="editNoticeButton">
+                        수정
+                    </a>
+
+                    <button
+                        type="button"
+                        class="community-btn small"
+                        id="deleteNoticeButton">
+                        삭제
+                    </button>
+                </div>
+            </article>
+
+            <div class="post-bottom-area">
+                <a href="notice.html" class="community-btn">목록</a>
+            </div>
+        </section>
     </div>
-
-    <!-- 공지 본문 -->
-    <div class="notice-view-content" id="notice-content"></div>
-
-    <!-- 버튼: 목록은 모두에게, 수정/삭제는 관리자에게만 보임 -->
-    <div class="notice-view-actions">
-        <a href="/notice.html" class="notice-btn">목록</a>
-
-        <div class="notice-admin-actions" id="notice-admin-actions" hidden>
-            <button type="button" class="notice-btn" id="notice-edit-btn">수정</button>
-            <button type="button" class="notice-btn danger" id="notice-delete-btn">삭제</button>
-        </div>
-    </div>
-
 </main>
+
+<!-- BASEBOT 공통 팝업 (커뮤니티와 동일) -->
+<div id="basebotModal" class="basebot-modal">
+
+    <div class="basebot-modal-box">
+
+        <h3 id="basebotModalTitle"></h3>
+
+        <p id="basebotModalMessage"></p>
+
+        <div class="basebot-modal-button-area">
+
+            <button
+                type="button"
+                id="basebotModalCancelButton"
+                class="community-btn"
+                style="display: none;"
+            >
+                취소
+            </button>
+
+            <button
+                type="button"
+                id="basebotModalButton"
+                class="community-btn primary"
+            >
+                확인
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
 <div id="footer"></div>
 <script src="../js/main.js"></script>

@@ -37,11 +37,15 @@ function formatNoticeListDate(value) {
    서버에서 공지 목록 가져오기
 ========================================= */
 async function loadNotices() {
-    const keyword = document.getElementById("noticeSearchInput").value.trim();
+    const keyword = document.getElementById("searchInput").value.trim();
+    const searchType = document.getElementById("searchType").value;   // 제목+내용 / 제목 / 작성자
     const category = document.getElementById("noticeCategorySelect").value;
 
     const params = new URLSearchParams({ limit: 100 });
-    if (keyword) params.set("keyword", keyword);
+    if (keyword) {
+        params.set("keyword", keyword);
+        params.set("search_type", searchType);
+    }
     if (category) params.set("category", category);
 
     try {
@@ -150,9 +154,13 @@ function renderNoticePagination(totalPages) {
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("noticeCategorySelect").addEventListener("change", loadNotices);
 
-    document.getElementById("noticeSearchForm").addEventListener("submit", event => {
-        event.preventDefault();   // 페이지 새로고침 막기
-        loadNotices();
+    // 검색 버튼 클릭 또는 Enter 키로 검색 (커뮤니티와 동일)
+    document.getElementById("postSearchButton").addEventListener("click", loadNotices);
+    document.getElementById("searchInput").addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            loadNotices();
+        }
     });
 
     loadNotices();
