@@ -1,4 +1,3 @@
-
 /* =========================================
    BASEBOT Community JavaScript
    현재는 화면 동작 확인용
@@ -122,6 +121,71 @@ function showBasebotConfirm(
             confirmCallback();
         }
     };
+}
+
+// =========================================
+// 로그인 필요 팝업
+// 로그인하지 않고 로그인이 필요한 기능을 눌렀을 때 호출
+// message : 기능마다 다른 안내 문구를 쓸 때만 전달 (생략하면 기본 문구)
+// "로그인하기" → 로그인 페이지로 이동 / "취소" → 팝업만 닫힘
+// =========================================
+function showLoginRequired(
+    message = "해당 기능은 로그인 후 이용할 수 있습니다."
+) {
+    showBasebotConfirm(
+        "로그인이 필요합니다",
+        message,
+        function () {
+            window.location.href = "/login.html";
+        },
+        "로그인하기"
+    );
+}
+
+
+// =========================================
+// 로그인한 사용자의 ID 가져오기
+// 토큰(JWT) 안의 user_id를 꺼내서 반환
+// 로그인하지 않았거나 토큰이 올바르지 않으면 null
+// =========================================
+function getCurrentUserId() {
+
+    const token = sessionStorage.getItem("access_token");
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const payload = JSON.parse(
+            atob(
+                token.split(".")[1]
+                    .replace(/-/g, "+")
+                    .replace(/_/g, "/")
+            )
+        );
+
+        return Number(payload.user_id);
+
+    } catch (error) {
+        console.error("로그인 사용자 정보 확인 오류:", error);
+        return null;
+    }
+}
+
+
+// =========================================
+// HTML 특수문자 변환
+// 사용자가 입력한 글을 innerHTML에 넣을 때 사용
+// (<script> 같은 입력이 코드로 실행되는 것을 방지)
+// =========================================
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 /* =========================================
@@ -492,7 +556,7 @@ async function loadPopularPosts() {
                 </div>
 
                 <h3>
-                    ${post.title || ""}
+                    ${escapeHtml(post.title)}
                 </h3>
 
                 <p>
@@ -500,7 +564,7 @@ async function loadPopularPosts() {
                 </p>
 
                 <div class="popular-card-meta">
-                    ${post.nickname || "익명"} ·
+                    ${escapeHtml(post.nickname || "익명")} ·
                     조회 ${post.view_count || 0}
                 </div>
             `;
@@ -1415,7 +1479,7 @@ async function loadPosts() {
                     </div>
 
                     <span class="board-title">
-                        ${post.title}
+                        ${escapeHtml(post.title)}
                     </span>
 
                     <span class="comment-count">
@@ -1425,7 +1489,7 @@ async function loadPosts() {
                 </div>
 
                 <div>
-                    ${post.nickname}
+                    ${escapeHtml(post.nickname)}
                 </div>
 
                 <div>
@@ -1673,7 +1737,7 @@ async function loadPostDetail() {
         if (metaItems[0]) {
 
             metaItems[0].innerHTML =
-                `작성자 <strong>${post.nickname}</strong>`;
+                `작성자 <strong>${escapeHtml(post.nickname)}</strong>`;
         }
 
 
@@ -1825,14 +1889,7 @@ async function loadPostDetail() {
 
                 // 로그인하지 않은 경우
                 if (!accessToken) {
-                    showBasebotConfirm(
-                        "로그인이 필요합니다",
-                        "해당 기능은 로그인 후 이용할 수 있습니다.",
-                        function () {
-                            window.location.href = "/login.html";
-                        },
-                        "로그인하기"
-                    );
+                    showLoginRequired();
 
                     return;
                 }
@@ -1907,6 +1964,27 @@ async function loadPostDetail() {
 
         await loadComments(post.post_id);
 
+                /* =================================
+           수정 / 삭제 버튼
+           게시글 작성자에게만 표시
+        ================================= */
+
+        const ownerArea =
+            postDetail.querySelector(".post-owner-area");
+
+        if (ownerArea) {
+
+            // 로그인한 사용자 ID (비로그인이면 null)
+            const ownerUserId = getCurrentUserId();
+
+            // 작성자 본인일 때만 표시
+            ownerArea.style.display =
+                ownerUserId !== null &&
+                Number(post.user_id) === ownerUserId
+                    ? "flex"
+                    : "none";
+        }
+
 
         /* =================================
                   수정 버튼
@@ -1933,37 +2011,14 @@ async function loadPostDetail() {
 
                 // 로그인하지 않은 경우
                 if (!accessToken) {
-                    showBasebotConfirm(
-                        "로그인이 필요합니다",
-                        "해당 기능은 로그인 후 이용할 수 있습니다.",
-                        function () {
-                            window.location.href = "/login.html";
-                        },
-                        "로그인하기"
-                    );
+                    showLoginRequired();
                     return;
                 }
 
-                // 토큰에서 로그인 사용자 ID 확인
-                let currentUserId = null;
+                // 로그인한 사용자 ID 확인 (토큰이 이상하면 null)
+                const currentUserId = getCurrentUserId();
 
-                try {
-                    const payload = JSON.parse(
-                        atob(
-                            accessToken.split(".")[1]
-                                .replace(/-/g, "+")
-                                .replace(/_/g, "/")
-                        )
-                    );
-
-                    currentUserId = Number(payload.user_id);
-
-                } catch (error) {
-                    console.error(
-                        "로그인 사용자 정보 확인 오류:",
-                        error
-                    );
-
+                if (currentUserId === null) {
                     showBasebotModal(
                         "인증 오류",
                         "로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요."
@@ -2192,14 +2247,7 @@ document
 
         // 로그인하지 않은 경우
         if (!accessToken) {
-            showBasebotConfirm(
-                "로그인이 필요합니다",
-                "댓글 좋아요는 로그인 후 이용할 수 있습니다.",
-                function () {
-                    window.location.href = "/login.html";
-                },
-                "로그인하기"
-            );
+            showLoginRequired("댓글 좋아요는 로그인 후 이용할 수 있습니다.");
 
             return;
         }
@@ -2538,14 +2586,7 @@ document
 
         // 로그인하지 않은 경우
         if (!accessToken) {
-            showBasebotConfirm(
-                "로그인이 필요합니다",
-                "해당 기능은 로그인 후 이용할 수 있습니다.",
-                function () {
-                    window.location.href = "/login.html";
-                },
-                "로그인하기"
-            );
+            showLoginRequired();
 
             return;
         }
@@ -2645,30 +2686,8 @@ function createCommentElement(
     depth = 0
 ) {
 
-    const accessToken =
-        sessionStorage.getItem("access_token");
-
-    let currentUserId = null;
-
-    if (accessToken) {
-        try {
-            const payload = JSON.parse(
-                atob(
-                    accessToken.split(".")[1]
-                        .replace(/-/g, "+")
-                        .replace(/_/g, "/")
-                )
-            );
-
-            currentUserId = Number(payload.user_id);
-
-        } catch (error) {
-            console.error(
-                "로그인 사용자 정보를 확인할 수 없습니다.",
-                error
-            );
-        }
-    }
+    // 로그인한 사용자 ID (내 댓글에만 수정/삭제 버튼을 보여주기 위해 사용)
+    const currentUserId = getCurrentUserId();
 
     const commentItem =
         document.createElement("div");
@@ -2692,7 +2711,7 @@ function createCommentElement(
         <div class="comment-head">
 
             <strong>
-                ${comment.nickname}
+                ${escapeHtml(comment.nickname)}
             </strong>
 
             <span>
@@ -2705,7 +2724,7 @@ function createCommentElement(
 
 
         <p class="comment-text">
-            ${comment.content}
+            ${escapeHtml(comment.content)}
         </p>
 
 
@@ -3478,167 +3497,137 @@ setupEditForm();
 
 
 /* =========================================
-   게시글 좋아요 / 스크랩
+   게시글 스크랩
+   (게시글 좋아요는 loadPostDetail 안에서 처리)
 ========================================= */
 
 function setupPostActions() {
 
-    const likeButton =
-        document.getElementById("postLikeButton");
-
     const scrapButton =
         document.getElementById("postScrapButton");
 
-    likeButton?.addEventListener("click", function () {
 
-        this.classList.toggle("active");
+    // =========================================
+    // 게시글 스크랩 상태 조회 및 버튼 처리
+    // =========================================
 
-        const count =
-            this.querySelector("strong");
+    const postId = new URLSearchParams(
+        window.location.search
+    ).get("postId");
 
-        if (count) {
+    const accessToken = sessionStorage.getItem("access_token");
 
-            const current =
-                Number(
-                    count.textContent.replace(",", "")
+    // 버튼 모양과 문구를 변경하는 함수
+    function updateScrapButton(scrapped) {
+        if (!scrapButton) return;
+
+        scrapButton.classList.toggle("scrapped", scrapped);
+
+        scrapButton.textContent = scrapped
+            ? "🔖 스크랩 완료"
+            : "🔖 스크랩";
+    }
+
+    // 페이지를 열었을 때 기존 스크랩 상태 조회
+    async function loadScrapStatus() {
+        if (!scrapButton || !postId || !accessToken) {
+            updateScrapButton(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/scrap`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                console.error(
+                    "스크랩 상태 조회 실패:",
+                    response.status
                 );
+                return;
+            }
 
-            count.textContent =
-                this.classList.contains("active")
-                    ? current + 1
-                    : current - 1;
+            const data = await response.json();
+
+            updateScrapButton(data.scrapped);
+
+        } catch (error) {
+            console.error("스크랩 상태 조회 오류:", error);
+        }
+    }
+
+    // 스크랩 버튼 클릭
+    scrapButton?.addEventListener("click", async function () {
+        const token = sessionStorage.getItem("access_token");
+
+        // 로그인하지 않은 경우 로그인 팝업 표시
+        if (!token) {
+            showLoginRequired();
+            return;
+        }
+
+        if (!postId) {
+            showBasebotModal(
+                "오류",
+                "게시글 정보를 찾을 수 없습니다."
+            );
+            return;
+        }
+
+        // 요청 중 중복 클릭 방지
+        if (this.disabled) return;
+
+        this.disabled = true;
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/community/posts/${postId}/scrap`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                showBasebotModal(
+                    "스크랩 실패",
+                    data.detail || "스크랩 처리 중 오류가 발생했습니다."
+                );
+                return;
+            }
+
+            updateScrapButton(data.scrapped);
+
+            showBasebotModal(
+                "스크랩",
+                data.message
+            );
+
+        } catch (error) {
+            console.error("게시글 스크랩 오류:", error);
+
+            showBasebotModal(
+                "오류",
+                "서버와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요."
+            );
+
+        } finally {
+            this.disabled = false;
         }
     });
 
-
-        // =========================================
-        // 게시글 스크랩 상태 조회 및 버튼 처리
-        // =========================================
-
-        const postId = new URLSearchParams(
-            window.location.search
-        ).get("postId");
-
-        const accessToken = sessionStorage.getItem("access_token");
-
-        // 버튼 모양과 문구를 변경하는 함수
-        function updateScrapButton(scrapped) {
-            if (!scrapButton) return;
-
-            scrapButton.classList.toggle("scrapped", scrapped);
-
-            scrapButton.textContent = scrapped
-                ? "🔖 스크랩 완료"
-                : "🔖 스크랩";
-        }
-
-        // 페이지를 열었을 때 기존 스크랩 상태 조회
-        async function loadScrapStatus() {
-            if (!scrapButton || !postId || !accessToken) {
-                updateScrapButton(false);
-                return;
-            }
-
-            try {
-                const response = await fetch(
-                    `${API_BASE_URL}/community/posts/${postId}/scrap`,
-                    {
-                        headers: {
-                            "Authorization": `Bearer ${accessToken}`
-                        }
-                    }
-                );
-
-                if (!response.ok) {
-                    console.error(
-                        "스크랩 상태 조회 실패:",
-                        response.status
-                    );
-                    return;
-                }
-
-                const data = await response.json();
-
-                updateScrapButton(data.scrapped);
-
-            } catch (error) {
-                console.error("스크랩 상태 조회 오류:", error);
-            }
-        }
-
-        // 스크랩 버튼 클릭
-        scrapButton?.addEventListener("click", async function () {
-            const token = sessionStorage.getItem("access_token");
-
-            // 로그인하지 않은 경우
-            if (!accessToken) {
-                showBasebotConfirm(
-                    "로그인이 필요합니다",
-                    "해당 기능은 로그인 후 이용할 수 있습니다.",
-                    function () {
-                        window.location.href = "/login.html";
-                    },
-                    "로그인하기"
-                );
-                return;
-            }
-
-            if (!postId) {
-                showBasebotModal(
-                    "오류",
-                    "게시글 정보를 찾을 수 없습니다."
-                );
-                return;
-            }
-
-            // 요청 중 중복 클릭 방지
-            if (this.disabled) return;
-
-            this.disabled = true;
-
-            try {
-                const response = await fetch(
-                    `${API_BASE_URL}/community/posts/${postId}/scrap`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    showBasebotModal(
-                        "스크랩 실패",
-                        data.detail || "스크랩 처리 중 오류가 발생했습니다."
-                    );
-                    return;
-                }
-
-                updateScrapButton(data.scrapped);
-
-                showBasebotModal(
-                    "스크랩",
-                    data.message
-                );
-
-            } catch (error) {
-                console.error("게시글 스크랩 오류:", error);
-
-                showBasebotModal(
-                    "오류",
-                    "서버와 통신할 수 없습니다. 잠시 후 다시 시도해 주세요."
-                );
-
-            } finally {
-                this.disabled = false;
-            }
-        });
-
-        // 페이지 진입 시 상태 표시
-        loadScrapStatus();
+    // 페이지 진입 시 상태 표시
+    loadScrapStatus();
 
 
 
@@ -3679,6 +3668,18 @@ function setupReportModal() {
 
     // 신고 모달 열기
     openButton.addEventListener("click", () => {
+
+        // 로그인 여부 확인
+        const accessToken =
+            sessionStorage.getItem("access_token");
+
+        // 로그인하지 않은 경우 로그인 팝업 표시
+        if (!accessToken) {
+            showLoginRequired();
+
+            return;
+        }
+
         modal.hidden = false;
     });
 
@@ -3723,11 +3724,12 @@ function setupReportModal() {
         const token =
             sessionStorage.getItem("access_token");
 
+        // 신고 창을 연 뒤 로그인이 만료된 경우를 대비
         if (!token) {
-            showBasebotModal(
-                "로그인 필요",
-                "신고 기능은 로그인 후 이용할 수 있습니다."
-            );
+            close();
+
+            showLoginRequired("신고 기능은 로그인 후 이용할 수 있습니다.");
+
             return;
         }
 
@@ -3823,7 +3825,7 @@ function setupShare() {
 
     const getShareData = () => ({
         title:
-            document.querySelector(".post-title")
+            document.querySelector(".post-head h2")
                 ?.textContent.trim()
             || "BASEBOT 커뮤니티 게시글",
 
@@ -3936,6 +3938,13 @@ commentForm?.addEventListener("submit", async event => {
 
     event.preventDefault();
 
+        // 로그인하지 않은 경우 로그인 팝업 표시
+    if (!sessionStorage.getItem("access_token")) {
+        showLoginRequired();
+
+        return;
+    }
+
     const textarea =
         commentForm.querySelector("textarea");
 
@@ -4026,6 +4035,19 @@ commentForm?.addEventListener("submit", async event => {
 const commentTextarea =
     commentForm?.querySelector("textarea");
 
+// 로그인하지 않은 경우: 입력창을 누르면 로그인 팝업 표시
+commentTextarea?.addEventListener("focus", function () {
+
+    if (sessionStorage.getItem("access_token")) {
+        return;
+    }
+
+    // 입력창에 글을 쓰지 못하도록 포커스 해제
+    commentTextarea.blur();
+
+    showLoginRequired();
+});
+
 commentTextarea?.addEventListener("keydown", event => {
 
     if (event.key === "Enter" && !event.shiftKey) {
@@ -4049,6 +4071,13 @@ document
             event.target.closest(".reply-button");
 
         if (!replyButton) {
+            return;
+        }
+
+                // 로그인하지 않은 경우 로그인 팝업 표시
+        if (!sessionStorage.getItem("access_token")) {
+            showLoginRequired();
+
             return;
         }
 
@@ -4453,15 +4482,7 @@ if (communityWriteButton) {
         if (!accessToken) {
             event.preventDefault();
 
-            showBasebotConfirm(
-                "로그인이 필요합니다",
-                "글쓰기는 로그인 후 이용할 수 있습니다.",
-                function () {
-                    window.location.href = "/login.html";
-                },
-                "로그인하기"
-            );
+            showLoginRequired("글쓰기는 로그인 후 이용할 수 있습니다.");
         }
     });
 }
-

@@ -631,6 +631,7 @@
 }
 
 .post-action.like.active,
+.post-action.like.liked,
 .post-action.scrapped {
     border-color: #173f91;
     color: #173f91;
