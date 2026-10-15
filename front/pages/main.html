@@ -171,39 +171,10 @@
                         더보기 +
                     </a>
                 </div>
-                <div class="result-list">
-                    <div class="result-item">
-                        <span>
-                            팀 A
-                        </span>
-                        <strong>
-                            5 : 3
-                        </strong>
-                        <span>
-                            팀 B
-                        </span>
-                    </div>
-                    <div class="result-item">
-                        <span>
-                            팀 C
-                        </span>
-                        <strong>
-                            2 : 7
-                        </strong>
-                        <span>
-                            팀 D
-                        </span>
-                    </div>
-                    <div class="result-item">
-                        <span>
-                            팀 E
-                        </span>
-                        <strong>
-                            4 : 4
-                        </strong>
-                        <span>
-                            팀 F
-                        </span>
+
+                <div class="result-list" id="main-game-results-list">
+                    <div class="game-results-message">
+                        경기 결과를 불러오는 중입니다.
                     </div>
                 </div>
             </div>
@@ -440,6 +411,8 @@
     <script src="/js/main.js"></script>
 
     <script src="/js/main-community.js"></script>
+
+    <script src="/js/main-game-results.js"></script>
     <script>
         /* 메인 공지사항 목록 (고정 공지 먼저, 최신순 5개) */
         async function loadMainNotices() {
