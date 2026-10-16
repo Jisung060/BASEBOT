@@ -48,75 +48,22 @@
         =============================== -->
         <section class="section">
             <div class="section-title">
-                <h2>
-                    오늘의 경기
-                </h2>
+                <h2>오늘의 경기</h2>
                 <a href="/game.html?date=today">
                     더보기 +
                 </a>
             </div>
-            <div class="game-list">
-                <!-- 경기 1 -->
-                <div class="game-card">
-                    <div class="game-info">
-                        14:00
-                    </div>
-                    <div class="game-team">
-                        <span>
-                            팀 A
-                        </span>
-                        <strong>
-                            VS
-                        </strong>
-                        <span>
-                            팀 B
-                        </span>
-                    </div>
-                    <div class="game-status">
-                        경기 예정
-                    </div>
-                </div>
 
-
-                <!-- 경기 2 -->
+            <!-- main-games.js에서 API 데이터를 받아 경기 카드를 생성 -->
+            <div class="game-list" id="main-game-list">
                 <div class="game-card">
-                    <div class="game-info">
-                        17:00
-                    </div>
+                    <div class="game-info">불러오는 중...</div>
                     <div class="game-team">
-                        <span>
-                            팀 C
-                        </span>
-                        <strong>
-                            VS
-                        </strong>
-                        <span>
-                            팀 D
-                        </span>
+                        <span>홈팀</span>
+                        <strong>VS</strong>
+                        <span>원정팀</span>
                     </div>
-                    <div class="game-status">
-                        경기 예정
-                    </div>
-                </div>
-                <!-- 경기 3 -->
-                <div class="game-card">
-                    <div class="game-info">
-                        18:30
-                    </div>
-                    <div class="game-team">
-                        <span>
-                            팀 E
-                        </span>
-                        <strong>
-                            VS
-                        </strong>
-                        <span>
-                            팀 F
-                        </span>
-                    </div>
-                    <div class="game-status">
-                        경기 예정
-                    </div>
+                    <div class="game-status">경기 정보를 불러오는 중입니다.</div>
                 </div>
             </div>
         </section>
