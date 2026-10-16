@@ -1166,12 +1166,10 @@ function setupCommunityFilters() {
             "teamFilterSearchButton"
         );
 
-    const categoryButtons =
-        [
-            ...document.querySelectorAll(
-                ".category-toggle"
-            )
-        ];
+
+    const categorySelect =
+        document.getElementById("categorySelect");
+
 
     const sortSelect =
         document.getElementById("sortSelect");
@@ -1220,9 +1218,8 @@ function setupCommunityFilters() {
                 teamSelect.value,
 
             category:
-                document.querySelector(
-                    ".category-toggle.active"
-                )?.dataset.categoryFilter || ""
+                categorySelect?.value || ""
+
         };
 
 
@@ -1238,38 +1235,6 @@ function setupCommunityFilters() {
         "검색 이벤트 연결 완료:",
         searchButton
     );
-
-
-    // -----------------------------------------
-    // 카테고리 선택
-    // -----------------------------------------
-    categoryButtons.forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                categoryButtons.forEach(
-                    item => {
-
-                        item.classList.remove(
-                            "active"
-                        );
-                    }
-                );
-
-
-                button.classList.add(
-                    "active"
-                );
-
-                currentPage = 1;
-
-                updateCommunityBoard();
-            }
-        );
-    });
-
 
     // -----------------------------------------
     // 정렬 변경

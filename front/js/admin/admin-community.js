@@ -902,9 +902,19 @@ function renderContentTable(items) {
         );
 
         const actionCell = document.createElement("td");
-        actionCell.textContent = "—";
-        actionCell.title = "관리 기능은 처리 API 연결 후 활성화됩니다.";
+        actionCell.appendChild(createContentActions(item));
         row.appendChild(actionCell);
+
+         // 행을 클릭하면 상세 팝업 열기 (버튼, 링크 클릭은 제외)
+        row.style.cursor = "pointer";
+
+        row.addEventListener("click", (event) => {
+            if (event.target.closest("button, a")) {
+                return;
+            }
+
+            showContentDetail(item);
+        });
 
         tbody.appendChild(row);
     }
@@ -1004,6 +1014,19 @@ function renderReportTable(data) {
         } else {
             targetCell.textContent = "[삭제된 게시글]";
         }
+
+                // 같은 글에 처리할 신고가 여러 건이면 배지 표시
+        if (report.same_post_open_count > 1) {
+            const groupBadge = document.createElement("span");
+            groupBadge.className = "group-badge";
+            groupBadge.textContent = `신고 ${report.same_post_open_count}건`;
+            groupBadge.title =
+                `이 글에 처리 대기 중인 신고가 ${report.same_post_open_count}건 있습니다.`;
+
+            targetCell.prepend(groupBadge);
+        }
+
+        row.appendChild(targetCell);
 
         row.appendChild(targetCell);
 
@@ -1161,16 +1184,531 @@ function createEmptyRow(columnCount, message) {
     return row;
 }
 
-// 게시글 본문(HTML)을 태그 없는 짧은 글자로 변환
-// DOMParser는 스크립트를 실행하지 않아서 안전하게 글자만 꺼낼 수 있음
-function toPlainText(html, maxLength = 100) {
+// ========================================
+// 게시글 / 댓글 표의 관리 칸
+// ========================================
+
+// 작은 버튼 (variant: "" 또는 "danger")
+function createRowButton(label, variant, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `row-action${variant ? " " + variant : ""}`;
+    button.textContent = label;
+    button.addEventListener("click", onClick);
+    return button;
+}
+
+// 사용자 화면의 게시글을 새 탭으로 여는 링크
+function createRowLink(label, postId) {
+    const link = document.createElement("a");
+    link.className = "row-action";
+    link.href = `../community-view.html?postId=${encodeURIComponent(postId)}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = label;
+    return link;
+}
+
+function createContentActions(item) {
+    const box = document.createElement("div");
+    box.className = "row-actions";
+
+    // 상세: 본문 확인 + 삭제 / 수정 등 신중한 작업은 팝업에서
+    box.appendChild(
+        createRowButton("상세", "primary", () => showContentDetail(item))
+    );
+
+    // 숨김 / 숨김 해제: 되돌릴 수 있는 작업이라 행에서 바로
+    if (item.type === "post") {
+        box.appendChild(
+            createRowButton(
+                item.status === "HIDDEN" ? "숨김 해제" : "숨김",
+                "",
+                () => confirmPostVisibility(item)
+            )
+        );
+    }
+
+    return box;
+}
+
+
+// 숨김 / 숨김 해제 확인
+function confirmPostVisibility(item, onDone) {
+    const hiding = item.status !== "HIDDEN";
+    const title = item.title || "(제목 없음)";
+
+    let message;
+
+    if (hiding) {
+        message =
+            `게시글 '${title}'을(를) 숨김 처리할까요?\n` +
+            "일반 사용자에게 보이지 않게 되며, 나중에 '숨김 해제'로 되돌릴 수 있습니다.";
+
+    } else {
+        message =
+            `게시글 '${title}'의 숨김을 해제할까요?\n` +
+            "다시 일반 사용자에게 보입니다.";
+
+        if (item.accepted_report_count > 0) {
+            message +=
+                `\n\n※ 이 글에는 승인된 신고가 ${item.accepted_report_count}건 있습니다. ` +
+                "숨김을 해제해도 신고 처리 기록은 '조치 승인'으로 그대로 남습니다.";
+        }
+    }
+
+    showAdminConfirm({
+        title: hiding ? "게시글 숨김" : "숨김 해제",
+        message,
+        confirmLabel: hiding ? "숨기기" : "숨김 해제",
+        danger: false,
+        onConfirm: async () => {
+            await setPostVisibility(
+                item.post_id,
+                hiding ? "HIDDEN" : "ACTIVE"
+            );
+
+            showAdminToast(
+                hiding
+                    ? "게시글을 숨김 처리했습니다."
+                    : "숨김을 해제했습니다."
+            );
+
+            if (onDone) onDone();       // ← 추가 (상세 팝업 닫기)
+
+            await loadAdminCommunityData();
+        }
+    });
+}
+
+
+// 삭제 확인 (되돌릴 수 없음)
+function confirmDeletePost(item, onDone) {
+    const title = item.title || "(제목 없음)";
+    const commentCount = item.comment_count ?? 0;
+
+    showAdminConfirm({
+        title: "게시글 삭제",
+        message:
+            `게시글 '${title}'을(를) 삭제할까요?\n\n` +
+            `· 게시글과 댓글 ${commentCount}개, 좋아요, 스크랩, 첨부 이미지가 영구적으로 삭제됩니다.\n` +
+            "· 삭제한 뒤에는 복구할 수 없습니다.\n" +
+            "· 이 글에 대한 신고 기록은 남지만 '삭제된 게시글'로 표시됩니다.\n\n" +
+            "일시적으로 가리려는 것이라면 '숨김'을 사용하세요.",
+        confirmLabel: "영구 삭제",
+        danger: true,
+        onConfirm: async () => {
+            await deletePostByAdmin(item.post_id);
+
+            showAdminToast("게시글을 삭제했습니다.");
+
+            if (onDone) onDone();       // ← 추가 (상세 팝업 닫기)
+
+            await loadAdminCommunityData();
+        }
+    });
+}
+
+// 댓글 삭제 API (달린 답글도 함께 삭제됨)
+async function deleteCommentByAdmin(commentId) {
+    return requestAdminAPI(
+        `/admin/community/comments/${commentId}`,
+        { method: "DELETE" }
+    );
+}
+
+
+// 댓글 삭제 확인 (되돌릴 수 없음)
+function confirmDeleteComment(item, onDone) {
+    const isReply = Boolean(item.parent_comment_id);
+    const kind = isReply ? "답글" : "댓글";
+
+    const content = item.content || "";
+    const preview =
+        content.length > 40 ? content.slice(0, 40) + "…" : content;
+
+    let message =
+        `이 ${kind}을(를) 삭제할까요?\n\n` +
+        `"${preview}"\n\n` +
+        "· 삭제한 뒤에는 복구할 수 없습니다.\n" +
+        "· 원글의 댓글 수에 자동으로 반영됩니다.";
+
+    // 부모 댓글이면 달린 답글도 함께 삭제됨
+    if (!isReply && item.reply_count > 0) {
+        message +=
+            `\n· 이 댓글에 달린 답글 ${item.reply_count}개도 함께 삭제됩니다.`;
+    }
+
+    showAdminConfirm({
+        title: `${kind} 삭제`,
+        message,
+        confirmLabel: "영구 삭제",
+        danger: true,
+        onConfirm: async () => {
+            const result = await deleteCommentByAdmin(item.comment_id);
+
+            const count = result?.deleted_count ?? 1;
+
+            showAdminToast(
+                count > 1
+                    ? `${kind}과 답글을 포함해 ${count}개를 삭제했습니다.`
+                    : `${kind}을(를) 삭제했습니다.`
+            );
+
+            if (onDone) onDone();
+
+            await loadAdminCommunityData();
+        }
+    });
+}
+
+// 팀 목록 (수정 폼용, 한 번만 불러와 재사용)
+let adminTeamList = null;
+
+async function loadAdminTeams() {
+    if (adminTeamList) return adminTeamList;
+
+    const data = await requestAdminAPI("/admin/community/teams");
+    adminTeamList = data?.items || [];
+
+    return adminTeamList;
+}
+
+
+// 게시글 분류 정정 API
+async function updatePostClassification(postId, category, relatedTeamId) {
+    return requestAdminAPI(
+        `/admin/community/posts/${postId}/classification`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                category,
+                related_team_id: relatedTeamId,
+            }),
+        }
+    );
+}
+
+
+// 분류 수정 팝업 (카테고리 + 관련 팀)
+async function showPostClassificationDialog(item, onDone) {
+    let teams = [];
+
+    try {
+        teams = await loadAdminTeams();
+    } catch (error) {
+        showAdminToast(error.message || "팀 목록을 불러오지 못했습니다.");
+        return;
+    }
+
+    const dialog = document.createElement("dialog");
+    dialog.className = "confirm-dialog";
+
+    const heading = document.createElement("h3");
+    heading.textContent = `분류 수정 · 게시글 #${item.post_id}`;
+    dialog.appendChild(heading);
+
+    const note = document.createElement("p");
+    note.className = "confirm-message";
+    note.textContent =
+        "잘못 분류된 글을 바로잡습니다. 제목과 본문은 수정되지 않습니다.";
+    dialog.appendChild(note);
+
+    // 카테고리 선택
+    const categoryLabel = document.createElement("label");
+    categoryLabel.className = "filter-label-text";
+    categoryLabel.textContent = "카테고리";
+
+    const categorySelect = document.createElement("select");
+    ["GENERAL", "ANALYSIS", "GAME_THREAD", "NEWS"].forEach((code) => {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = getCategoryLabel(code);
+        if (code === item.category) option.selected = true;
+        categorySelect.appendChild(option);
+    });
+    categoryLabel.appendChild(categorySelect);
+    dialog.appendChild(categoryLabel);
+
+    // 관련 팀 선택
+    const teamLabel = document.createElement("label");
+    teamLabel.className = "filter-label-text";
+    teamLabel.textContent = "관련 팀";
+
+    const teamSelect = document.createElement("select");
+
+    const noneOption = document.createElement("option");
+    noneOption.value = "";
+    noneOption.textContent = "선택 안 함";
+    teamSelect.appendChild(noneOption);
+
+    teams.forEach((team) => {
+        const option = document.createElement("option");
+        option.value = String(team.team_id);
+        option.textContent = team.team_name;
+        if (team.team_id === item.related_team_id) option.selected = true;
+        teamSelect.appendChild(option);
+    });
+    teamLabel.appendChild(teamSelect);
+    dialog.appendChild(teamLabel);
+
+    const errorBox = document.createElement("p");
+    errorBox.className = "confirm-error";
+    dialog.appendChild(errorBox);
+
+    // 버튼
+    const footer = document.createElement("div");
+    footer.className = "report-dialog-footer";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "dialog-button";
+    cancelButton.textContent = "취소";
+    cancelButton.addEventListener("click", () => dialog.close());
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.className = "dialog-button confirm";
+    saveButton.textContent = "저장";
+    saveButton.addEventListener("click", async () => {
+        const teamValue = teamSelect.value;
+        const teamId = teamValue === "" ? null : Number(teamValue);
+
+        saveButton.disabled = true;
+        errorBox.textContent = "";
+
+        try {
+            await updatePostClassification(
+                item.post_id,
+                categorySelect.value,
+                teamId
+            );
+
+            showAdminToast("분류를 수정했습니다.");
+            dialog.close();
+
+            if (onDone) onDone();
+
+            await loadAdminCommunityData();
+        } catch (error) {
+            errorBox.textContent =
+                error.message || "분류를 수정하지 못했습니다.";
+            saveButton.disabled = false;
+        }
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "footer-actions";
+    actions.append(cancelButton, saveButton);
+    footer.appendChild(actions);
+    dialog.appendChild(footer);
+
+    dialog.addEventListener("close", () => dialog.remove());
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
+
+// ========================================
+// 게시글 / 댓글 상세 팝업
+// - 본문 전체를 확인하고, 숨김 / 삭제 같은 작업을 처리
+// ========================================
+function showContentDetail(item) {
+    const isPost = item.type === "post";
+
+    const dialog = document.createElement("dialog");
+    dialog.className = "report-dialog";
+
+    // ----- 1. 머리글: 번호 + 상태 -----
+    const head = document.createElement("div");
+    head.className = "report-dialog-head";
+
+    const heading = document.createElement("h2");
+    heading.textContent = isPost
+        ? `게시글 #${item.post_id}`
+        : `${item.parent_comment_id ? "답글" : "댓글"} #${item.comment_id}`;
+    head.appendChild(heading);
+
+    if (isPost) {
+        const statusBadge = document.createElement("span");
+        statusBadge.className =
+            `status-badge ${(item.status || "").toLowerCase()}`;
+        statusBadge.textContent = getContentStatusLabel(item.status);
+        head.appendChild(statusBadge);
+    }
+
+    dialog.appendChild(head);
+
+    // ----- 2. 상세 정보 -----
+    const list = document.createElement("dl");
+    list.className = "report-detail-list";
+
+    const addDetail = (label, value, className = "") => {
+        const term = document.createElement("dt");
+        term.textContent = label;
+
+        const desc = document.createElement("dd");
+        desc.textContent = String(value ?? "—");
+
+        if (className) {
+            desc.className = className;
+        }
+
+        list.append(term, desc);
+    };
+
+    if (isPost) {
+        addDetail("제목", item.title || "(제목 없음)");
+        addDetail("작성자", item.nickname || "알 수 없음");
+        addDetail("카테고리", getCategoryLabel(item.category));
+        addDetail("작성일", formatDate(item.created_at));
+        addDetail("댓글", `${item.comment_count ?? 0}개`);
+        addDetail(
+            "신고",
+            `${item.report_count ?? 0}건` +
+            (item.accepted_report_count > 0
+                ? ` (승인 ${item.accepted_report_count}건)`
+                : "")
+        );
+        addDetail(
+            "내용",
+            toPlainText(item.content, 3000, true) || "(내용 없음)",
+            "report-post-excerpt"
+        );
+
+        } else {
+        addDetail("구분", item.parent_comment_id ? "답글" : "댓글");
+        addDetail("원글 제목", item.title || "(제목 없음)");
+        addDetail("작성자", item.nickname || "알 수 없음");
+        addDetail("작성일", formatDate(item.created_at));
+
+        // 부모 댓글이면 달린 답글 수 표시
+        if (!item.parent_comment_id && item.reply_count > 0) {
+            addDetail("답글", `${item.reply_count}개`);
+        }
+
+        addDetail(
+            "내용",
+            item.content || "(내용 없음)",
+            "report-post-excerpt"
+        );
+    }
+    dialog.appendChild(list);
+
+    // ----- 3. 원글 보기 링크 (숨겨진 글은 사용자 화면에서 열리지 않음) -----
+    if (!isPost || item.status === "ACTIVE") {
+        const link = document.createElement("a");
+        link.className = "report-post-link";
+        link.href =
+            `../community-view.html?postId=${encodeURIComponent(item.post_id)}`;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "원글 보기 ↗";
+        dialog.appendChild(link);
+    }
+
+    // ----- 4. 하단 버튼 -----
+    const footer = document.createElement("div");
+    footer.className = "report-dialog-footer plain";
+
+    const left = document.createElement("div");
+    left.className = "footer-left";
+
+    const actions = document.createElement("div");
+    actions.className = "footer-actions";
+
+    if (isPost) {
+        // 왼쪽: 숨김 / 숨김 해제
+        const hideButton = document.createElement("button");
+        hideButton.type = "button";
+        hideButton.className = "dialog-button";
+        hideButton.textContent =
+            item.status === "HIDDEN" ? "숨김 해제" : "숨김";
+        hideButton.addEventListener("click", () => {
+            confirmPostVisibility(item, () => dialog.close());
+        });
+        left.appendChild(hideButton);
+
+        // 분류 수정 (카테고리, 관련 팀)
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "dialog-button";
+        editButton.textContent = "분류 수정";
+        editButton.addEventListener("click", () => {
+            showPostClassificationDialog(item, () => dialog.close());
+        });
+        left.appendChild(editButton);
+
+        // 오른쪽: 삭제 (붉은 테두리로 구분)
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "dialog-button outline-danger";
+        deleteButton.textContent = "삭제";
+        deleteButton.addEventListener("click", () => {
+            confirmDeletePost(item, () => dialog.close());
+        });
+        actions.appendChild(deleteButton);
+
+    } else {
+        // 댓글 / 답글 삭제
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "dialog-button outline-danger";
+        deleteButton.textContent = "삭제";
+        deleteButton.addEventListener("click", () => {
+            confirmDeleteComment(item, () => dialog.close());
+        });
+        actions.appendChild(deleteButton);
+    }
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "dialog-button";
+    closeButton.textContent = "닫기";
+    closeButton.addEventListener("click", () => dialog.close());
+    actions.appendChild(closeButton);
+
+    footer.append(left, actions);
+    dialog.appendChild(footer);
+
+    // ----- 5. 팝업 열기 / 닫기 -----
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+
+    dialog.addEventListener("close", () => dialog.remove());
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
+
+// 게시글 본문(HTML)을 태그 없는 글자로 변환
+// keepLineBreaks: true면 문단 / 줄바꿈을 유지 (상세 화면용)
+function toPlainText(html, maxLength = 100, keepLineBreaks = false) {
     if (!html) return "";
 
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    let source = html;
 
-    const text = (doc.body.textContent || "")
-        .replace(/\s+/g, " ")
-        .trim();
+    if (keepLineBreaks) {
+        source = source
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/(p|div|li|h[1-6])>/gi, "\n");
+    }
+
+    // DOMParser는 스크립트를 실행하지 않아서 안전하게 글자만 꺼낼 수 있음
+    const doc = new DOMParser().parseFromString(source, "text/html");
+    let text = doc.body.textContent || "";
+
+    text = keepLineBreaks
+        ? text
+            .replace(/[ \t\u00a0]+/g, " ")
+            .replace(/ ?\n ?/g, "\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
+        : text.replace(/\s+/g, " ").trim();
 
     // 글자는 없고 이미지만 있는 게시글
     if (!text && /<img/i.test(html)) {
@@ -1261,6 +1799,18 @@ function getReportReasonLabel(reason) {
     return labels[reason] || reason || "—";
 }
 
+// 카테고리 이름 함수
+function getCategoryLabel(category) {
+    const labels = {
+        GENERAL: "자유",
+        ANALYSIS: "분석",
+        GAME_THREAD: "경기",
+        NEWS: "뉴스"
+    };
+
+    return labels[category] || category || "—";
+}
+
 // 표에 보여줄 짧은 날짜 (예: 10.14 15:36, 올해가 아니면 연도 포함)
 function formatDateShort(value) {
     if (!value) return "—";
@@ -1318,6 +1868,51 @@ async function applyReportStatus(reportId, newStatus) {
     );
 }
 
+// 신고 처리 취소 API (승인/반려 → 대기)
+async function revertReportStatus(reportId) {
+    return requestAdminAPI(
+        `/admin/community/reports/${reportId}/revert`,
+        { method: "PATCH" }
+    );
+}
+
+
+// 처리 취소 확인
+function confirmRevertReport(report, onDone) {
+    const isAccepted = report.status === "ACCEPTED";
+    const label = isAccepted ? "승인 취소" : "반려 취소";
+
+    const message = isAccepted
+        ? "승인을 취소할까요?\n\n" +
+          "· 같은 게시글에서 승인된 신고가 모두 '신고 처리' 대기로 돌아갑니다.\n" +
+          "· 숨김 처리된 게시글은 다시 공개됩니다."
+        : "반려를 취소할까요?\n\n" +
+          "· 이 신고가 '신고 처리' 대기로 돌아갑니다.";
+
+    showAdminConfirm({
+        title: label,
+        message,
+        confirmLabel: label,
+        danger: isAccepted,
+        onConfirm: async () => {
+            const result = await revertReportStatus(report.report_id);
+
+            let toast = "처리를 취소했습니다.";
+            if (result?.reverted_count > 1) {
+                toast = `신고 ${result.reverted_count}건의 처리를 취소했습니다.`;
+            }
+            if (result?.post_restored) {
+                toast += " 게시글이 다시 공개되었습니다.";
+            }
+            showAdminToast(toast);
+
+            if (onDone) onDone();
+
+            await loadAdminCommunityData();
+        }
+    });
+}
+
 
 // 화면 오른쪽 아래에 잠깐 보이는 안내 메시지
 function showAdminToast(message) {
@@ -1344,6 +1939,111 @@ function showAdminToast(message) {
     }, 3000);
 }
 
+// ========================================
+// 공통 확인 팝업
+// title        : 팝업 제목
+// message      : 안내 문구 (\n 으로 줄바꿈)
+// confirmLabel : 확정 버튼 글자
+// danger       : true면 확정 버튼이 빨간색 (되돌릴 수 없는 작업)
+// onConfirm    : 확정 시 실행할 비동기 함수 (오류가 나면 팝업 안에 표시)
+// ========================================
+function showAdminConfirm({
+    title,
+    message,
+    confirmLabel = "확인",
+    danger = false,
+    onConfirm
+}) {
+    const dialog = document.createElement("dialog");
+    dialog.className = "report-dialog confirm-dialog";
+
+    const head = document.createElement("div");
+    head.className = "report-dialog-head";
+
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    head.appendChild(heading);
+
+    const text = document.createElement("p");
+    text.className = "confirm-message";
+    text.textContent = message;
+
+    const errorMessage = document.createElement("p");
+    errorMessage.className = "report-dialog-error confirm-error";
+    errorMessage.hidden = true;
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "dialog-button";
+    cancelButton.textContent = "취소";
+    cancelButton.addEventListener("click", () => dialog.close());
+
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className =
+        `dialog-button confirm${danger ? " danger" : ""}`;
+    confirmButton.textContent = confirmLabel;
+
+    confirmButton.addEventListener("click", async () => {
+        confirmButton.disabled = true;
+        cancelButton.disabled = true;
+        errorMessage.hidden = true;
+
+        try {
+            await onConfirm();
+            dialog.close();
+
+        } catch (error) {
+            console.error("관리자 작업 실패:", error);
+
+            errorMessage.textContent =
+                error.message || "처리 중 오류가 발생했습니다. 다시 시도해 주세요.";
+            errorMessage.hidden = false;
+
+            confirmButton.disabled = false;
+            cancelButton.disabled = false;
+        }
+    });
+
+    const footer = document.createElement("div");
+    footer.className = "report-dialog-footer plain";
+
+    const actions = document.createElement("div");
+    actions.className = "footer-actions";
+    actions.append(cancelButton, confirmButton);
+    footer.appendChild(actions);
+
+    dialog.append(head, text, errorMessage, footer);
+
+    // 어두운 배경을 클릭하면 닫기
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+
+    dialog.addEventListener("close", () => dialog.remove());
+
+    document.body.appendChild(dialog);
+    dialog.showModal();
+}
+
+
+// 게시글 숨김 / 숨김 해제 API
+async function setPostVisibility(postId, newStatus) {
+    return requestAdminAPI(
+        `/admin/community/posts/${postId}/status?new_status=${newStatus}`,
+        { method: "PATCH" }
+    );
+}
+
+// 게시글 삭제 API (영구 삭제)
+async function deletePostByAdmin(postId) {
+    return requestAdminAPI(
+        `/admin/community/posts/${postId}`,
+        { method: "DELETE" }
+    );
+}
 
 // ========================================
 // 신고 상세 / 처리 팝업
@@ -1379,12 +2079,16 @@ function showReportDetail(report) {
     const list = document.createElement("dl");
     list.className = "report-detail-list";
 
-    const addDetail = (label, value) => {
+        const addDetail = (label, value, className = "") => {
         const term = document.createElement("dt");
         term.textContent = label;
 
         const desc = document.createElement("dd");
         desc.textContent = String(value ?? "—");
+
+        if (className) {
+            desc.className = className;
+        }
 
         list.append(term, desc);
     };
@@ -1397,6 +2101,18 @@ function showReportDetail(report) {
         "제목",
         hasPost ? (report.title || "[제목 없음]") : "—"
     );
+    if (hasPost) {
+        addDetail("글 작성자", report.post_author || "알 수 없음");
+        addDetail(
+            "게시글 내용",
+            report.post_excerpt || "(내용 없음)",
+            "report-post-excerpt"
+        );
+        addDetail(
+            "게시글 상태",
+            getContentStatusLabel(report.post_status)
+        );
+    }
     addDetail("신고 사유", getReportReasonLabel(report.reason));
     addDetail("신고자", report.nickname || "알 수 없음");
     addDetail("접수일", formatDate(report.reported_at));
@@ -1432,12 +2148,38 @@ function showReportDetail(report) {
     closeButton.addEventListener("click", () => dialog.close());
 
     if (!canProcess) {
-        // 처리가 끝난 신고: 닫기만 가능
+        // 처리가 끝난 신고: 처리 취소 또는 닫기
         const footer = document.createElement("div");
         footer.className = "report-dialog-footer plain";
 
         const actions = document.createElement("div");
         actions.className = "footer-actions";
+
+        // 승인 취소 / 반려 취소
+        if (report.status === "ACCEPTED" || report.status === "REJECTED") {
+            const revertButton = document.createElement("button");
+            revertButton.type = "button";
+            revertButton.className = "dialog-button";
+            revertButton.textContent =
+                report.status === "ACCEPTED" ? "승인 취소" : "반려 취소";
+
+            // 삭제된 게시글의 승인은 되돌릴 수 없음
+            if (
+                report.status === "ACCEPTED" &&
+                (report.post_status === "DELETED" || !hasPost)
+            ) {
+                revertButton.disabled = true;
+                revertButton.title =
+                    "삭제된 게시글은 승인을 취소할 수 없습니다.";
+            }
+
+            revertButton.addEventListener("click", () => {
+                confirmRevertReport(report, () => dialog.close());
+            });
+
+            actions.appendChild(revertButton);
+        }
+
         actions.appendChild(closeButton);
 
         footer.appendChild(actions);
@@ -1445,13 +2187,21 @@ function showReportDetail(report) {
 
     } else {
         // ----- 5. 처리 방법 선택 영역 -----
-        const options = [
+                // 같은 글에 함께 남아 있는 다른 미처리 신고 수
+        const otherOpenCount = hasPost
+            ? Math.max(0, (report.same_post_open_count || 1) - 1)
+            : 0;
+
+       const options = [
             {
                 status: "ACCEPTED",
                 className: "accept",
                 title: "신고 승인",
                 desc: hasPost
-                    ? "게시글이 숨김 처리되어 일반 사용자에게 보이지 않습니다."
+                    ? "게시글이 숨김 처리되어 일반 사용자에게 보이지 않습니다." +
+                      (otherOpenCount > 0
+                          ? ` 같은 글의 다른 신고 ${otherOpenCount}건도 함께 승인됩니다.`
+                          : "")
                     : "이미 삭제된 게시글이라 숨길 대상은 없고, 신고만 승인 처리됩니다.",
                 confirmLabel: hasPost ? "승인하고 게시글 숨기기" : "승인하기",
                 confirmClass: "danger",
@@ -1463,7 +2213,10 @@ function showReportDetail(report) {
                 status: "REJECTED",
                 className: "reject",
                 title: "반려",
-                desc: "게시글은 그대로 유지되고 신고만 종료됩니다.",
+                desc: "게시글은 그대로 유지되고 이 신고만 종료됩니다." +
+                      (otherOpenCount > 0
+                          ? ` 같은 글의 다른 신고 ${otherOpenCount}건은 남아 있습니다.`
+                          : ""),
                 confirmLabel: "반려하기",
                 confirmClass: "neutral",
                 doneMessage: "신고를 반려했습니다."
@@ -1552,11 +2305,27 @@ function showReportDetail(report) {
 
             setBusy(true);
 
-            try {
-                await applyReportStatus(report.report_id, selected.status);
+             try {
+                const result = await applyReportStatus(
+                    report.report_id,
+                    selected.status
+                );
 
                 dialog.close();
-                showAdminToast(selected.doneMessage);
+
+                // 같은 글의 신고가 함께 승인됐다면 알림에 표시
+                let message = selected.doneMessage;
+
+                if (
+                    selected.status === "ACCEPTED" &&
+                    result &&
+                    result.also_accepted_count > 0
+                ) {
+                    message +=
+                        ` 같은 글의 신고 ${result.also_accepted_count}건도 함께 승인되었습니다.`;
+                }
+
+                showAdminToast(message);
 
                 // 처리된 신고는 목록에서 사라지고 처리 내역으로 이동
                 await loadAdminCommunityData();

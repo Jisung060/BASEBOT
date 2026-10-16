@@ -2,13 +2,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select, or_, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 import os
+import re
+import html
 from models.community_image import CommunityImage
 
 from datetime import datetime
 from typing import Literal
-
+from pydantic import BaseModel
 
 from auth.dependencies import bearer_scheme
 from auth.jwt import decode_access_token
@@ -17,6 +19,7 @@ from models.user import User
 from models.community import CommunityPost
 from models.comment import Comment
 from models.post_report import PostReport
+from models.team import Team
 
 
 router = APIRouter(
@@ -60,6 +63,27 @@ def get_admin_user(
 
     return user
 
+# ========================================
+# 게시글 본문(HTML) → 태그 없는 미리보기 글자
+# (화면에서는 textContent로만 출력하므로 안전하게 표시됨)
+# ========================================
+
+def make_excerpt(content: str | None, limit: int = 500) -> str:
+    if not content:
+        return ""
+
+    text = re.sub(r"<[^>]+>", " ", content)       # 태그 제거
+    text = html.unescape(text)                     # &nbsp; 등 변환
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # 글자 없이 이미지만 있는 게시글
+    if not text and re.search(r"<img", content, re.IGNORECASE):
+        return "[이미지]"
+
+    if len(text) > limit:
+        return text[:limit] + "…"
+
+    return text
 
 # ========================================
 # 게시글 목록 / 검색
@@ -72,9 +96,21 @@ def get_admin_community_posts(
     db: Session = Depends(get_session),
     admin: User = Depends(get_admin_user),
 ):
+    # 이 글에 접수된 전체 신고 수
     report_count_query = (
         select(func.count(PostReport.report_id))
         .where(PostReport.post_id == CommunityPost.post_id)
+        .correlate(CommunityPost)
+        .scalar_subquery()
+    )
+
+    # 이 글에 대해 '승인'된 신고 수 (숨김 해제 안내에 사용)
+    accepted_report_count_query = (
+        select(func.count(PostReport.report_id))
+        .where(
+            PostReport.post_id == CommunityPost.post_id,
+            PostReport.status == "ACCEPTED",
+        )
         .correlate(CommunityPost)
         .scalar_subquery()
     )
@@ -84,6 +120,7 @@ def get_admin_community_posts(
             CommunityPost,
             User.nickname,
             report_count_query.label("report_count"),
+            accepted_report_count_query.label("accepted_report_count"),
         )
         .join(User, CommunityPost.user_id == User.user_id)
     )
@@ -113,14 +150,15 @@ def get_admin_community_posts(
                 "nickname": nickname,
                 "created_at": post.created_at,
                 "report_count": report_count,
+                "accepted_report_count": accepted_report_count,
                 "status": post.status,
                 "category": post.category,
                 "comment_count": post.comment_count,
+                "related_team_id": post.related_team_id,
             }
-            for post, nickname, report_count in rows
+            for post, nickname, report_count, accepted_report_count in rows
         ],
     }
-
 
 # ========================================
 # 관리자 게시글 삭제
@@ -211,6 +249,132 @@ def delete_admin_community_post(
         "post_id": post_id,
     }
 
+# ========================================
+# 관리자 게시글 숨김 / 숨김 해제
+# PATCH /admin/community/posts/{post_id}/status?new_status=HIDDEN|ACTIVE
+# ========================================
+
+@router.patch("/posts/{post_id}/status")
+def update_admin_post_status(
+    post_id: int,
+    new_status: Literal["HIDDEN", "ACTIVE"],
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    post = db.scalar(
+        select(CommunityPost).where(
+            CommunityPost.post_id == post_id
+        )
+    )
+
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="게시글을 찾을 수 없습니다.",
+        )
+
+    post.status = new_status
+
+    try:
+        db.commit()
+        db.refresh(post)
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": (
+            "게시글이 숨김 처리되었습니다."
+            if new_status == "HIDDEN"
+            else "게시글 숨김이 해제되었습니다."
+        ),
+        "post_id": post.post_id,
+        "status": post.status,
+    }
+
+# ========================================
+# 수정 폼에 쓸 팀 목록
+# GET /admin/community/teams
+# ========================================
+
+@router.get("/teams")
+def get_admin_community_teams(
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    teams = db.scalars(
+        select(Team).order_by(Team.team_name)
+    ).all()
+
+    return {
+        "items": [
+            {
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+            }
+            for team in teams
+        ]
+    }
+
+
+# ========================================
+# 관리자 게시글 분류 정정 (카테고리, 관련 팀만)
+# PATCH /admin/community/posts/{post_id}/classification
+# ========================================
+
+class PostClassificationBody(BaseModel):
+    category: Literal["GENERAL", "ANALYSIS", "GAME_THREAD", "NEWS"]
+    related_team_id: int | None = None
+
+
+@router.patch("/posts/{post_id}/classification")
+def update_admin_post_classification(
+    post_id: int,
+    body: PostClassificationBody,
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    post = db.scalar(
+        select(CommunityPost).where(
+            CommunityPost.post_id == post_id
+        )
+    )
+
+    if post is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="게시글을 찾을 수 없습니다.",
+        )
+
+    # 팀을 지정했다면 존재하는 팀인지 확인
+    if body.related_team_id is not None:
+        team = db.scalar(
+            select(Team).where(
+                Team.team_id == body.related_team_id
+            )
+        )
+
+        if team is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="선택한 팀을 찾을 수 없습니다.",
+            )
+
+    post.category = body.category
+    post.related_team_id = body.related_team_id
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": "분류가 수정되었습니다.",
+        "post_id": post_id,
+        "category": post.category,
+        "related_team_id": post.related_team_id,
+    }
 
 # ========================================
 # 댓글 목록 / 검색
@@ -223,11 +387,22 @@ def get_admin_community_comments(
     db: Session = Depends(get_session),
     admin: User = Depends(get_admin_user),
 ):
+    # 이 댓글에 직접 달린 답글 수
+    Reply = aliased(Comment)
+
+    reply_count_query = (
+        select(func.count(Reply.comment_id))
+        .where(Reply.parent_comment_id == Comment.comment_id)
+        .correlate(Comment)
+        .scalar_subquery()
+    )
+
     query = (
         select(
             Comment,
             User.nickname,
             CommunityPost.title.label("post_title"),
+            reply_count_query.label("reply_count"),
         )
         .join(User, Comment.user_id == User.user_id)
         .join(
@@ -256,18 +431,95 @@ def get_admin_community_comments(
             {
                 "comment_id": comment.comment_id,
                 "post_id": comment.post_id,
+                "parent_comment_id": comment.parent_comment_id,
                 "type": "comment",
                 "title": post_title,
                 "content": comment.content,
                 "nickname": nickname,
                 "created_at": comment.created_at,
                 "report_count": 0,
+                "reply_count": reply_count,
                 "status": "ACTIVE",
             }
-            for comment, nickname, post_title in rows
+            for comment, nickname, post_title, reply_count in rows
         ],
     }
 
+# ========================================
+# 관리자 댓글 삭제 (달린 답글도 함께 삭제)
+# DELETE /admin/community/comments/{comment_id}
+# ========================================
+
+@router.delete("/comments/{comment_id}")
+def delete_admin_community_comment(
+    comment_id: int,
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    # 1. 삭제할 댓글 확인
+    comment = db.scalar(
+        select(Comment).where(
+            Comment.comment_id == comment_id
+        )
+    )
+
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="댓글을 찾을 수 없습니다.",
+        )
+
+    # 2. 삭제될 댓글 수 계산 (선택한 댓글 + 그 아래 모든 답글)
+    rows = db.execute(
+        select(
+            Comment.comment_id,
+            Comment.parent_comment_id,
+        ).where(Comment.post_id == comment.post_id)
+    ).all()
+
+    deleted_ids = {comment.comment_id}
+
+    while True:
+        before = len(deleted_ids)
+
+        for row in rows:
+            if row.parent_comment_id in deleted_ids:
+                deleted_ids.add(row.comment_id)
+
+        if len(deleted_ids) == before:
+            break
+
+    deleted_count = len(deleted_ids)
+
+    # 3. 원글 확인 (숨김 상태여도 관리자는 삭제 가능)
+    post = db.scalar(
+        select(CommunityPost).where(
+            CommunityPost.post_id == comment.post_id
+        )
+    )
+
+    # 4. 댓글 삭제 (답글은 DB의 ON DELETE CASCADE로 함께 삭제됨)
+    db.delete(comment)
+
+    # 원글의 댓글 수를 실제 삭제된 개수만큼 감소
+    if post is not None:
+        post.comment_count = max(
+            0,
+            post.comment_count - deleted_count,
+        )
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": "댓글이 삭제되었습니다.",
+        "comment_id": comment_id,
+        "deleted_count": deleted_count,
+        "comment_count": post.comment_count if post else 0,
+    }
 
 # ========================================
 # 전체 신고 목록 / 검색 / 상태 필터
@@ -294,15 +546,25 @@ def get_admin_community_reports(
             detail="올바른 신고 상태가 아닙니다.",
         )
 
+    # User는 신고자, PostAuthor는 게시글 작성자
+    PostAuthor = aliased(User)
+
     query = (
         select(
             PostReport,
             CommunityPost.title,
             User.nickname,
+            CommunityPost.content,
+            CommunityPost.status,
+            PostAuthor.nickname,
         )
         .outerjoin(
             CommunityPost,
             PostReport.post_id == CommunityPost.post_id,
+        )
+        .outerjoin(
+            PostAuthor,
+            CommunityPost.user_id == PostAuthor.user_id,
         )
         .join(
             User,
@@ -328,11 +590,27 @@ def get_admin_community_reports(
         query.order_by(PostReport.created_at.desc())
     ).all()
 
+    # 글별로 아직 처리되지 않은(대기 / 검토 중) 신고 수
+    # (검색 조건과 상관없이 전체 기준으로 계산)
+    open_counts = dict(
+        db.execute(
+            select(
+                PostReport.post_id,
+                func.count(PostReport.report_id),
+            )
+            .where(
+                PostReport.post_id.is_not(None),
+                PostReport.status.in_(["PENDING", "REVIEWED"]),
+            )
+            .group_by(PostReport.post_id)
+        ).all()
+    )
+
     return {
         "total": len(rows),
         "pending_count": sum(
-            1 for report, _, _ in rows
-            if report.status == "PENDING"
+            1 for row in rows
+            if row[0].status == "PENDING"
         ),
         "items": [
             {
@@ -345,11 +623,23 @@ def get_admin_community_reports(
                 "status": report.status,
                 "reported_at": report.created_at,
                 "reviewed_at": report.reviewed_at,
+                "post_excerpt": make_excerpt(post_content),
+                "post_status": post_status,
+                "post_author": post_author,
+                "same_post_open_count": open_counts.get(
+                    report.post_id, 0
+                ),
             }
-            for report, title, nickname in rows
+            for (
+                report,
+                title,
+                nickname,
+                post_content,
+                post_status,
+                post_author,
+            ) in rows
         ],
     }
-
 
 
 # ========================================
@@ -377,13 +667,17 @@ def update_admin_report_status(
             detail="신고 기록을 찾을 수 없습니다.",
         )
 
+    # 같은 처리로 바뀌는 신고들은 같은 처리 시각을 사용
+    now = datetime.now()
+
     # 2. 신고 상태 변경
     report.status = new_status
-    report.reviewed_at = datetime.now()
+    report.reviewed_at = now
+
+    hidden_post_id = None
+    also_accepted_count = 0
 
     # 3. 신고 승인이라면 해당 게시글 숨김 처리
-    hidden_post_id = None
-
     if new_status == "ACCEPTED" and report.post_id is not None:
         post = db.scalar(
             select(CommunityPost).where(
@@ -395,7 +689,22 @@ def update_admin_report_status(
             post.status = "HIDDEN"
             hidden_post_id = post.post_id
 
-    # 4. 신고 상태와 게시글 상태를 함께 저장
+        # 4. 같은 글에 아직 처리되지 않은 다른 신고도 함께 승인
+        other_reports = db.scalars(
+            select(PostReport).where(
+                PostReport.post_id == report.post_id,
+                PostReport.report_id != report.report_id,
+                PostReport.status.in_(["PENDING", "REVIEWED"]),
+            )
+        ).all()
+
+        for other in other_reports:
+            other.status = "ACCEPTED"
+            other.reviewed_at = now
+
+        also_accepted_count = len(other_reports)
+
+    # 5. 신고 상태와 게시글 상태를 함께 저장
     try:
         db.commit()
         db.refresh(report)
@@ -410,4 +719,93 @@ def update_admin_report_status(
         "reviewed_at": report.reviewed_at,
         "hidden_post_id": hidden_post_id,
         "post_status": "HIDDEN" if hidden_post_id is not None else None,
+        "also_accepted_count": also_accepted_count,
+    }
+
+# ========================================
+# 신고 처리 취소 (승인/반려 → 대기)
+# PATCH /admin/community/reports/{report_id}/revert
+# ========================================
+
+@router.patch("/reports/{report_id}/revert")
+def revert_admin_report(
+    report_id: int,
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    report = db.scalar(
+        select(PostReport).where(
+            PostReport.report_id == report_id
+        )
+    )
+
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="신고를 찾을 수 없습니다.",
+        )
+
+    if report.status not in ("ACCEPTED", "REJECTED"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="처리 완료된 신고만 취소할 수 있습니다.",
+        )
+
+    reverted_count = 0
+    post_restored = False
+
+    if report.status == "REJECTED":
+        # 반려 취소: 이 신고만 대기로 복귀
+        report.status = "PENDING"
+        report.reviewed_at = None
+        reverted_count = 1
+
+    else:
+        # 승인 취소: 글 상태 확인
+        post = (
+            db.scalar(
+                select(CommunityPost).where(
+                    CommunityPost.post_id == report.post_id
+                )
+            )
+            if report.post_id is not None
+            else None
+        )
+
+        if post is None or post.status == "DELETED":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="삭제된 게시글의 승인은 취소할 수 없습니다.",
+            )
+
+        # 같은 글에서 승인된 신고를 모두 대기로 복귀
+        accepted_reports = db.scalars(
+            select(PostReport).where(
+                PostReport.post_id == report.post_id,
+                PostReport.status == "ACCEPTED",
+            )
+        ).all()
+
+        for item in accepted_reports:
+            item.status = "PENDING"
+            item.reviewed_at = None
+
+        reverted_count = len(accepted_reports)
+
+        # 숨김 상태였다면 다시 공개
+        if post.status == "HIDDEN":
+            post.status = "ACTIVE"
+            post_restored = True
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": "처리가 취소되었습니다.",
+        "report_id": report_id,
+        "reverted_count": reverted_count,
+        "post_restored": post_restored,
     }
