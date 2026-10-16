@@ -65,7 +65,7 @@ function createDivisionTable(division) {
     const table = el("table", "standings-table");
     const head = el("thead");
     const headRow = el("tr");
-    ["순위", "팀", "경기", "승", "패", "승률", "게임차", "연속", "최근 10경기", "홈", "원정"]
+    ["순위", "팀", "경기", "승", "패", "승률", "게임차", "최근 10경기", "연속", "트렌드", "타율", "평균자책"]
         .forEach(name => headRow.append(el("th", "", name)));
     head.append(headRow);
 
@@ -101,12 +101,59 @@ function createTeamRow(team) {
         [team.losses],
         [formatPct(team.pct), "standings-pct"],
         [team.games_behind],
-        [team.streak, streakClass],
         [team.last10],
-        [team.home],
-        [team.away]
+        [team.streak, streakClass]
     ].forEach(([value, className]) => row.append(el("td", className || "", value)));
+
+    const trendCell = el("td", "standings-trend-cell");
+    trendCell.append(createTrendChart(team.trend || []));
+    row.append(trendCell, el("td", "", team.avg), el("td", "", team.era));
     return row;
+}
+
+/* ---------- 트렌드 그래프 (최근 15경기) ---------- */
+// 기준선(점선)에서 시작해 이기면 한 칸 위로, 지면 한 칸 아래로 이어지는 꺾은선
+
+function createTrendChart(results) {
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "standings-trend");
+    svg.setAttribute("viewBox", "0 0 60 28");
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    const wins = results.filter(r => r === "W").length;
+    const title = document.createElementNS(SVG_NS, "title");  // 마우스를 올리면 보이는 설명
+    title.textContent = results.length
+        ? `최근 ${results.length}경기 ${wins}승 ${results.length - wins}패`
+        : "경기 기록 없음";
+    svg.append(title);
+
+    const baseline = document.createElementNS(SVG_NS, "line"); // 기준선 (승패 같음)
+    Object.entries({ x1: 0, y1: 14, x2: 60, y2: 14, class: "trend-baseline" })
+        .forEach(([key, value]) => baseline.setAttribute(key, value));
+    svg.append(baseline);
+    if (!results.length) return svg;
+
+    let level = 0;                                     // 승 - 패 누적값
+    const levels = [0, ...results.map(r => (level += r === "W" ? 1 : -1))];
+    const maxLevel = Math.max(1, ...levels.map(Math.abs));
+    const step = 12 / maxLevel;                        // 위아래 12px 안에 들어가게
+    const points = levels.map((value, i) => [
+        (i / (levels.length - 1)) * 58 + 1,            // x: 왼쪽 → 오른쪽
+        14 - value * step                              // y: 위로 갈수록 승이 많음
+    ]);
+
+    const line = document.createElementNS(SVG_NS, "polyline");
+    line.setAttribute("points", points.map(p => p.join(",")).join(" "));
+    line.setAttribute("class", "trend-line");
+    svg.append(line);
+
+    const [lastX, lastY] = points[points.length - 1];  // 가장 최근 경기 위치
+    const dot = document.createElementNS(SVG_NS, "circle");
+    Object.entries({ cx: lastX, cy: lastY, r: 1.8, class: "trend-dot" })
+        .forEach(([key, value]) => dot.setAttribute(key, value));
+    svg.append(dot);
+    return svg;
 }
 
 function formatPct(pct) {                              // 0.625 → ".625", 1 → "1.000"

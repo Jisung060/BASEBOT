@@ -136,6 +136,38 @@
     color: #2874fa !important;
 }
 
+/* 트렌드 그래프 (최근 15경기) */
+.standings-trend {
+    display: block;
+    width: 64px;
+    height: 24px;
+    margin: 0 auto;
+    padding: 1px 2px;
+    border: 1px solid #e2e8f0;
+    border-radius: 3px;
+    background: #fff;
+    overflow: visible;
+}
+
+.trend-baseline {
+    stroke: #059669;                    /* 초록 점선 = 기준선 */
+    stroke-width: 1.2;
+    stroke-dasharray: 3 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.trend-line {
+    fill: none;
+    stroke: #94a3b8;                    /* 회색 선 = 승패 흐름 */
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.trend-dot {
+    fill: #475569;                      /* 끝 점 = 가장 최근 경기 */
+}
+
 /* 구단 (로고 + 이름) → 팀 로스터 링크 */
 .standings-team-cell {
     text-align: left !important;

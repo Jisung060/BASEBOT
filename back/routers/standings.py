@@ -42,12 +42,29 @@ def get_standings(
         team["team_id"]: {
             **team,
             "wins": 0, "losses": 0,
-            "home_wins": 0, "home_losses": 0,
-            "away_wins": 0, "away_losses": 0,
             "results": []                                  # 경기 순서대로 "W" / "L"
         }
         for team in teams
     }
+
+    # 팀 타율·평균자책 (박스스코어를 수집한 경기만 반영)
+    # 이닝 5.1 = 5⅓이닝이므로 아웃카운트(정수 × 3 + 소수점 숫자)로 바꿔서 합산
+    team_stats = {
+        row["team_id"]: row
+        for row in db.execute(text("""
+            SELECT
+                b.team_id,
+                SUM(b.hits) AS hits,
+                SUM(b.at_bats) AS at_bats,
+                SUM(b.earned_runs) AS earned_runs,
+                SUM(FLOOR(b.innings_pitched) * 3
+                    + ROUND((b.innings_pitched - FLOOR(b.innings_pitched)) * 10)) AS outs
+            FROM game_boxscores b
+            JOIN games g ON g.game_id = b.game_id
+            WHERE g.status = 'FINAL' AND YEAR(g.game_date) = :season
+            GROUP BY b.team_id
+        """), {"season": season}).mappings().all()
+    } if season else {}
 
     # 3. 해당 시즌 종료 경기를 날짜순으로 읽어 승패 누적
     games = db.execute(text("""
@@ -69,13 +86,6 @@ def get_standings(
         loser["losses"] += 1
         winner["results"].append("W")
         loser["results"].append("L")
-
-        if home_won:
-            home["home_wins"] += 1
-            away["away_losses"] += 1
-        else:
-            away["away_wins"] += 1
-            home["home_losses"] += 1
 
     # 4. 리그·지구별로 묶어 순위 계산
     divisions = []
@@ -100,8 +110,9 @@ def get_standings(
                     "games_behind": games_behind(leader, r),
                     "streak": streak(r["results"]),
                     "last10": last_ten(r["results"]),
-                    "home": f"{r['home_wins']}-{r['home_losses']}",
-                    "away": f"{r['away_wins']}-{r['away_losses']}"
+                    "trend": r["results"][-15:],          # 최근 15경기 승패 (트렌드 그래프용)
+                    "avg": batting_avg(team_stats.get(r["team_id"])),
+                    "era": team_era(team_stats.get(r["team_id"]))
                 })
 
             divisions.append({"league": league, "division": division, "teams": rows})
@@ -135,6 +146,20 @@ def streak(results):
             break
         count += 1
     return f"{count}연{'승' if last == 'W' else '패'}"
+
+
+def batting_avg(stats):
+    # 타율 = 안타 ÷ 타수 → ".254" (기록 없으면 "-")
+    if not stats or not stats["at_bats"]:
+        return "-"
+    return f"{stats['hits'] / stats['at_bats']:.3f}".lstrip("0")
+
+
+def team_era(stats):
+    # 평균자책 = 자책점 × 9 ÷ 이닝 = 자책점 × 27 ÷ 아웃카운트 → "3.85"
+    if not stats or not stats["outs"]:
+        return "-"
+    return f"{stats['earned_runs'] * 27 / stats['outs']:.2f}"
 
 
 def last_ten(results):
