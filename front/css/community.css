@@ -63,6 +63,22 @@
     font-size: 14px;
 }
 
+.community-search-title,
+.community-detail-search-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #172033;
+}
+
+.community-search-title {
+    margin-bottom: 0;
+}
+
+.community-detail-search-title {
+    margin-top: 16px;
+    margin-bottom: 0;
+}
+
 .section-mini-title {
     font-size: 15px;
     font-weight: 800;
@@ -71,36 +87,42 @@
 }
 
 .league-filter-card {
-    padding: 20px;
-    margin-bottom: 32px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
     border: 1px solid #e4e8ee;
     background: #fafbfd;
 }
 
 .league-filter-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.league-filter-grid > div {
+    min-width: 0;
 }
 
 .league-filter-grid label {
     display: block;
-    margin-bottom: 7px;
+    margin-bottom: 5px;
     font-size: 12px;
     color: #667085;
     font-weight: 700;
 }
 
-.league-filter-grid select,
-.board-toolbar select,
-.search-area select {
+.league-filter-grid select {
     width: 100%;
-    height: 40px;
-    padding: 0 10px;
+    height: 36px;
+    padding: 0 8px;
+    box-sizing: border-box;
     border: 1px solid #d8dde6;
     background: #fff;
     color: #333;
+    font-size: 13px;
 }
+
 
 .selected-filter {
     margin-top: 12px;
@@ -391,24 +413,48 @@
     border-color: #173f91;
 }
 
+/* =========================================
+   커뮤니티 검색창
+========================================= */
+
 .search-area {
     display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
 }
 
 .search-area select {
-    width: 115px;
+    flex: 0 0 125px;
+    width: 125px;
+    height: 40px;
+    box-sizing: border-box;
 }
 
 .search-area input {
-    width: 280px;
+    flex: 1;
+    min-width: 0;
+    width: auto;
     height: 40px;
+    box-sizing: border-box;
     border: 1px solid #d8dde6;
     padding: 0 12px;
+    font-size: 14px;
 }
 
+.search-area input:focus {
+    outline: none;
+    border-color: #173f91;
+    box-shadow: 0 0 0 2px rgba(23, 63, 145, 0.08);
+}
+
+.search-area .community-btn {
+    flex: 0 0 78px;
+    min-width: 78px;
+    height: 40px;
+}
 .write-form {
     width: 100%;
 }
@@ -798,7 +844,8 @@
     }
 
     .league-filter-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
     }
 
     .filter-search-row {
@@ -826,11 +873,26 @@
     }
 
     .search-area {
-        flex-wrap: wrap;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    }
+
+    .search-area select {
+        flex-basis: 105px;
+        width: 105px;
     }
 
     .search-area input {
-        width: 100%;
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
+
+    .search-area .community-btn {
+        flex-basis: 58px;
+        min-width: 58px;
+        padding: 0 8px;
     }
 }
 

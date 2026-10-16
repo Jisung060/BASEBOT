@@ -30,9 +30,6 @@
             <section class="league-filter-card">
 
                 <!-- 검색 박스 -->
-                <div class="community-search-title">
-                    검색
-                </div>
                 <form class="search-area" onsubmit="return false;">
 
                     <select id="searchType">
@@ -58,11 +55,21 @@
                 </form>
 
                 <!-- 상세 검색 박스 -->
-                <div class="community-detail-search-title">
-                    상세검색
-                </div>
-
                 <div class="league-filter-grid">
+
+                    <!-- 분류 -->
+                    <div>
+                        <label for="categorySelect">분류</label>
+                        <select id="categorySelect">
+                            <option value="">전체 분류</option>
+                            <option value="GENERAL">자유</option>
+                            <option value="ANALYSIS">분석</option>
+                            <option value="GAME_THREAD">경기</option>
+                            <option value="NEWS">뉴스</option>
+                        </select>
+                    </div>
+
+                    <!-- 리그 -->
                     <div>
                         <label for="leagueSelect">리그</label>
                         <select id="leagueSelect">
@@ -72,6 +79,7 @@
                         </select>
                     </div>
 
+                    <!-- 지구 -->
                     <div>
                         <label for="divisionSelect">지구</label>
                         <select id="divisionSelect" disabled>
@@ -82,36 +90,17 @@
                         </select>
                     </div>
 
+                    <!-- 팀 -->
                     <div>
                         <label for="teamSelect">팀</label>
                         <select id="teamSelect" disabled>
                             <option value="">전체 팀</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="category-filter-row">
-
-                    <label for="categorySelect">
-                        분류
-                    </label>
-
-                    <select id="categorySelect">
-                        <option value="">전체 분류</option>
-                        <option value="GENERAL">자유</option>
-                        <option value="ANALYSIS">분석</option>
-                        <option value="GAME_THREAD">경기</option>
-                        <option value="NEWS">뉴스</option>
-                    </select>
 
                 </div>
-                <div class="filter-search-row">
-                    <div class="selected-filter" id="selectedFilter">
-                        전체 게시글
-                    </div>
-                    <button type="button" id="teamFilterSearchButton" class="filter-search-button" title="선택한 조건으로 검색">검색</button>
-                </div>
-            </section>
+
+                </section>
 
             <section class="popular-section">
                 <div class="section-heading">

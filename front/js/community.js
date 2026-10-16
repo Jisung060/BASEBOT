@@ -1161,12 +1161,6 @@ function setupCommunityFilters() {
     const teamSelect =
         document.getElementById("teamSelect");
 
-    const searchButton =
-        document.getElementById(
-            "teamFilterSearchButton"
-        );
-
-
     const categorySelect =
         document.getElementById("categorySelect");
 
@@ -1174,67 +1168,24 @@ function setupCommunityFilters() {
     const sortSelect =
         document.getElementById("sortSelect");
 
-
     console.log(
         "필터 요소 확인:",
         {
             leagueSelect,
             divisionSelect,
             teamSelect,
-            searchButton
+            categorySelect,
+            sortSelect
         }
     );
-
 
     if (
         !leagueSelect ||
         !divisionSelect ||
-        !teamSelect ||
-        !searchButton
+        !teamSelect
     ) {
         return;
     }
-
-
-    // -----------------------------------------
-    // 상단 검색 버튼
-    // -----------------------------------------
-    searchButton.onclick = function () {
-
-        console.log(
-            "검색 버튼 클릭됨!"
-        );
-
-
-        appliedFilter = {
-
-            league:
-                leagueSelect.value,
-
-            division:
-                divisionSelect.value,
-
-            team:
-                teamSelect.value,
-
-            category:
-                categorySelect?.value || ""
-
-        };
-
-
-        // ⭐ 상단 조건 + 하단 검색 조건
-        // 둘 다 적용
-        currentPage = 1;
-
-        updateCommunityBoard();
-    };
-
-
-    console.log(
-        "검색 이벤트 연결 완료:",
-        searchButton
-    );
 
     // -----------------------------------------
     // 정렬 변경
@@ -1247,17 +1198,14 @@ function setupCommunityFilters() {
         }
     );
 
-
     // -----------------------------------------
     // 처음에는 전체 게시글 표시
     // -----------------------------------------
     updateCommunityBoard();
 }
 
-
-
 // =========================================
-// 하단 게시글 검색
+//  게시글 검색
 // 제목 / 제목+내용 / 작성자
 // =========================================
 function setupPostSearch() {
@@ -1287,46 +1235,30 @@ function setupPostSearch() {
     }
 
 
-    searchButton.addEventListener(
-        "click",
-        function () {
 
-            const type =
-                searchType.value;
+    searchButton.addEventListener("click", function () {
+        const type = searchType.value;
+        const keyword = searchInput.value.trim().toLowerCase();
 
+        // 1. 키워드 검색 조건 저장
+        appliedPostSearch = {
+            type: keyword ? type : "",
+            keyword: keyword
+        };
 
-            const keyword =
-                searchInput.value
-                    .trim()
-                    .toLowerCase();
+        // 2. 상세검색 조건 저장
+        appliedFilter = {
+            league: document.getElementById("leagueSelect")?.value || "",
+            division: document.getElementById("divisionSelect")?.value || "",
+            team: document.getElementById("teamSelect")?.value || "",
+            category: document.getElementById("categorySelect")?.value || ""
+        };
 
+        // 3. 첫 페이지부터 통합 검색
+        currentPage = 1;
+        updateCommunityBoard();
+    });
 
-            console.log(
-                "게시글 검색 실행:",
-                {
-                    type: type,
-                    keyword: keyword
-                }
-            );
-
-
-            // 하단 검색 조건 저장
-            appliedPostSearch = {
-
-                type:
-                    keyword
-                        ? type
-                        : "",
-
-                keyword:
-                    keyword
-            };
-
-            currentPage = 1;
-            // ⭐ 상단 필터와 하단 검색을
-            // 동시에 적용
-            updateCommunityBoard();
-        });
 
     searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
