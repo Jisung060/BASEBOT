@@ -8,7 +8,7 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 
 const communityPageState = {
     contents: { pageSize: 10, page: 1, sortKey: "created_at",  sortDir: "desc" },
-    reports:  { pageSize: 10, page: 1, sortKey: "reported_at", sortDir: "desc" },
+    reports:  { pageSize: 10, page: 1, sortKey: "report_count", sortDir: "desc" },
     history:  { pageSize: 10, page: 1, sortKey: "reviewed_at", sortDir: "desc" }
 };
 
@@ -22,18 +22,16 @@ const communitySortColumns = {
         { index: 5, key: "status", type: "status" }      // 상태
     ],
     reports: [
-        { index: 0, key: "report_id", type: "number" },  // 번호
-        { index: 2, key: "reason" },                     // 신고 사유
-        { index: 3, key: "nickname" },                   // 신고자
-        { index: 4, key: "reported_at", type: "date" },  // 접수일
-        { index: 5, key: "status", type: "status" }      // 상태
+        { index: 0, key: "post_id", type: "number" },             // 글 번호
+        { index: 2, key: "report_count", type: "number" },        // 신고 건수
+        { index: 4, key: "latest_reported_at", type: "date" },    // 최근 접수
+        { index: 5, key: "status", type: "status" }               // 상태
     ],
     history: [
-        { index: 0, key: "report_id", type: "number" },  // 번호
-        { index: 2, key: "reason" },                     // 신고 사유
-        { index: 3, key: "nickname" },                   // 신고자
-        { index: 4, key: "reviewed_at", type: "date", fallback: "reported_at" }, // 처리일
-        { index: 5, key: "status", type: "status" }      // 처리 상태
+        { index: 0, key: "post_id", type: "number" },             // 글 번호
+        { index: 2, key: "report_count", type: "number" },        // 신고 건수
+        { index: 4, key: "reviewed_at", type: "date", fallback: "latest_reported_at" }, // 처리일
+        { index: 5, key: "status", type: "status" }               // 처리 상태
     ]
 };
 
@@ -41,6 +39,12 @@ const communitySortColumns = {
 const communityStatusOrder = {
     PENDING: 0, REVIEWED: 1, ACCEPTED: 2, REJECTED: 3,   // 신고 상태
     ACTIVE: 0, HIDDEN: 1, DELETED: 2                      // 게시글 상태
+};
+
+// 정렬 값이 같을 때 이어서 비교할 기준 (최근 순)
+const communityTieBreaker = {
+    reports: "latest_reported_at",
+    history: "reviewed_at"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -154,7 +158,7 @@ function sortCommunityItems(items, tab) {
         return String(value ?? "");
     };
 
-    return [...items].sort((a, b) => {
+        return [...items].sort((a, b) => {
         const x = getValue(a);
         const y = getValue(b);
 
@@ -163,7 +167,19 @@ function sortCommunityItems(items, tab) {
                 ? x.localeCompare(y, "ko")
                 : x - y;
 
-        return result * direction;
+        if (result !== 0) {
+            return result * direction;
+        }
+
+        // 값이 같으면 최근 것이 위로
+        const tieKey = communityTieBreaker[tab];
+
+        if (!tieKey) return 0;
+
+        return (
+            (new Date(b[tieKey]).getTime() || 0) -
+            (new Date(a[tieKey]).getTime() || 0)
+        );
     });
 }
 
@@ -863,10 +879,13 @@ async function loadCurrentTabData()  {
                         report.status === "REVIEWED"
                 );
 
+                const groups = groupReportsByPost(queueItems);
+
                 renderReportTable({
                     ...reportData,
-                    items: queueItems,
-                    total: queueItems.length
+                    items: groups,
+                    total: groups.length,
+                    report_total: queueItems.length
                 });
                 return;
             }
@@ -883,7 +902,7 @@ async function loadCurrentTabData()  {
                     new Date(a.reviewed_at || a.reported_at)
                 );
 
-            renderHistoryTable(historyItems);
+            renderHistoryTable(groupReportsByPost(historyItems));
         }
 
     } catch (error) {
@@ -1004,53 +1023,46 @@ function renderReportTable(data) {
     const headingTag = panel.querySelector(".panel-heading .tag");
     const items = sortCommunityItems(data.items || [], "reports");
 
-        // 전체 신고 건수 표시
-        let totalCountLabel = panel.querySelector(
-            "#reportTotalCount"
-        );
+    // 전체 건수 표시 (글 수 + 신고 건수)
+    let totalCountLabel = panel.querySelector("#reportTotalCount");
 
-        if (!totalCountLabel) {
-            totalCountLabel = document.createElement("span");
-            totalCountLabel.id = "reportTotalCount";
-            totalCountLabel.className = "count-label";
-        }
+    if (!totalCountLabel) {
+        totalCountLabel = document.createElement("span");
+        totalCountLabel.id = "reportTotalCount";
+        totalCountLabel.className = "count-label";
+    }
 
-        // 전체 건수와 처리 대기 건수를 같은 상단 영역에 배치
-        const controls = panel.querySelector(
-            ".community-heading-controls"
-        );
+    // 전체 건수와 처리 대기 건수를 같은 상단 영역에 배치
+    const controls = panel.querySelector(".community-heading-controls");
 
-        if (controls) {
-            const pendingCount = controls.querySelector(
-                "#pendingReportCount"
-            );
+    if (controls) {
+        const pendingCount = controls.querySelector("#pendingReportCount");
 
-            if (pendingCount) {
-                pendingCount.after(totalCountLabel);
-            } else {
-                controls.appendChild(totalCountLabel);
-            }
+        if (pendingCount) {
+            pendingCount.after(totalCountLabel);
         } else {
-            const heading = panel.querySelector(".panel-heading");
-
-            if (heading) {
-                heading.appendChild(totalCountLabel);
-            }
+            controls.appendChild(totalCountLabel);
         }
+    } else {
+        const heading = panel.querySelector(".panel-heading");
 
-        totalCountLabel.textContent =
-            `총 ${data.total ?? items.length}건`;
+        if (heading) {
+            heading.appendChild(totalCountLabel);
+        }
+    }
+
+    totalCountLabel.textContent =
+        `총 ${items.length}개 글 · 신고 ${data.report_total ?? items.length}건`;
 
     tbody.replaceChildren();
 
     if (headingTag) {
-    headingTag.textContent =
-        `처리 대기 ${data.pending_count ?? 0}건`;
-}
+        headingTag.textContent = `처리 대기 ${data.pending_count ?? 0}건`;
+    }
 
     if (items.length === 0) {
         tbody.appendChild(
-            createEmptyRow(7, "신고 데이터가 없습니다.")
+            createEmptyRow(7, "처리할 신고가 없습니다.")
         );
 
         setupCommunityPagination(
@@ -1070,85 +1082,57 @@ function renderReportTable(data) {
         loadAdminCommunityData
     );
 
-
-    for (const report of pageItems) {
+    for (const group of pageItems) {
         const row = document.createElement("tr");
 
+        const hasPost =
+            group.post_id !== null && group.post_id !== undefined;
 
-        appendCell(row, report.report_id);
+        // 글 번호
+        appendCell(row, hasPost ? group.post_id : "—");
 
+        // 대상 (글 제목)
         const targetCell = document.createElement("td");
-
-        if (report.post_id !== null && report.post_id !== undefined) {
-            targetCell.textContent =
-                `[No.${report.post_id}] - ${report.title || "[제목 없음]"}`;
-        } else {
-            targetCell.textContent = "[삭제된 게시글]";
-        }
-
-                // 같은 글에 처리할 신고가 여러 건이면 배지 표시
-        if (report.same_post_open_count > 1) {
-            const groupBadge = document.createElement("span");
-            groupBadge.className = "group-badge";
-            groupBadge.textContent = `신고 ${report.same_post_open_count}건`;
-            groupBadge.title =
-                `이 글에 처리 대기 중인 신고가 ${report.same_post_open_count}건 있습니다.`;
-
-            targetCell.prepend(groupBadge);
-        }
-
+        targetCell.textContent = hasPost
+            ? (group.title || "[제목 없음]")
+            : "[삭제된 게시글]";
         row.appendChild(targetCell);
 
-        row.appendChild(targetCell);
-
-        appendBadgeCell(row, getReportReasonLabel(report.reason), "reason");
-
-
-
-        const reporterCell = document.createElement("td");
-        reporterCell.textContent = report.nickname || "알 수 없음";
-
-        if (report.report_content) {
-            reporterCell.title = report.report_content;
-        }
-
-        row.appendChild(reporterCell);
-
-        appendDateCell(row, report.reported_at);
+        // 신고 건수 / 사유 요약 / 최근 접수 / 상태
+        appendCountCell(row, group.report_count);
+        appendReasonCell(row, group);
+        appendDateCell(row, group.latest_reported_at);
         appendBadgeCell(
             row,
-            getReportStatusLabel(report.status),
-            (report.status || "").toLowerCase()
+            getReportStatusLabel(group.status),
+            (group.status || "").toLowerCase()
         );
 
-                const actionCell = document.createElement("td");
-
-        // 처리는 상세 팝업에서 내용을 확인한 뒤 결정
+        // 처리는 팝업에서 신고 내용을 확인한 뒤 결정
+        const actionCell = document.createElement("td");
         actionCell.appendChild(
             createActionButton("처리하기", "button button-primary", () => {
-                showReportDetail(report);
+                showReportDetail(group);
             })
         );
-
         row.appendChild(actionCell);
-        // 신고 행 전체를 클릭하면 상세 팝업 열기
+
+        // 행 전체를 클릭해도 팝업 열기
         row.style.cursor = "pointer";
 
         row.addEventListener("click", (event) => {
-            // 검토, 승인, 반려 버튼을 클릭한 경우에는 상세 팝업을 열지 않음
             if (event.target.closest("button")) {
                 return;
             }
 
-            showReportDetail(report);
+            showReportDetail(group);
         });
 
         tbody.appendChild(row);
-
     }
 }
 
-// 처리 내역 목록
+// 처리 내역 목록 (글 단위)
 function renderHistoryTable(items) {
     const panel = document.getElementById("historyPanel");
 
@@ -1169,7 +1153,13 @@ function renderHistoryTable(items) {
     tbody.replaceChildren();
 
     if (countLabel) {
-        countLabel.textContent = `총 ${items.length}건`;
+        const reportTotal = items.reduce(
+            (sum, group) => sum + group.report_count,
+            0
+        );
+
+        countLabel.textContent =
+            `총 ${items.length}건 · 신고 ${reportTotal}건`;
     }
 
     if (items.length === 0) {
@@ -1194,43 +1184,39 @@ function renderHistoryTable(items) {
         loadAdminCommunityData
     );
 
-
-    for (const report of items) {
+    for (const group of items) {
         const row = document.createElement("tr");
 
-        appendCell(row, report.report_id);
+        const hasPost =
+            group.post_id !== null && group.post_id !== undefined;
+
+        appendCell(row, hasPost ? group.post_id : "—");
 
         const targetCell = document.createElement("td");
-
-        if (report.post_id !== null && report.post_id !== undefined) {
-            targetCell.textContent =
-                `[No.${report.post_id}] - ${report.title || "[제목 없음]"}`;
-        } else {
-            targetCell.textContent = "[삭제된 게시글]";
-        }
-
+        targetCell.textContent = hasPost
+            ? (group.title || "[제목 없음]")
+            : "[삭제된 게시글]";
         row.appendChild(targetCell);
 
-        appendBadgeCell(row, getReportReasonLabel(report.reason), "reason");
-        appendCell(row, report.nickname || "알 수 없음");
-        appendDateCell(row, report.reviewed_at || report.reported_at);   // 처리일
+        appendCountCell(row, group.report_count);
+        appendReasonCell(row, group);
+        appendDateCell(row, group.reviewed_at || group.latest_reported_at);
         appendBadgeCell(
             row,
-            getReportStatusLabel(report.status),
-            (report.status || "").toLowerCase()
+            getReportStatusLabel(group.status),
+            (group.status || "").toLowerCase()
         );
 
-                // 행을 클릭하면 신고 상세 팝업 열기
+        // 행을 클릭하면 상세 팝업 열기
         row.style.cursor = "pointer";
 
         row.addEventListener("click", () => {
-            showReportDetail(report);
+            showReportDetail(group);
         });
 
         tbody.appendChild(row);
     }
 }
-
 
 // ========================================
 // 표 셀 / 빈 목록 공통 함수
@@ -1811,6 +1797,42 @@ function appendBadgeCell(row, text, type) {
     row.appendChild(cell);
 }
 
+// 신고 건수 칸 (3건 이상이면 강조)
+function appendCountCell(row, count) {
+    const cell = document.createElement("td");
+    const label = document.createElement("span");
+
+    label.className = `report-count${count >= 3 ? " many" : ""}`;
+    label.textContent = `${count}건`;
+
+    cell.appendChild(label);
+    row.appendChild(cell);
+}
+
+// 신고 사유 칸 (예: 욕설 / 비방 3, 광고 2)
+function appendReasonCell(row, group) {
+    const cell = document.createElement("td");
+    const chips = document.createElement("div");
+    chips.className = "reason-chips";
+
+    const entries = Object.entries(group.reason_counts)
+        .sort((a, b) => b[1] - a[1]);
+
+    for (const [reason, count] of entries) {
+        const chip = document.createElement("span");
+        chip.className = "status-badge reason";
+        chip.textContent =
+            group.report_count > 1
+                ? `${getReportReasonLabel(reason)} ${count}`
+                : getReportReasonLabel(reason);
+
+        chips.appendChild(chip);
+    }
+
+    cell.appendChild(chips);
+    row.appendChild(cell);
+}
+
 // 처리 버튼 만들기
 function createActionButton(label, className, onClick) {
     const button = document.createElement("button");
@@ -1939,6 +1961,97 @@ async function applyReportStatus(reportId, newStatus) {
     );
 }
 
+// ========================================
+// 신고를 글 단위 묶음으로 만들기
+// - 신고 처리 탭: 같은 글의 대기/검토 중 신고를 한 줄로
+// - 처리 내역 탭: 같은 글 + 같은 결과 + 같은 처리 시각을 한 줄로
+// - 삭제된 글의 신고는 묶을 수 없으니 신고 1건씩 그대로
+// ========================================
+function groupReportsByPost(items) {
+    const groups = new Map();
+
+    for (const report of items) {
+        const hasPost =
+            report.post_id !== null && report.post_id !== undefined;
+
+        const isDone =
+            report.status === "ACCEPTED" || report.status === "REJECTED";
+
+        let key;
+
+        if (!hasPost) {
+            key = `report-${report.report_id}`;
+        } else if (isDone) {
+            key = `post-${report.post_id}-${report.status}-${report.reviewed_at}`;
+        } else {
+            key = `post-${report.post_id}`;
+        }
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                group_key: key,
+                post_id: report.post_id,
+                title: report.title,
+                post_author: report.post_author,
+                post_status: report.post_status,
+                post_excerpt: report.post_excerpt,
+                status: report.status,
+                reviewed_at: report.reviewed_at,
+                reports: [],
+                reason_counts: {},
+                first_reported_at: report.reported_at,
+                latest_reported_at: report.reported_at,
+            });
+        }
+
+        const group = groups.get(key);
+
+        group.reports.push(report);
+
+        group.reason_counts[report.reason] =
+            (group.reason_counts[report.reason] || 0) + 1;
+
+        // 접수 시각 범위
+        if (report.reported_at < group.first_reported_at) {
+            group.first_reported_at = report.reported_at;
+        }
+        if (report.reported_at > group.latest_reported_at) {
+            group.latest_reported_at = report.reported_at;
+        }
+
+        // 묶음 상태: 하나라도 대기면 대기, 모두 검토 중일 때만 검토 중
+        if (!isDone && report.status === "PENDING") {
+            group.status = "PENDING";
+        }
+    }
+
+    // 표시용 보조 값
+    return [...groups.values()].map((group) => ({
+        ...group,
+        report_count: group.reports.length,
+        // 대표 신고 번호 (처리 취소 API 호출에 사용)
+        report_id: group.reports[0].report_id,
+    }));
+}
+
+
+// 사유 요약: "욕설 3 · 광고 2" (많은 순)
+function formatReasonSummary(group) {
+    return Object.entries(group.reason_counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, count]) => `${getReportReasonLabel(reason)} ${count}`)
+        .join(" · ");
+}
+
+
+// 글 단위 일괄 처리 API (승인 / 반려 / 검토 중)
+async function processPostReports(postId, newStatus) {
+    return requestAdminAPI(
+        `/admin/community/posts/${postId}/reports/status?new_status=${newStatus}`,
+        { method: "PATCH" }
+    );
+}
+
 // 신고 처리 취소 API (승인/반려 → 대기)
 async function revertReportStatus(reportId) {
     return requestAdminAPI(
@@ -1953,13 +2066,14 @@ function confirmRevertReport(report, onDone) {
     const isAccepted = report.status === "ACCEPTED";
     const label = isAccepted ? "승인 취소" : "반려 취소";
 
+        const count = report.report_count || 1;
+
     const message = isAccepted
         ? "승인을 취소할까요?\n\n" +
-          "· 같은 게시글에서 승인된 신고가 모두 '신고 처리' 대기로 돌아갑니다.\n" +
+          "· 이 글에서 승인된 신고가 모두 '신고 처리' 대기로 돌아갑니다.\n" +
           "· 숨김 처리된 게시글은 다시 공개됩니다."
         : "반려를 취소할까요?\n\n" +
-          "· 이 신고가 '신고 처리' 대기로 돌아갑니다.";
-
+          `· 함께 반려된 신고 ${count}건이 '신고 처리' 대기로 돌아갑니다.`;
     showAdminConfirm({
         title: label,
         message,
@@ -2116,32 +2230,60 @@ async function deletePostByAdmin(postId) {
     );
 }
 
+// 묶음 처리: 글이 있으면 글 단위 일괄 API, 삭제된 글이면 신고 1건 API
+async function processReportGroup(group, newStatus) {
+    const hasPost =
+        group.post_id !== null && group.post_id !== undefined;
+
+    if (hasPost) {
+        return processPostReports(group.post_id, newStatus);
+    }
+
+    return applyReportStatus(group.reports[0].report_id, newStatus);
+}
+
+
 // ========================================
-// 신고 상세 / 처리 팝업
-// - 처리 대기 / 검토 완료 신고: 내용을 확인한 뒤 승인 또는 반려로 처리
-// - 처리가 끝난 신고(처리 내역): 내용만 확인 (읽기 전용)
+// 신고 상세 / 처리 팝업 (글 단위)
+// - 처리할 신고: 묶음 안의 신고들을 확인한 뒤 한 번에 승인 또는 반려
+// - 처리가 끝난 신고(처리 내역): 내용 확인 + 처리 취소
 // ========================================
-function showReportDetail(report) {
+function showReportDetail(group) {
     const canProcess =
-        report.status === "PENDING" || report.status === "REVIEWED";
+        group.status === "PENDING" || group.status === "REVIEWED";
 
     const hasPost =
-        report.post_id !== null && report.post_id !== undefined;
+        group.post_id !== null && group.post_id !== undefined;
+
+    const reports = [...(group.reports || [])].sort(
+        (a, b) => new Date(b.reported_at) - new Date(a.reported_at)
+    );
+
+    // 이 글에서 실제로 처리될 신고 수
+    // (검색 조건 때문에 목록에는 일부만 보일 수 있음)
+    const openTotal = hasPost
+        ? Math.max(
+            group.report_count,
+            ...reports.map((item) => item.same_post_open_count || 0)
+        )
+        : group.report_count;
 
     const dialog = document.createElement("dialog");
     dialog.className = "report-dialog";
 
-    // ----- 1. 머리글: 신고 번호 + 현재 상태 -----
+    // ----- 1. 머리글 -----
     const head = document.createElement("div");
     head.className = "report-dialog-head";
 
     const heading = document.createElement("h2");
-    heading.textContent = `신고 #${report.report_id}`;
+    heading.textContent = hasPost
+        ? `게시글 No.${group.post_id} 신고`
+        : `신고 #${group.report_id}`;
 
     const statusBadge = document.createElement("span");
     statusBadge.className =
-        `status-badge ${(report.status || "").toLowerCase()}`;
-    statusBadge.textContent = getReportStatusLabel(report.status);
+        `status-badge ${(group.status || "").toLowerCase()}`;
+    statusBadge.textContent = getReportStatusLabel(group.status);
 
     head.append(heading, statusBadge);
     dialog.appendChild(head);
@@ -2150,7 +2292,7 @@ function showReportDetail(report) {
     const list = document.createElement("dl");
     list.className = "report-detail-list";
 
-        const addDetail = (label, value, className = "") => {
+    const addDetail = (label, value, className = "") => {
         const term = document.createElement("dt");
         term.textContent = label;
 
@@ -2166,52 +2308,110 @@ function showReportDetail(report) {
 
     addDetail(
         "게시글 번호",
-        hasPost ? `No.${report.post_id}` : "삭제된 게시글"
+        hasPost ? `No.${group.post_id}` : "삭제된 게시글"
     );
     addDetail(
         "제목",
-        hasPost ? (report.title || "[제목 없음]") : "—"
+        hasPost ? (group.title || "[제목 없음]") : "—"
     );
+
     if (hasPost) {
-        addDetail("글 작성자", report.post_author || "알 수 없음");
+        addDetail("글 작성자", group.post_author || "알 수 없음");
         addDetail(
             "게시글 내용",
-            report.post_excerpt || "(내용 없음)",
+            group.post_excerpt || "(내용 없음)",
             "report-post-excerpt"
         );
         addDetail(
             "게시글 상태",
-            getContentStatusLabel(report.post_status)
+            getContentStatusLabel(group.post_status)
         );
     }
-    addDetail("신고 사유", getReportReasonLabel(report.reason));
-    addDetail("신고자", report.nickname || "알 수 없음");
-    addDetail("접수일", formatDate(report.reported_at));
+
+    addDetail(
+        "접수 현황",
+        `${group.report_count}건 · ${formatReasonSummary(group)}`
+    );
+    addDetail(
+        "접수 기간",
+        group.first_reported_at === group.latest_reported_at
+            ? formatDate(group.latest_reported_at)
+            : `${formatDate(group.first_reported_at)} ~ ${formatDate(group.latest_reported_at)}`
+    );
     addDetail(
         "처리일",
-        report.status === "PENDING"
+        group.status === "PENDING"
             ? "아직 처리되지 않음"
-            : formatDate(report.reviewed_at)
+            : formatDate(group.reviewed_at)
     );
-    addDetail(
-        "신고 내용",
-        report.report_content || "작성된 신고 내용이 없습니다."
-    );
+
     dialog.appendChild(list);
 
-    // ----- 3. 원글 보기 링크 (처리할 건에서만) -----
+    // ----- 3. 접수된 신고 목록 -----
+    const itemsBox = document.createElement("div");
+    itemsBox.className = "report-items-box";
+
+    const itemsTitle = document.createElement("h3");
+    itemsTitle.textContent = `접수된 신고 ${group.report_count}건`;
+    itemsBox.appendChild(itemsTitle);
+
+    const itemList = document.createElement("ul");
+    itemList.className = "report-items";
+
+    for (const item of reports) {
+        const li = document.createElement("li");
+
+        const meta = document.createElement("div");
+        meta.className = "report-item-meta";
+
+        const who = document.createElement("strong");
+        who.textContent = item.nickname || "알 수 없음";
+
+        const reason = document.createElement("span");
+        reason.className = "status-badge reason";
+        reason.textContent = getReportReasonLabel(item.reason);
+
+        const when = document.createElement("span");
+        when.className = "report-item-date";
+        when.textContent = formatDateShort(item.reported_at);
+
+        meta.append(who, reason, when);
+
+        const content = document.createElement("p");
+        content.className = "report-item-content";
+        content.textContent =
+            item.report_content || "작성된 신고 내용이 없습니다.";
+
+        li.append(meta, content);
+        itemList.appendChild(li);
+    }
+
+    itemsBox.appendChild(itemList);
+    dialog.appendChild(itemsBox);
+
+    // 검색 조건 때문에 일부 신고만 보이는 경우 안내
+    if (canProcess && openTotal > group.report_count) {
+        const note = document.createElement("p");
+        note.className = "report-dialog-note";
+        note.textContent =
+            `검색 조건 때문에 일부 신고만 표시되었습니다. ` +
+            `처리하면 이 글의 미처리 신고 ${openTotal}건이 모두 처리됩니다.`;
+        dialog.appendChild(note);
+    }
+
+    // ----- 4. 원글 보기 링크 (처리할 건에서만) -----
     if (canProcess && hasPost) {
         const link = document.createElement("a");
         link.className = "report-post-link";
         link.href =
-            `../community-view.html?postId=${encodeURIComponent(report.post_id)}`;
+            `../community-view.html?postId=${encodeURIComponent(group.post_id)}`;
         link.target = "_blank";
         link.rel = "noopener";
         link.textContent = "원글 보기 ↗";
         dialog.appendChild(link);
     }
 
-    // ----- 4. 닫기 버튼 (공통) -----
+    // ----- 5. 닫기 버튼 (공통) -----
     const closeButton = document.createElement("button");
     closeButton.type = "button";
     closeButton.className = "dialog-button";
@@ -2226,71 +2426,63 @@ function showReportDetail(report) {
         const actions = document.createElement("div");
         actions.className = "footer-actions";
 
-        // 승인 취소 / 반려 취소
-        if (report.status === "ACCEPTED" || report.status === "REJECTED") {
-            const revertButton = document.createElement("button");
-            revertButton.type = "button";
-            revertButton.className = "dialog-button";
-            revertButton.textContent =
-                report.status === "ACCEPTED" ? "승인 취소" : "반려 취소";
+        const revertButton = document.createElement("button");
+        revertButton.type = "button";
+        revertButton.className = "dialog-button";
+        revertButton.textContent =
+            group.status === "ACCEPTED" ? "승인 취소" : "반려 취소";
 
-            // 삭제된 게시글의 승인은 되돌릴 수 없음
-            if (
-                report.status === "ACCEPTED" &&
-                (report.post_status === "DELETED" || !hasPost)
-            ) {
-                revertButton.disabled = true;
-                revertButton.title =
-                    "삭제된 게시글은 승인을 취소할 수 없습니다.";
-            }
-
-            revertButton.addEventListener("click", () => {
-                confirmRevertReport(report, () => dialog.close());
-            });
-
-            actions.appendChild(revertButton);
+        // 삭제된 게시글의 승인은 되돌릴 수 없음
+        if (
+            group.status === "ACCEPTED" &&
+            (group.post_status === "DELETED" || !hasPost)
+        ) {
+            revertButton.disabled = true;
+            revertButton.title =
+                "삭제된 게시글은 승인을 취소할 수 없습니다.";
         }
 
-        actions.appendChild(closeButton);
+        revertButton.addEventListener("click", () => {
+            confirmRevertReport(group, () => dialog.close());
+        });
 
+        actions.append(revertButton, closeButton);
         footer.appendChild(actions);
         dialog.appendChild(footer);
 
     } else {
-        // ----- 5. 처리 방법 선택 영역 -----
-                // 같은 글에 함께 남아 있는 다른 미처리 신고 수
-        const otherOpenCount = hasPost
-            ? Math.max(0, (report.same_post_open_count || 1) - 1)
-            : 0;
+        // ----- 6. 처리 방법 선택 영역 -----
+        const many = openTotal > 1;
 
-       const options = [
+        const options = [
             {
                 status: "ACCEPTED",
                 className: "accept",
                 title: "신고 승인",
                 desc: hasPost
                     ? "게시글이 숨김 처리되어 일반 사용자에게 보이지 않습니다." +
-                      (otherOpenCount > 0
-                          ? ` 같은 글의 다른 신고 ${otherOpenCount}건도 함께 승인됩니다.`
+                      (many
+                          ? ` 이 글의 신고 ${openTotal}건이 모두 승인됩니다.`
                           : "")
                     : "이미 삭제된 게시글이라 숨길 대상은 없고, 신고만 승인 처리됩니다.",
                 confirmLabel: hasPost ? "승인하고 게시글 숨기기" : "승인하기",
                 confirmClass: "danger",
-                doneMessage: hasPost
-                    ? "신고를 승인했습니다. 게시글이 숨김 처리되었습니다."
-                    : "신고를 승인했습니다."
+                doneMessage: (count) =>
+                    hasPost
+                        ? `신고 ${count}건을 승인했습니다. 게시글이 숨김 처리되었습니다.`
+                        : "신고를 승인했습니다."
             },
             {
                 status: "REJECTED",
                 className: "reject",
                 title: "반려",
-                desc: "게시글은 그대로 유지되고 이 신고만 종료됩니다." +
-                      (otherOpenCount > 0
-                          ? ` 같은 글의 다른 신고 ${otherOpenCount}건은 남아 있습니다.`
-                          : ""),
+                desc: "게시글은 그대로 유지되고 " +
+                      (many
+                          ? `이 글의 신고 ${openTotal}건이 모두 반려됩니다.`
+                          : "이 신고가 반려됩니다."),
                 confirmLabel: "반려하기",
                 confirmClass: "neutral",
-                doneMessage: "신고를 반려했습니다."
+                doneMessage: (count) => `신고 ${count}건을 반려했습니다.`
             }
         ];
 
@@ -2376,27 +2568,18 @@ function showReportDetail(report) {
 
             setBusy(true);
 
-             try {
-                const result = await applyReportStatus(
-                    report.report_id,
+            try {
+                const result = await processReportGroup(
+                    group,
                     selected.status
                 );
 
                 dialog.close();
 
-                // 같은 글의 신고가 함께 승인됐다면 알림에 표시
-                let message = selected.doneMessage;
+                const count =
+                    result?.processed_count ?? group.report_count;
 
-                if (
-                    selected.status === "ACCEPTED" &&
-                    result &&
-                    result.also_accepted_count > 0
-                ) {
-                    message +=
-                        ` 같은 글의 신고 ${result.also_accepted_count}건도 함께 승인되었습니다.`;
-                }
-
-                showAdminToast(message);
+                showAdminToast(selected.doneMessage(count));
 
                 // 처리된 신고는 목록에서 사라지고 처리 내역으로 이동
                 await loadAdminCommunityData();
@@ -2411,8 +2594,8 @@ function showReportDetail(report) {
         const footer = document.createElement("div");
         footer.className = "report-dialog-footer";
 
-        // 처리 대기 건에만 "검토 중으로 표시" 보조 링크
-        if (report.status === "PENDING") {
+        // 대기 중인 신고가 있을 때만 "검토 중으로 표시" 보조 링크
+        if (group.status === "PENDING") {
             const reviewLink = document.createElement("button");
             reviewLink.type = "button";
             reviewLink.className = "review-link";
@@ -2423,7 +2606,7 @@ function showReportDetail(report) {
                 reviewLink.disabled = true;
 
                 try {
-                    await applyReportStatus(report.report_id, "REVIEWED");
+                    await processReportGroup(group, "REVIEWED");
 
                     dialog.close();
                     showAdminToast("검토 중으로 표시했습니다.");
@@ -2449,8 +2632,7 @@ function showReportDetail(report) {
         dialog.appendChild(decision);
     }
 
-    // ----- 6. 팝업 열기 / 닫기 -----
-    // 팝업 바깥(어두운 배경)을 클릭하면 닫기
+    // ----- 7. 팝업 열기 / 닫기 -----
     dialog.addEventListener("click", (event) => {
         if (event.target === dialog) {
             dialog.close();

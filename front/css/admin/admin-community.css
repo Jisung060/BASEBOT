@@ -1343,3 +1343,104 @@
     background: #f3f4f6;
     color: #6b7280;
 }
+
+/* =========================================
+   신고 처리 / 처리 내역: 글 단위 표
+========================================= */
+
+#reportsPanel .community-table { min-width: 820px; }
+#reportsPanel .community-table th:nth-child(1) { width: 80px; }
+#reportsPanel .community-table th:nth-child(2) { width: auto; }
+#reportsPanel .community-table th:nth-child(3) { width: 90px; }
+#reportsPanel .community-table th:nth-child(4) { width: 200px; }
+#reportsPanel .community-table th:nth-child(5) { width: 110px; }
+#reportsPanel .community-table th:nth-child(6) { width: 100px; }
+#reportsPanel .community-table th:nth-child(7) { width: 110px; }
+
+#historyPanel .community-table { min-width: 760px; }
+#historyPanel .community-table th:nth-child(1) { width: 80px; }
+#historyPanel .community-table th:nth-child(2) { width: auto; }
+#historyPanel .community-table th:nth-child(3) { width: 90px; }
+#historyPanel .community-table th:nth-child(4) { width: 200px; }
+#historyPanel .community-table th:nth-child(5) { width: 110px; }
+#historyPanel .community-table th:nth-child(6) { width: 100px; }
+
+/* 신고 건수 */
+.report-count {
+    font-weight: 700;
+    color: #334155;
+}
+
+.report-count.many {
+    color: #b91c1c;
+}
+
+/* 신고 사유 칩 */
+.reason-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* 팝업: 접수된 신고 목록 */
+.report-items-box {
+    margin-top: 14px;
+}
+
+.report-items-box h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.report-items {
+    max-height: 220px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.report-items li {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f1f3;
+}
+
+.report-items li:last-child {
+    border-bottom: none;
+}
+
+.report-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.report-item-date {
+    margin-left: auto;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.report-item-content {
+    margin: 6px 0 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* 팝업 안내 문구 */
+.report-dialog-note {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.5;
+}

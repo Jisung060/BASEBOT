@@ -1111,6 +1111,77 @@ def update_admin_report_status(
         "also_accepted_count": also_accepted_count,
     }
 
+# ========================================
+# 글 단위 신고 일괄 처리
+# PATCH /admin/community/posts/{post_id}/reports/status
+# - 그 글에서 아직 처리되지 않은 신고(대기, 검토 중)를 한 번에 변경
+# - ACCEPTED: 모두 승인하고 게시글 숨김
+# - REJECTED: 모두 반려 (게시글은 유지)
+# - REVIEWED: 대기 중인 신고를 검토 중으로 표시
+# ========================================
+
+@router.patch("/posts/{post_id}/reports/status")
+def update_admin_post_reports_status(
+    post_id: int,
+    new_status: Literal["REVIEWED", "ACCEPTED", "REJECTED"],
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    # 1. 아직 처리되지 않은 신고 조회
+    reports = db.scalars(
+        select(PostReport).where(
+            PostReport.post_id == post_id,
+            PostReport.status.in_(("PENDING", "REVIEWED")),
+        )
+    ).all()
+
+    if not reports:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="처리할 신고가 없습니다.",
+        )
+
+    # 같은 묶음은 같은 처리 시각을 갖도록 한 번만 계산
+    now = datetime.now()
+    processed_count = 0
+
+    # 2. 신고 상태 변경
+    for report in reports:
+        # 검토 중 표시는 대기 중인 신고에만 적용
+        if new_status == "REVIEWED" and report.status != "PENDING":
+            continue
+
+        report.status = new_status
+        report.reviewed_at = now
+        processed_count += 1
+
+    # 3. 승인이면 게시글 숨김
+    post_status = None
+
+    if new_status == "ACCEPTED":
+        post = db.scalar(
+            select(CommunityPost).where(
+                CommunityPost.post_id == post_id
+            )
+        )
+
+        if post is not None:
+            post.status = "HIDDEN"
+            post_status = post.status
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {
+        "message": "신고가 처리되었습니다.",
+        "post_id": post_id,
+        "status": new_status,
+        "processed_count": processed_count,
+        "post_status": post_status,
+    }
 
 # ========================================
 # 신고 처리 취소
@@ -1152,10 +1223,23 @@ def revert_admin_report(
     post_restored = False
 
     if report.status == "REJECTED":
-        # 반려 취소: 이 신고만 대기로 복귀
-        report.status = "PENDING"
-        report.reviewed_at = None
-        reverted_count = 1
+        # 같은 글에서 같은 시각에 함께 반려된 신고를 모두 대기로 복귀
+        rejected_reports = [report]
+
+        if report.post_id is not None and report.reviewed_at is not None:
+            rejected_reports = db.scalars(
+                select(PostReport).where(
+                    PostReport.post_id == report.post_id,
+                    PostReport.status == "REJECTED",
+                    PostReport.reviewed_at == report.reviewed_at,
+                )
+            ).all()
+
+        for item in rejected_reports:
+            item.status = "PENDING"
+            item.reviewed_at = None
+
+        reverted_count = len(rejected_reports)
 
     else:
         # 승인 취소: 글 상태 확인
