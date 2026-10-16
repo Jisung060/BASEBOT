@@ -10,7 +10,7 @@ const gameList = $("game-list");                       // 경기 목록을 넣�
 const emptyMessage = $("no-game-message");             // 경기가 없을 때 문구
 const calendar = $("game-calendar");                   // 달력 상자
 const monthCache = new Map();                          // 한 번 받은 달 데이터 저장 (중복 요청 방지)
-const scheduleCache = new Map();                       // MLB 일정 데이터 저장
+const scheduleCache = new Map();                       // MLB 선발 투수 데이터 저장
 let myFavoriteTeamId = null;                           // 응원 구단 번호 (없으면 null)
 let selectedDay = null;                                // 선택한 '일' 숫자 (전체 보기면 null)
 
@@ -455,7 +455,7 @@ async function fetchMonthGames(dateStr) {              // 한 달 경기 가져�
 
     const games = rawGames
         .map(game => {
-            const merged = { ...game, ...(schedule.get(String(game.game_id)) || {}) }; // MLB 시간·선발 정보 합치기
+            const merged = { ...game, ...(schedule.get(String(game.game_id)) || {}) }; // MLB 선발 투수 정보 합치기
             return { ...merged, display_date: koreanDate(merged.scheduled_at, merged.game_date) };
         })
         .filter(game => game.display_date.startsWith(monthKey)); // 요청한 달만 남기기
@@ -483,7 +483,7 @@ async function fetchDayGames(date) {                   // 하루치 경기 (DB �
     return response.json();
 }
 
-async function loadScheduleInfo(start, end) {          // MLB에서 시작 시간과 선발 투수만 가져오기 (장소는 DB 사용)
+async function loadScheduleInfo(start, end) {          // MLB에서 선발 투수만 가져오기 (시간·구장은 DB 사용)
     const key = `${start}:${end}`;
     if (scheduleCache.has(key)) return scheduleCache.get(key);
 
@@ -495,13 +495,12 @@ async function loadScheduleInfo(start, end) {          // MLB에서 시작 시�
         const data = await response.json();
         (data.dates || []).flatMap(day => day.games || []).forEach(item => {
             info.set(String(item.gamePk), {
-                scheduled_at: item.gameDate,           // 시작 시간
                 away_pitcher: item.teams?.away?.probablePitcher?.fullName || "",
                 home_pitcher: item.teams?.home?.probablePitcher?.fullName || ""
             });
         });
     } catch (error) {
-        console.warn("MLB 시작 시간·선발 투수 정보를 불러오지 못했습니다.", error);
+        console.warn("MLB 선발 투수 정보를 불러오지 못했습니다.", error);
     }
     scheduleCache.set(key, info);
     return info;
@@ -530,8 +529,16 @@ async function init() {
     setupEvents();
     addTeamOption("ALL", "전체 구단", "", "MLB");
     await loadTeams();                                 // 구단 목록이 먼저 만들어져야 구단을 복원할 수 있음
-    const saved = takeSavedState();                    // 저장된 상태 꺼내기 (없으면 null)
-    if (saved) {
+    const openToday = new URLSearchParams(location.search).get("date") === "today"; // 메인 '더보기 +'로 들어온 경우
+    const savedState = takeSavedState();               // 저장된 상태 꺼내기 (꺼내면서 지움)
+    const saved = openToday ? null : savedState;       // 오늘 보기면 저장된 상태는 쓰지 않음
+    if (openToday) {
+        const today = formatKey(new Date());
+        dateInput.value = today;                       // 오늘 날짜 선택 (구단은 기본값 '전체 구단')
+        selectedDay = Number(today.slice(-2));
+        renderMonthStrip();
+        history.replaceState(null, "", location.pathname); // 주소의 ?date=today 지우기 (뒤로 가기 때 화면 복원되도록)
+    } else if (saved) {
         dateInput.value = saved.date;                  // 달·날짜 복원
         selectedDay = saved.day;                       // 선택한 일 복원
         teamSelect.value = saved.team;                 // 구단 복원

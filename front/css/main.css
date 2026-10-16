@@ -725,10 +725,21 @@ input {
     gap: 8px;
 
     padding: 10px 6px;
-    border-bottom: 1px solid #eee;
+    border: 1px solid transparent;   /* 평소: 투명 테두리 (마우스를 올려도 크기가 흔들리지 않게) */
+    border-bottom-color: #eee;       /* 아래 구분선은 그대로 */
+
+    color: inherit;                  /* 링크라서 생기는 파란 글씨와 밑줄 없애기 */
+    text-decoration: none;
 
     text-align: center;
     font-size: 14px;
+}
+
+/* 마우스를 올리면 파란 테두리 (오늘의 경기 카드와 같은 모양) */
+.result-item:hover {
+    border-color: #174a9c;
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
 .result-team {

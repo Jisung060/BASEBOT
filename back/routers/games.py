@@ -31,6 +31,8 @@ def get_games(
             g.game_id,
             g.game_date,
             CAST(g.game_time AS CHAR) AS game_time,
+            DATE_FORMAT(g.game_date, '%Y-%m-%dT%H:%i:%sZ') AS scheduled_at,
+            g.stadium AS venue_name,
             g.status,
             g.home_score,
             g.away_score,

@@ -83,8 +83,14 @@ function renderMainGameResults(games) {
             game.away_score ?? 0
         );
 
+        // 박스스코어(경기 상세) 페이지 주소 - 경기 일정 페이지와 같은 형식
+        const detailUrl = `/game-detail.html?${new URLSearchParams({
+            id: game.game_id,
+            date: String(game.game_date || "").slice(0, 10)
+        })}`;
+
         return `
-            <div class="result-item">
+            <a class="result-item" href="${escapeGameHtml(detailUrl)}">
 
                 <div class="result-team">
                     ${renderTeamLogo(homeLogo, homeName)}
@@ -106,7 +112,7 @@ function renderMainGameResults(games) {
                     </span>
                 </div>
 
-            </div>
+            </a>
         `;
     }).join("");
 }
