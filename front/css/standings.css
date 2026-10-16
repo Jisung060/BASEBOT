@@ -1,0 +1,194 @@
+/* ==================================================
+   팀 순위 (standings.html)
+   - 상단 경로·제목(breadcrumb, page-heading, eyebrow)은 game.css 공통 스타일 사용
+================================================== */
+
+.standings-page {
+    width: min(100% - 24px, 1080px);
+    padding-top: 18px;
+}
+
+/* 리그 탭 + 시즌 선택 */
+.standings-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e5ebf3;
+}
+
+.standings-league-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.standings-league-tab {
+    padding: 8px 16px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #788496;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.standings-league-tab:hover {
+    color: #174b8a;
+}
+
+.standings-league-tab.selected {
+    border-bottom-color: #347cff;
+    color: #2874fa;
+}
+
+.standings-season {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #727d8e;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.standings-season select {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #dce3ed;
+    border-radius: 5px;
+    background: #fff;
+    color: #243b5c;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+/* 안내 문구 */
+.standings-message {
+    padding: 40px 10px;
+    color: #777;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* 지구별 표 */
+.standings-list {
+    display: grid;
+    gap: 28px;
+    margin-top: 22px;
+}
+
+.standings-division-title {
+    margin: 0 0 10px;
+    color: #243b5c;
+    font-size: 17px;
+}
+
+.standings-table-wrap {
+    overflow-x: auto;
+}
+
+.standings-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    border-top: 2px solid #174b8a;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.standings-table th {
+    padding: 10px 6px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.standings-table td {
+    padding: 9px 6px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.standings-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.standings-rank {
+    color: #174b8a !important;
+    font-weight: 800;
+}
+
+.standings-pct {
+    font-weight: 700;
+}
+
+.streak-win {
+    color: #d9363e !important;
+}
+
+.streak-lose {
+    color: #2874fa !important;
+}
+
+/* 구단 (로고 + 이름) → 팀 로스터 링크 */
+.standings-team-cell {
+    text-align: left !important;
+}
+
+.standings-team-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.standings-team-logo {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    object-fit: contain;
+}
+
+.standings-logo-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e5ebf3;
+    color: #174b8a;
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.standings-team-name {
+    font-weight: 700;
+}
+
+.standings-team-link:hover .standings-team-name {
+    color: #174b8a;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* 작은 화면 */
+@media (max-width: 760px) {
+    .standings-tools {
+        flex-wrap: wrap;
+    }
+
+    .standings-league-tab {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    .standings-division-title {
+        font-size: 15px;
+    }
+}

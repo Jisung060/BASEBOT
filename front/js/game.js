@@ -80,7 +80,7 @@ function setupEvents() {
     const topButton = $("scroll-to-top");              // 280px 이상 내려가면 맨 위로 버튼 보이기
     window.addEventListener("scroll", () => { topButton.hidden = window.scrollY < 280; }, { passive: true });
     topButton.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
-    renderMonthStrip();
+    // 월 버튼은 init()에서 보여 줄 날짜가 정해진 뒤에 그림 (처음에 4월이 잠깐 보이는 문제 방지)
 }
 
 /* ---------- 오늘 / 초기화 버튼 ---------- */
@@ -98,10 +98,13 @@ async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 
         if (!response.ok) throw new Error(`경기 데이터 API 오류 (${response.status})`);
         const [latestGame] = await response.json();
         if (!latestGame) {
+            renderMonthStrip();
             emptyMessage.textContent = "최근 경기 결과가 없습니다.";
             emptyMessage.hidden = false;
             return;
         }
+        dateInput.value = String(latestGame.game_date).slice(0, 10); // 최근 경기의 달로 월 버튼 먼저 그리기
+        renderMonthStrip();
 
         // 2) 그 달 경기 중 오늘 이전에 끝난 경기의 마지막 날짜 찾기 (한국 날짜 기준)
         const today = formatKey(new Date());
@@ -123,6 +126,7 @@ async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 
         setSelectedDate(lastDate);         // 그 날짜의 경기만 보여 줌
     } catch (error) {
         console.error(error);
+        renderMonthStrip();                // 실패해도 월 버튼은 보이게
         emptyMessage.textContent = "최근 경기 데이터를 불러오지 못했습니다.";
         emptyMessage.hidden = false;
     }
@@ -545,7 +549,13 @@ async function init() {
         updateTeamRail();                              // 구단 버튼 표시 갱신
         renderMonthStrip();                            // 월 버튼 표시 갱신
     }
-    await loadGames();                                 // 경기 목록 그리기
+    if (openToday || saved) {
+        await loadGames();                             // 오늘 보기 / 뒤로 가기 복원 → 그 날짜 경기 그리기
+    } else {
+        emptyMessage.textContent = "최근 경기를 불러오는 중입니다...";
+        emptyMessage.hidden = false;
+        await goToRecentGame();                        // 그냥 들어오면 → 전체 구단의 최근 경기 날짜
+    }
     if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" }); // 스크롤 위치 복원
 }
 

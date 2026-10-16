@@ -6,7 +6,7 @@
     <title>경기 상세 · 박스스코어 - BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/game.css?v=2">
-    <link rel="stylesheet" href="../css/game-detail.css?v=5">
+    <link rel="stylesheet" href="../css/game-detail.css?v=6">
 </head>
 <body>
     <div id="header"></div>
@@ -19,9 +19,9 @@
         <section class="scoreboard-card" aria-label="경기 결과">
             <div class="game-meta"><span id="game-date"></span><span id="game-venue"></span><span id="game-status" class="status-pill"></span></div>
             <div class="matchup">
-                <div class="detail-team"><span class="team-mark" id="away-mark"><img id="away-logo" alt=""></span><h2 id="away-team-name">불러오는 중</h2><p>선발 <a id="away-pitcher" class="player-name-link" href="#">-</a></p></div>
+                <div class="detail-team"><a id="away-team-link" class="team-logo-link" href="#"><span class="team-mark" id="away-mark"><img id="away-logo" alt=""></span></a><h2 id="away-team-name">불러오는 중</h2><p>선발 <a id="away-pitcher" class="player-name-link" href="#">-</a></p></div>
                 <div class="final-score"><span id="away-score"></span><span class="score-separator">:</span><span id="home-score"></span><small>경기 종료</small></div>
-                <div class="detail-team"><span class="team-mark" id="home-mark"><img id="home-logo" alt=""></span><h2 id="home-team-name">불러오는 중</h2><p>선발 <a id="home-pitcher" class="player-name-link" href="#">-</a></p></div>
+                <div class="detail-team"><a id="home-team-link" class="team-logo-link" href="#"><span class="team-mark" id="home-mark"><img id="home-logo" alt=""></span></a><h2 id="home-team-name">불러오는 중</h2><p>선발 <a id="home-pitcher" class="player-name-link" href="#">-</a></p></div>
             </div>
         </section>
 
@@ -61,6 +61,6 @@
 
     <div id="footer"></div>
     <script src="../js/main.js"></script>
-    <script src="../js/game-detail.js?v=5"></script>
+    <script src="../js/game-detail.js?v=6"></script>
 </body>
 </html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>팀 순위 - BASEBOT</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/game.css?v=49">
+    <link rel="stylesheet" href="../css/standings.css?v=1">
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="main standings-page">
+        <nav class="breadcrumb" aria-label="현재 위치"><a href="../main.html">홈</a><span>›</span><strong>팀 순위</strong></nav>
+        <header class="page-heading">
+            <p class="eyebrow">MLB STANDINGS</p>
+            <h1>팀 순위</h1>
+            <p>리그·지구별 MLB 팀 순위를 확인하세요. 구단을 누르면 팀 로스터로 이동합니다.</p>
+        </header>
+
+        <section class="standings-tools" aria-label="순위 조회 조건">
+            <div class="standings-league-tabs" role="tablist" aria-label="리그 선택">
+                <button type="button" class="standings-league-tab selected" data-league="AL" role="tab" aria-selected="true">아메리칸리그</button>
+                <button type="button" class="standings-league-tab" data-league="NL" role="tab" aria-selected="false">내셔널리그</button>
+            </div>
+            <label class="standings-season">
+                시즌
+                <select id="standings-season-select" aria-label="시즌 선택"></select>
+            </label>
+        </section>
+
+        <p id="standings-message" class="standings-message">팀 순위를 불러오는 중입니다...</p>
+        <div id="standings-list" class="standings-list"></div>
+    </main>
+
+    <div id="footer"></div>
+    <script src="../js/main.js"></script>
+    <script src="../js/standings.js?v=1"></script>
+</body>
+</html>

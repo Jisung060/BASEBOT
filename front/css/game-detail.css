@@ -35,3 +35,8 @@
 .detail-tabs{margin-top:26px}
 .tab-button{font-size:14px}
 @media(max-width:700px){.game-detail-page{padding-top:12px}.detail-heading h1{font-size:22px}.sample-notice{font-size:13px}.scoreboard-card{padding:14px 10px}.box-table{font-size:13px}.box-table th,.box-table td{padding:9px 10px}}
+
+/* 팀 로고 → 팀 상세 페이지 링크 */
+.detail-team .team-logo-link{display:block;width:fit-content;margin:0 auto;border-radius:50%;cursor:pointer;transition:transform .15s ease}
+.detail-team .team-logo-link:hover{transform:scale(1.08)}
+.detail-team .team-logo-link:focus-visible{outline:2px solid #3978bd;outline-offset:3px}

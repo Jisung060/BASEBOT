@@ -1,13 +1,28 @@
 const MLB_STATS_API = "https://statsapi.mlb.com/api/v1.1/game";
 const params = new URLSearchParams(location.search);
-const gameId = params.get("id");
-const gameDate = params.get("date") || "2024-04-01";
+let gameId = params.get("id");                          // 주소에 경기 번호가 없으면 아래에서 최근 경기로 채움
+let gameDate = params.get("date") || "2024-04-01";
 let selectedGame = null;
 
 const escapeHtml = value => String(value ?? "-").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 const formatStatus = status => ({ FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" })[status] || status || "상태 정보 없음";
 
 async function loadGame() {
+    if (!gameId) {                                      // 경기 번호 없이 들어오면 가장 최근에 끝난 경기 보여주기
+        try {
+            const latestResponse = await fetch("/api/games?status=FINAL&limit=1");
+            if (!latestResponse.ok) throw new Error(`최근 경기 조회 API 오류 (${latestResponse.status})`);
+            const [latest] = await latestResponse.json();
+            if (latest) {
+                gameId = latest.game_id;
+                gameDate = String(latest.game_date).slice(0, 10);
+                history.replaceState(null, "", `?${new URLSearchParams({ id: gameId, date: gameDate })}`); // 주소에도 표시
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     if (!gameId) {
         showPageError("경기 정보가 없습니다. 경기 일정·결과 페이지에서 경기를 선택해 주세요.");
         return;
@@ -47,6 +62,8 @@ function renderGameSummary(game) {
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";
     setTeamLogo("away", game.away_logo_url, game.away_team_code);
     setTeamLogo("home", game.home_logo_url, game.home_team_code);
+    document.getElementById("away-team-link").href = `team-detail.html?id=${encodeURIComponent(game.away_team_id)}`; // 로고 → 팀 상세
+    document.getElementById("home-team-link").href = `team-detail.html?id=${encodeURIComponent(game.home_team_id)}`;
 }
 
 function setTeamLogo(side, url, code) {
@@ -92,7 +109,8 @@ function renderTeamAdvancedStats(boxscore) {
 
 function playerDetailUrl(playerId) {
     if (!playerId) return "";
-    return `player-detail.html?id=${encodeURIComponent(playerId)}`;
+    const season = String(gameDate).slice(0, 4);       // 이 경기의 시즌 연도 → 선수 페이지가 그 시즌 기록으로 열림
+    return `player-detail.html?${new URLSearchParams({ id: playerId, season })}`;
 }
 
 function playerHeadshotUrl(playerId) {
