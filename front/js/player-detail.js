@@ -12,23 +12,35 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchPlayerDetail(playerId);
 });
 
-// Baseball Savant 공식 색상 산출 (50 기준 파랑/빨강)
+// ★ Baseball Savant 공식 다중 스펙트럼 컬러맵 (재즈 치좀 주니어 그래프 색상 100% 재현)
 function getSavantColor(pct) {
     if (pct === null || pct === undefined) return "#94a3b8";
-    const val = Math.max(0, Math.min(100, Number(pct)));
-    if (val >= 50) {
-        const ratio = (val - 50) / 50;
-        const r = Math.round(180 + 45 * ratio);
-        const g = Math.round(70 * (1 - ratio));
-        const b = Math.round(70 * (1 - ratio));
-        return `rgb(${r}, ${g}, ${b})`;
-    } else {
-        const ratio = val / 50;
-        const r = Math.round(50 + 60 * ratio);
-        const g = Math.round(80 + 60 * ratio);
-        const b = Math.round(215);
-        return `rgb(${r}, ${g}, ${b})`;
+    const val = Math.max(1, Math.min(100, Number(pct)));
+
+    // Savant 실제 컬러 스톱 (Pct: [R, G, B])
+    const stops = [
+        { p: 1,   rgb: [43, 76, 126] },   // 1~10: 딥 네이비 블루 (K% 9, xBA 7)
+        { p: 20,  rgb: [86, 113, 153] },  // 15~25: 미드 블루 (xwOBA 16, xSLG 24)
+        { p: 35,  rgb: [132, 152, 176] }, // 30~40: 라이트 슬레이트 블루 (Squared-Up 33)
+        { p: 50,  rgb: [168, 179, 184] }, // 48~55: 뉴트럴 쿨 그레이 (Chase% 52, Barrel% 53)
+        { p: 60,  rgb: [182, 171, 167] }, // 58~63: 웜 그레이 브라운 (Hard-Hit% 62)
+        { p: 72,  rgb: [197, 150, 138] }, // 68~76: 더스티 로즈 / 테라코타 (BB% 69, Exit Velo 73, Sprint 75)
+        { p: 85,  rgb: [204, 96, 84] },   // 82~88: 코랄 레드 (Fielding 85)
+        { p: 100, rgb: [198, 45, 40] }    // 95~100: 크림슨 딥 레드 (Baserunning 96, Range 98)
+    ];
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        const s1 = stops[i];
+        const s2 = stops[i + 1];
+        if (val >= s1.p && val <= s2.p) {
+            const ratio = (val - s1.p) / (s2.p - s1.p);
+            const r = Math.round(s1.rgb[0] + (s2.rgb[0] - s1.rgb[0]) * ratio);
+            const g = Math.round(s1.rgb[1] + (s2.rgb[1] - s1.rgb[1]) * ratio);
+            const b = Math.round(s1.rgb[2] + (s2.rgb[2] - s1.rgb[2]) * ratio);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
     }
+    return "rgb(168, 179, 184)";
 }
 
 async function fetchPlayerDetail(playerId) {
@@ -223,7 +235,7 @@ function renderModeView() {
         `;
     }
 
-    // 3. Savant 4대 카테고리 시각화 (선택된 시즌 기준)
+   // 3. Savant 4대 카테고리 시각화 (다중 색상 + 규정 미달 시 Savant 스타일 빗금 막대 지원)
     document.getElementById("savantTitle").textContent = `${targetStat.season} MLB Percentile Rankings (${targetStat.season_team_code || 'MLB'})`;
     const barsContainer = document.getElementById("savantBarsContainer");
 
@@ -264,29 +276,57 @@ function renderModeView() {
 
     if (isBat) {
         const valueItems = [
-            { label: "Batting Run Value", pct: targetStat.batting_run_value_percentile, actual: targetStat.batting_run_value !== null ? targetStat.batting_run_value : '-' },
-            { label: "Baserunning Run Value", pct: targetStat.baserunning_run_value_percentile, actual: targetStat.baserunning_run_value !== null ? targetStat.baserunning_run_value : '-' },
-            { label: "Fielding Run Value", pct: targetStat.oaa_percentile, actual: targetStat.outs_above_average !== null ? targetStat.outs_above_average : '-' }
+            { label: "Batting Run Value", pct: targetStat.batting_run_value_percentile, actual: targetStat.batting_run_value !== null && targetStat.batting_run_value !== undefined ? targetStat.batting_run_value : '-' },
+            { label: "Baserunning Run Value", pct: targetStat.baserunning_run_value_percentile, actual: targetStat.baserunning_run_value !== null && targetStat.baserunning_run_value !== undefined ? targetStat.baserunning_run_value : '-' },
+            {
+                label: "Fielding Run Value",
+                pct: targetStat.fielding_run_value_percentile,
+                actual: targetStat.fielding_run_value ?? '-'
+            }
+            // { label: "Fielding Run Value", pct: targetStat.oaa_percentile, actual: targetStat.outs_above_average !== null && targetStat.outs_above_average !== undefined ? targetStat.outs_above_average : '-' }
         ];
 
         const battingItems = [
             { label: "xwOBA (기대 가중출루율)", pct: targetStat.xwoba_percentile, actual: targetStat.xwoba ? Number(targetStat.xwoba).toFixed(3) : '-' },
-            { label: "xBA (기대 타율)", pct: targetStat.hard_hit_percentile ? Math.min(100, targetStat.hard_hit_percentile + 5) : null, actual: targetStat.xba ? Number(targetStat.xba).toFixed(3) : '-' },
-            { label: "xSLG (기대 장타율)", pct: targetStat.barrel_percentile ? Math.min(100, targetStat.barrel_percentile + 3) : null, actual: targetStat.xslg ? Number(targetStat.xslg).toFixed(3) : '-' },
+            { label: "xBA (기대 타율)", pct: targetStat.xba_percentile, actual: targetStat.xba ? Number(targetStat.xba).toFixed(3) : '-' },
+            { label: "xSLG (기대 장타율)", pct: targetStat.xslg_percentile, actual: targetStat.xslg ? Number(targetStat.xslg).toFixed(3) : '-' },
             { label: "Avg Exit Velo (평균 타구속도)", pct: targetStat.exit_velo_percentile, actual: targetStat.avg_exit_velocity ? Number(targetStat.avg_exit_velocity).toFixed(1) + ' mph' : '-' },
             { label: "Barrel % (배럴 타구 비율)", pct: targetStat.barrel_percentile, actual: targetStat.barrel_percentage ? Number(targetStat.barrel_percentage).toFixed(1) + '%' : '-' },
             { label: "Hard-Hit % (하드힛 비율)", pct: targetStat.hard_hit_percentile, actual: targetStat.hard_hit_percentage ? Number(targetStat.hard_hit_percentage).toFixed(1) + '%' : '-' },
-            { label: "LA Sweet-Spot % (스위트스팟)", pct: targetStat.sweet_spot_percentage ? Math.min(100, Math.round(Number(targetStat.sweet_spot_percentage) * 1.8)) : null, actual: targetStat.sweet_spot_percentage ? Number(targetStat.sweet_spot_percentage).toFixed(1) + '%' : '-' },
-            { label: "Chase % (유인구 헛스윙률)", pct: targetStat.chase_percentage ? Math.max(1, 100 - Math.round(Number(targetStat.chase_percentage) * 2)) : null, actual: targetStat.chase_percentage ? Number(targetStat.chase_percentage).toFixed(1) + '%' : '-' },
-            { label: "Whiff % (전체 헛스윙률)", pct: targetStat.whiff_percentage ? Math.max(1, 100 - Math.round(Number(targetStat.whiff_percentage) * 2.2)) : null, actual: targetStat.whiff_percentage ? Number(targetStat.whiff_percentage).toFixed(1) + '%' : '-' },
-            { label: "K % (삼진율)", pct: targetStat.k_percentage ? Math.max(1, 100 - Math.round(Number(targetStat.k_percentage) * 2.5)) : null, actual: targetStat.k_percentage ? Number(targetStat.k_percentage).toFixed(1) + '%' : '-' },
-            { label: "BB % (볼넷율)", pct: targetStat.bb_percentage ? Math.min(100, Math.round(Number(targetStat.bb_percentage) * 5.0)) : null, actual: targetStat.bb_percentage ? Number(targetStat.bb_percentage).toFixed(1) + '%' : '-' }
+            { label: "LA Sweet-Spot % (스위트스팟)", pct: targetStat.sweet_spot_percentile, actual: targetStat.sweet_spot_percentage ? Number(targetStat.sweet_spot_percentage).toFixed(1) + '%' : '-' },
+            { label: "Bat Speed (배트 스피드)", pct: targetStat.bat_speed_percentile, actual: targetStat.bat_speed != null ? Number(targetStat.bat_speed).toFixed(1) + ' mph' : '-' },
+            { label: "Squared-Up % (정타 비율)", pct: targetStat.squared_up_percentile, actual: targetStat.squared_up_percentage != null ? Number(targetStat.squared_up_percentage).toFixed(1) + '%' : '-' },
+            { label: "Chase % (유인구 헛스윙률)", pct: targetStat.chase_percentile, actual: targetStat.chase_percentage ? Number(targetStat.chase_percentage).toFixed(1) + '%' : '-' },
+            { label: "Whiff % (전체 헛스윙률)", pct: targetStat.whiff_percentile, actual: targetStat.whiff_percentage ? Number(targetStat.whiff_percentage).toFixed(1) + '%' : '-' },
+            { label: "K % (삼진율)", pct: targetStat.k_percentile, actual: targetStat.k_percentage ? Number(targetStat.k_percentage).toFixed(1) + '%' : '-' },
+            { label: "BB % (볼넷율)", pct: targetStat.bb_percentile, actual: targetStat.bb_percentage ? Number(targetStat.bb_percentage).toFixed(1) + '%' : '-' }
         ];
 
         const fieldingItems = [
-            { label: "Range (OAA)", pct: targetStat.oaa_percentile, actual: targetStat.outs_above_average !== null ? targetStat.outs_above_average : '-' },
-            { label: "Arm Strength", pct: targetStat.arm_strength_percentile, actual: targetStat.arm_strength ? Number(targetStat.arm_strength).toFixed(1) + ' mph' : '-' }
+            { label: "Range (OAA)", pct: targetStat.oaa_percentile, actual: targetStat.outs_above_average !== null && targetStat.outs_above_average !== undefined ? targetStat.outs_above_average : '-' },
+            { label: "Arm Value (외야 송구 가치)", pct: targetStat.arm_value_percentile, actual: targetStat.arm_value ?? '-' },
+            { label: "Arm Strength (송구 강도)", pct: targetStat.arm_strength_percentile, actual: targetStat.arm_strength ? Number(targetStat.arm_strength).toFixed(1) + ' mph' : '-' }
         ];
+
+        // ★ 포수(Position == 'C')이거나 포수 수비 기록이 존재하는 경우 Catching 섹션 동적 렌더링
+        const isCatcher = (currentPlayerData.position === "C") ||
+            targetStat.blocks_above_average !== null && targetStat.blocks_above_average !== undefined ||
+            targetStat.framing_runs !== null && targetStat.framing_runs !== undefined ||
+            targetStat.pop_time !== null && targetStat.pop_time !== undefined;
+
+        let catchingHtml = "";
+        if (isCatcher) {
+            const catchingItems = [
+                { label: "Blocks Above Avg (블로킹)", pct: targetStat.blocks_above_average_percentile, actual: targetStat.blocks_above_average !== null && targetStat.blocks_above_average !== undefined ? targetStat.blocks_above_average : '-' },
+                { label: "CS Above Avg (도루 저지)", pct: targetStat.cs_above_average_percentile, actual: targetStat.cs_above_average !== null && targetStat.cs_above_average !== undefined ? targetStat.cs_above_average : '-' },
+                { label: "Framing (프레이밍)", pct: targetStat.framing_runs_percentile, actual: targetStat.framing_runs !== null && targetStat.framing_runs !== undefined ? targetStat.framing_runs : '-' },
+                { label: "Pop Time (2루 팝타임)", pct: targetStat.pop_time_percentile, actual: targetStat.pop_time ? Number(targetStat.pop_time).toFixed(2) + ' s' : '-' }
+            ];
+            catchingHtml = `
+                <div class="savant-group-header">😷 Catching</div>
+                ${catchingItems.map(renderBar).join("")}
+            `;
+        }
 
         const runningItems = [
             { label: "Sprint Speed", pct: targetStat.sprint_speed_percentile, actual: targetStat.sprint_speed ? Number(targetStat.sprint_speed).toFixed(1) + ' ft/s' : '-' }
@@ -299,25 +339,33 @@ function renderModeView() {
             ${battingItems.map(renderBar).join("")}
             <div class="savant-group-header">🧤 Fielding</div>
             ${fieldingItems.map(renderBar).join("")}
+            ${catchingHtml}
             <div class="savant-group-header">🏃 Running</div>
             ${runningItems.map(renderBar).join("")}
         `;
 
     } else {
+        // ★ 투수(Pitching) 모드: 제이콥 디그롬 Savant 원본과 100% 동일한 구성
         const valueItems = [
-            { label: "Pitching Run Value", pct: targetStat.pitching_run_value_percentile, actual: targetStat.pitching_run_value !== null ? targetStat.pitching_run_value : '-' }
+            { label: "Pitching Run Value", pct: targetStat.pitching_run_value_percentile, actual: targetStat.pitching_run_value !== null && targetStat.pitching_run_value !== undefined ? targetStat.pitching_run_value : '-' },
+            { label: "Fastball Run Value (속구 가치)", pct: targetStat.fastball_run_value_percentile, actual: targetStat.fastball_run_value !== null && targetStat.fastball_run_value !== undefined ? targetStat.fastball_run_value : '-' },
+            { label: "Breaking Run Value (변화구 가치)", pct: targetStat.breaking_run_value_percentile, actual: targetStat.breaking_run_value !== null && targetStat.breaking_run_value !== undefined ? targetStat.breaking_run_value : '-' },
+            { label: "Offspeed Run Value (오프스피드)", pct: targetStat.offspeed_run_value_percentile, actual: targetStat.offspeed_run_value !== null && targetStat.offspeed_run_value !== undefined ? targetStat.offspeed_run_value : '-' }
         ];
 
         const pitchingItems = [
             { label: "xERA (기대 평균자책점)", pct: targetStat.xwoba_percentile, actual: targetStat.xera ? Number(targetStat.xera).toFixed(2) : '-' },
+            { label: "xBA (피기대타율)", pct: targetStat.xba_percentile, actual: targetStat.xba ? Number(targetStat.xba).toFixed(3).replace('0.', '.') : '-' },
             { label: "Fastball Velo (포심 평균구속)", pct: targetStat.fastball_velo_percentile, actual: targetStat.fastball_velocity ? Number(targetStat.fastball_velocity).toFixed(1) + ' mph' : '-' },
             { label: "Avg Exit Velo (피타구속도 억제)", pct: targetStat.exit_velo_percentile, actual: targetStat.avg_exit_velocity ? Number(targetStat.avg_exit_velocity).toFixed(1) + ' mph' : '-' },
+            { label: "Chase % (유인구 유도율)", pct: targetStat.chase_percentile, actual: targetStat.chase_percentage ? Number(targetStat.chase_percentage).toFixed(1) + '%' : '-' },
+            { label: "Whiff % (헛스윙 유도율)", pct: targetStat.whiff_percentile, actual: targetStat.whiff_percentage ? Number(targetStat.whiff_percentage).toFixed(1) + '%' : '-' },
+            { label: "K % (탈삼진 비율)", pct: targetStat.k_percentile, actual: targetStat.k_percentage ? Number(targetStat.k_percentage).toFixed(1) + '%' : '-' },
+            { label: "BB % (볼넷 억제율)", pct: targetStat.bb_percentile, actual: targetStat.bb_percentage ? Number(targetStat.bb_percentage).toFixed(1) + '%' : '-' },
             { label: "Barrel % (피배럴 억제)", pct: targetStat.barrel_percentile, actual: targetStat.barrel_percentage ? Number(targetStat.barrel_percentage).toFixed(1) + '%' : '-' },
             { label: "Hard-Hit % (피하드힛 억제)", pct: targetStat.hard_hit_percentile, actual: targetStat.hard_hit_percentage ? Number(targetStat.hard_hit_percentage).toFixed(1) + '%' : '-' },
-            { label: "Whiff % (헛스윙 유도율)", pct: targetStat.whiff_percentage ? Math.round(Number(targetStat.whiff_percentage) * 2.5) : null, actual: targetStat.whiff_percentage ? Number(targetStat.whiff_percentage).toFixed(1) + '%' : '-' },
-            { label: "Chase % (유인구 유도율)", pct: targetStat.chase_percentage ? Math.round(Number(targetStat.chase_percentage) * 2.2) : null, actual: targetStat.chase_percentage ? Number(targetStat.chase_percentage).toFixed(1) + '%' : '-' },
-            { label: "K % (탈삼진 비율)", pct: targetStat.k_percentage ? Math.min(100, Math.round(Number(targetStat.k_percentage) * 2.8)) : null, actual: targetStat.k_percentage ? Number(targetStat.k_percentage).toFixed(1) + '%' : '-' },
-            { label: "BB % (볼넷 억제율)", pct: targetStat.bb_percentage ? Math.max(1, 100 - Math.round(Number(targetStat.bb_percentage) * 4.5)) : null, actual: targetStat.bb_percentage ? Number(targetStat.bb_percentage).toFixed(1) + '%' : '-' }
+            { label: "GB % (땅볼 유도율)", pct: targetStat.gb_percentile, actual: targetStat.gb_percentage ? Number(targetStat.gb_percentage).toFixed(1) + '%' : '-' },
+            { label: "Extension (릴리스 익스텐션)", pct: targetStat.extension_percentile, actual: targetStat.pitch_extension ? Number(targetStat.pitch_extension).toFixed(1) + ' ft' : '-' }
         ];
 
         groupsHtml = `
@@ -330,7 +378,7 @@ function renderModeView() {
 
     barsContainer.innerHTML = groupsHtml;
 
-    // 4. 하단 시즌별 누적 기록 테이블 ('소속팀' 컬럼 추가 & 현재 선택 시즌 하이라이트)
+    // 4. 하단 시즌별 누적 기록 테이블 (배트스피드, 정타%, 피xBA, 땅볼%, 익스텐션 등 반영)
     const thead = document.getElementById("statsThead");
     const tbody = document.getElementById("playerStatsBody");
     tbody.innerHTML = "";
@@ -353,6 +401,8 @@ function renderModeView() {
                 <th>xSLG</th>
                 <th>xwOBA</th>
                 <th>타구속도</th>
+                <th>배트스피드</th>
+                <th>정타%</th>
                 <th>배럴%</th>
                 <th>스프린트</th>
                 <th>OAA</th>
@@ -383,6 +433,8 @@ function renderModeView() {
                 <td>${st.xslg !== null ? Number(st.xslg).toFixed(3).replace('0.', '.') : '-'}</td>
                 <td>${st.xwoba !== null ? Number(st.xwoba).toFixed(3).replace('0.', '.') : '-'}</td>
                 <td>${st.avg_exit_velocity ? Number(st.avg_exit_velocity).toFixed(1) + ' mph' : '-'}</td>
+                <td><strong>${st.bat_speed != null ? Number(st.bat_speed).toFixed(1) + ' mph' : '-'}</strong></td>
+                <td>${st.squared_up_percentage != null ? Number(st.squared_up_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.barrel_percentage ? Number(st.barrel_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.sprint_speed ? Number(st.sprint_speed).toFixed(1) : '-'}</td>
                 <td>${st.outs_above_average !== null ? st.outs_above_average : '-'}</td>
@@ -406,10 +458,13 @@ function renderModeView() {
                 <th>WHIP</th>
                 <th>FIP</th>
                 <th>xERA</th>
+                <th>피xBA</th>
                 <th>구속</th>
                 <th>피타구속도</th>
                 <th>피배럴%</th>
                 <th>Whiff%</th>
+                <th>땅볼%</th>
+                <th>익스텐션</th>
                 <th>bWAR</th>
                 <th>fWAR</th>
             </tr>
@@ -434,10 +489,13 @@ function renderModeView() {
                 <td>${st.whip ? Number(st.whip).toFixed(2) : '-'}</td>
                 <td>${st.fip ? Number(st.fip).toFixed(2) : '-'}</td>
                 <td>${st.xera ? Number(st.xera).toFixed(2) : '-'}</td>
+                <td>${st.xba ? Number(st.xba).toFixed(3).replace('0.', '.') : '-'}</td>
                 <td>${st.fastball_velocity ? Number(st.fastball_velocity).toFixed(1) + ' mph' : '-'}</td>
                 <td>${st.avg_exit_velocity ? Number(st.avg_exit_velocity).toFixed(1) + ' mph' : '-'}</td>
                 <td>${st.barrel_percentage ? Number(st.barrel_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.whiff_percentage ? Number(st.whiff_percentage).toFixed(1) + '%' : '-'}</td>
+                <td>${st.gb_percentage ? Number(st.gb_percentage).toFixed(1) + '%' : '-'}</td>
+                <td>${st.pitch_extension ? Number(st.pitch_extension).toFixed(1) + ' ft' : '-'}</td>
                 <td>${st.bwar !== null ? Number(st.bwar).toFixed(1) : '-'}</td>
                 <td>${st.fwar !== null ? Number(st.fwar).toFixed(1) : '-'}</td>
             `;

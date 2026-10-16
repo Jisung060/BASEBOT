@@ -13,7 +13,8 @@ const DATA_TYPE_LABELS = {
     "STEP_BATTERS": "타자 수집 (collector_batters)",
     "STEP_PITCHERS": "투수 수집 (collector_pitchers)",
     "STEP_PLAYERS_META": "선수 메타 (collector_players_meta)",
-    "STEP_SAVANT_REPAIR": "Savant 보강 (savant_value_repair)",
+    "STEP_SAVANT_REPAIR": "Savant 빠른 갱신 (Extension 제외)",
+    "STEP_SAVANT_EXTENSION": "투수 Extension 단독 갱신",
     "STEP_GAMES": "경기 수집 (collector_games)",
     "STEP_BOXSCORES": "박스스코어 수집 (collector_boxscores)",
     "STEP_REPAIR_GAMES": "경기 보정 (repair_games_data)",
@@ -473,6 +474,8 @@ async function loadSchedules() {
                 <div class="schedule-title">
                     <strong>${item.label}</strong>
                     <small>최근 실행: ${item.last_run_at || "기록 없음"}</small>
+                    ${item.data_type === "STEP_SAVANT_REPAIR" ? '<small>Extension은 유지하고 나머지 지표를 일괄 갱신합니다.</small>' : ''}
+                    ${item.data_type === "STEP_SAVANT_EXTENSION" ? '<small>Extension·공식 백분위만 선수별로 조회합니다. 수 분 이상 걸릴 수 있습니다.</small>' : ''}
                 </div>
                 <select class="sched-interval">
                     <option value="EVERY_6H" ${item.interval_type === "EVERY_6H" ? "selected" : ""}>6시간마다</option>
@@ -499,7 +502,7 @@ async function saveSchedulesConfig() {
     const schedules = [];
 
     rows.forEach(r => {
-        schedules.append({
+        schedules.push({
             data_type: r.dataset.dtype,
             interval_type: r.querySelector(".sched-interval").value,
             run_time: r.querySelector(".sched-time").value,
@@ -529,7 +532,6 @@ async function saveSchedulesConfig() {
     }
 }
 
-// *(주의: JS 배열 push 오타 방지를 위해 위 saveSchedulesConfig 내부 schedules.push 사용)*
 
 // =========================================================
 // 4. 데이터 수집 기록 조회 및 컬럼 클릭 정렬

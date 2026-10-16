@@ -84,7 +84,8 @@ def init_admin_baseball_tables():
         default_schedules = [
             ("PIPELINE_PLAYERS", "선수 통합 파이프라인 (타자/투수 ➔ 메타 ➔ Savant)", False, "DAILY", "04:00", "2024"),
             ("PIPELINE_GAMES", "경기 통합 파이프라인 (경기 ➔ 박스스코어 ➔ 시간/구장 보정)", True, "EVERY_6H", "00:00", "RECENT_3DAYS"),
-            ("STEP_SAVANT_REPAIR", "Savant 심화 지표 단독 갱신 (OAA·RunValue·구속)", False, "DAILY", "05:00", "2024"),
+            ("STEP_SAVANT_REPAIR", "Savant 심화 지표 빠른 갱신 (Extension 제외)", False, "DAILY", "05:00", "2024"),
+            ("STEP_SAVANT_EXTENSION", "투수 Extension 단독 갱신 (장시간 소요)", False, "WEEKLY", "06:00", "2024"),
             ("STEP_SEED_TEAMS", "30개 구단 기초 정보 동기화 (seed_teams)", False, "WEEKLY", "03:00", "ALL"),
         ]
         for dtype, label, enabled, iv_type, rtime, topt in default_schedules:
@@ -96,6 +97,11 @@ def init_admin_baseball_tables():
                 "dtype": dtype, "label": label, "enabled": enabled,
                 "iv_type": iv_type, "rtime": rtime, "topt": topt
             })
+            if dtype in ("STEP_SAVANT_REPAIR", "STEP_SAVANT_EXTENSION"):
+                # Rename existing entries without changing the user's schedule.
+                conn.execute(text(
+                    "UPDATE admin_data_schedules SET label = :label WHERE data_type = :dtype AND label <> :label"
+                ), {"label": label, "dtype": dtype})
 
 
 init_admin_baseball_tables()
@@ -317,6 +323,7 @@ class ManualFetchRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     trigger_type: str = "MANUAL"
+    refresh_pitcher_details: bool = False
 
 
 def _update_log_progress(log_id: int, message: str):
@@ -367,22 +374,33 @@ def _run_players_meta() -> int:
         return conn.execute(text("SELECT COUNT(*) FROM players")).scalar() or 0
 
 
-def _run_savant_repair(season: int) -> int:
-    script_path = find_script_path("collector_savant_value_repair.py")
-    proc = subprocess.run(
-        [sys.executable, str(script_path), "--season", str(season), "--project-root", str(BACK_DIR)],
-        cwd=str(BACK_DIR),
-        capture_output=True,
-        text=True,
-        timeout=600
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"collector_savant_value_repair 오류: {proc.stderr[-300:]}")
+def _run_savant_repair(season: int, refresh_pitcher_details: bool = False) -> int:
+    mod, _ = load_script_module("collector_savant_value_repair.py")
+    if hasattr(mod, "run_savant_repair"):
+        mod.run_savant_repair(season=season, refresh_pitcher_details=refresh_pitcher_details)
+    else:
+        script_path = find_script_path("collector_savant_value_repair.py")
+        command = [sys.executable, str(script_path), "--season", str(season),
+                   "--project-root", str(BACK_DIR)]
+        if refresh_pitcher_details:
+            command.append("--refresh-pitcher-details")
+        subprocess.run(command, cwd=str(BACK_DIR),
+                       timeout=1800 if refresh_pitcher_details else 180, check=True)
     with engine.connect() as conn:
         return conn.execute(
             text("SELECT COUNT(*) FROM player_season_stats WHERE season = :s"),
             {"s": season}
         ).scalar() or 0
+
+
+def _run_savant_extension(season: int) -> int:
+    mod, _ = load_script_module("collector_savant_value_repair.py")
+    mod.run_savant_repair(season=season, extension_only=True)
+    with engine.connect() as conn:
+        return conn.execute(text(
+            "SELECT COUNT(*) FROM player_season_stats "
+            "WHERE season = :s AND is_pitcher = TRUE AND games > 0 AND pitch_extension IS NOT NULL"
+        ), {"s": season}).scalar() or 0
 
 
 def _run_games(season: int, start_date: str, end_date: str) -> int:
@@ -422,6 +440,7 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
     status = "SUCCESS"
 
     season = int(req.season or 2024)
+    savant_mode = "투수 상세 갱신 · 장시간 소요" if req.refresh_pitcher_details else "빠른 갱신 · 저장된 투수 상세 유지"
     s_date = req.start_date or f"{season}-04-01"
     e_date = req.end_date or f"{season}-04-30"
     if s_date and len(s_date) >= 4:
@@ -441,11 +460,11 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             _update_log_progress(log_id, f"[2/3] 선수 프로필·메타데이터 갱신 중 (collector_players_meta)...")
             m_cnt = _run_players_meta()
 
-            _update_log_progress(log_id, f"[3/3] Savant 심화 지표·백분위 수집 중 (collector_savant_value_repair)...")
-            _run_savant_repair(season)
+            _update_log_progress(log_id, f"[3/3] Savant 심화 지표·백분위 수집 중 ({savant_mode})...")
+            _run_savant_repair(season, refresh_pitcher_details=req.refresh_pitcher_details)
 
             records_cnt = b_cnt + p_cnt
-            msg = f"[선수 파이프라인 완주] 1단계(타자 {b_cnt}·투수 {p_cnt}명) ➔ 2단계(메타 {m_cnt}명) ➔ 3단계(Savant 보강) 완료"
+            msg = f"[선수 파이프라인 완주] 1단계(타자 {b_cnt}·투수 {p_cnt}명) ➔ 2단계(메타 {m_cnt}명) ➔ 3단계(Savant: {savant_mode}) 완료"
 
         # [B] 경기 통합 3단계 파이프라인 (순서: 경기 정보 -> 박스스코어 -> 시간/경기장/승리팀 보정)
         elif dtype == "PIPELINE_GAMES":
@@ -478,9 +497,14 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             msg = f"선수 프로필 메타데이터(등번호·포지션·투타·ID매핑) {records_cnt}명 갱신 완료"
 
         elif dtype == "STEP_SAVANT_REPAIR":
-            _update_log_progress(log_id, f"{season} 시즌 Savant OAA·RunValue·구속 보강 중 (collector_savant_value_repair)...")
-            records_cnt = _run_savant_repair(season)
-            msg = f"{season} 시즌 Savant 심화 지표 및 공식 백분위 {records_cnt}건 보강 완료"
+            _update_log_progress(log_id, f"{season} 시즌 Savant OAA·RunValue·구속 보강 중 ({savant_mode})...")
+            records_cnt = _run_savant_repair(season, refresh_pitcher_details=req.refresh_pitcher_details)
+            msg = f"{season} 시즌 Savant 심화 지표 {records_cnt}건 보강 완료 ({savant_mode})"
+
+        elif dtype == "STEP_SAVANT_EXTENSION":
+            _update_log_progress(log_id, f"{season} 시즌 투수 Extension 개별 조회 중 (수 분 이상 소요 가능)...")
+            records_cnt = _run_savant_extension(season)
+            msg = f"{season} 시즌 Extension 단독 갱신 완료 (Extension 보유 {records_cnt}건)"
 
         elif dtype == "STEP_GAMES":
             _update_log_progress(log_id, f"{s_date}~{e_date} 경기 일정 수집 중 (collector_games)...")
@@ -542,6 +566,9 @@ def trigger_manual_fetch(
         target_desc = "전체 DB 대상"
     else:
         target_desc = f"{req.season} 시즌"
+
+    if req.data_type in ("PIPELINE_PLAYERS", "STEP_SAVANT_REPAIR"):
+        target_desc += " / 투수 상세 갱신" if req.refresh_pitcher_details else " / 빠른 갱신"
 
     res = db.execute(text("""
         INSERT INTO admin_data_sync_logs (data_type, trigger_type, target_param, status, message)

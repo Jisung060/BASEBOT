@@ -38,3 +38,5 @@ uploads/
 .env
 chroma_db/
 __pycache__/
+/front/.cgrep
+/back/.cgrep

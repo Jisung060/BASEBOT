@@ -51,6 +51,7 @@ def fetch_mlb_batters(season: int = 2024) -> pd.DataFrame:
             "player_name": p.get("fullName"),
             "team_id": int(t.get("id", 0)),
             "games": int(s.get("gamesPlayed", 0)),
+            "plate_appearances": int(s.get("plateAppearances", 0)),  # ★ 실제 PA 추가!
             "at_bats": at_bats,
             "hits": int(s.get("hits", 0)),
             "home_runs": int(s.get("homeRuns", 0)),
@@ -231,7 +232,8 @@ def collect_batters_comprehensive(season: int = 2024):
     league_avg_slg = df['slg'].mean() or 0.403
 
     for idx, row in df.iterrows():
-        pa = row['at_bats'] + row['walks']
+        # ★ AB + BB 대신 공식 타석(plate_appearances)을 분모로 사용하여 Savant와 100% 일치시킴
+        pa = int(row.get('plate_appearances') or (row['at_bats'] + row['walks']))
         df.at[idx, 'k_percentage'] = round((row['strikeouts'] / pa) * 100, 1) if pa > 0 else None
         df.at[idx, 'bb_percentage'] = round((row['walks'] / pa) * 100, 1) if pa > 0 else None
 
