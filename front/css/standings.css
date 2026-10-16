@@ -8,6 +8,12 @@
     padding-top: 18px;
 }
 
+/* 상단 경로의 "팀 순위", "MLB STANDINGS" → 짙은 파란색 (이 페이지에만 적용) */
+.standings-page .breadcrumb strong,
+.standings-page .eyebrow {
+    color: #174b8a;
+}
+
 /* 리그 탭 + 시즌 선택 */
 .standings-tools {
     display: flex;
@@ -28,10 +34,10 @@
     border: 0;
     border-bottom: 2px solid transparent;
     background: transparent;
-    color: #788496;
+    color: #788496;                     /* 선택 안 된 탭: 회색 */
     font-family: inherit;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 400;                   /* 선택 안 된 탭: 보통 굵기 */
     cursor: pointer;
 }
 
@@ -40,8 +46,9 @@
 }
 
 .standings-league-tab.selected {
-    border-bottom-color: #347cff;
-    color: #2874fa;
+    border-bottom-color: #174b8a;
+    color: #174b8a;                     /* 선택된 탭: 짙은 파란색 (프로젝트 공통) */
+    font-weight: 700;                   /* 선택된 탭: 굵게 */
 }
 
 .standings-season {
@@ -134,6 +141,26 @@
 
 .streak-lose {
     color: #2874fa !important;
+}
+
+/* 플레이오프 진출권 (지구 1위 · 와일드카드 상위 3팀) → 줄 왼쪽 파란 선 */
+.standings-table .playoff-row td:first-child {
+    box-shadow: inset 4px 0 0 #347cff;
+}
+
+.standings-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -10px 0 0;
+    color: #727d8e;
+    font-size: 12px;
+}
+
+.standings-legend-mark {
+    width: 4px;
+    height: 14px;
+    background: #347cff;
 }
 
 /* 트렌드 그래프 (최근 15경기) */

@@ -54,12 +54,22 @@ function renderStandings() {                           // 선택한 리그의 �
         return;
     }
     message.hidden = true;
-    list.replaceChildren(...divisions.map(createDivisionTable));
+
+    const tables = divisions.map(d =>
+        createStandingsTable(`${LEAGUE_LABELS[d.league]} ${DIVISION_LABELS[d.division]}`, d.teams)
+    );
+    const wildcard = (standings.wildcards || []).find(w => w.league === selectedLeague);
+    if (wildcard) {                                    // 지구별 표 아래에 와일드카드 표
+        tables.push(createStandingsTable(`${LEAGUE_LABELS[selectedLeague]} 와일드카드`, wildcard.teams));
+    }
+    const legend = el("p", "standings-legend");        // 파란 선 설명
+    legend.append(el("span", "standings-legend-mark"), "플레이오프 진출권 (지구 1위 · 와일드카드 상위 3팀)");
+    list.replaceChildren(...tables, legend);
 }
 
-function createDivisionTable(division) {
+function createStandingsTable(titleText, teams) {
     const section = el("section", "standings-division");
-    section.append(el("h2", "standings-division-title", `${LEAGUE_LABELS[division.league]} ${DIVISION_LABELS[division.division]}`));
+    section.append(el("h2", "standings-division-title", titleText));
 
     const wrap = el("div", "standings-table-wrap");
     const table = el("table", "standings-table");
@@ -70,7 +80,7 @@ function createDivisionTable(division) {
     head.append(headRow);
 
     const body = el("tbody");
-    division.teams.forEach(team => body.append(createTeamRow(team)));
+    teams.forEach(team => body.append(createTeamRow(team)));
 
     table.append(head, body);
     wrap.append(table);
@@ -79,7 +89,7 @@ function createDivisionTable(division) {
 }
 
 function createTeamRow(team) {
-    const row = el("tr");
+    const row = el("tr", team.playoff ? "playoff-row" : "");   // 플레이오프 진출권이면 왼쪽 파란 선
     row.append(el("td", "standings-rank", team.rank));
 
     const teamCell = el("td", "standings-team-cell");

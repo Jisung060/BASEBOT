@@ -8,6 +8,7 @@ from database.db_connection import get_session
 router = APIRouter(prefix="/api/standings", tags=["standings"])
 
 DIVISION_ORDER = ["East", "Central", "West"]
+WILDCARD_SPOTS = 3                                         # 리그별 와일드카드 진출 팀 수
 
 
 @router.get("")
@@ -87,37 +88,58 @@ def get_standings(
         winner["results"].append("W")
         loser["results"].append("L")
 
-    # 4. 리그·지구별로 묶어 순위 계산
+    def make_row(rank, r, gb, playoff):                    # 표 한 줄에 들어갈 값
+        return {
+            "rank": rank,
+            "team_id": r["team_id"],
+            "team_name": r["team_name"],
+            "team_code": r["team_code"],
+            "logo_url": r["logo_url"],
+            "games": r["wins"] + r["losses"],
+            "wins": r["wins"],
+            "losses": r["losses"],
+            "pct": round(win_pct(r), 3),
+            "games_behind": gb,
+            "streak": streak(r["results"]),
+            "last10": last_ten(r["results"]),
+            "trend": r["results"][-15:],                  # 최근 15경기 승패 (트렌드 그래프용)
+            "avg": batting_avg(team_stats.get(r["team_id"])),
+            "era": team_era(team_stats.get(r["team_id"])),
+            "playoff": playoff                             # 플레이오프 진출권 (왼쪽 파란 선)
+        }
+
+    def sort_key(r):
+        return (-win_pct(r), -r["wins"], r["team_name"])
+
+    # 4. 리그·지구별로 묶어 순위 계산 (지구 1위 = 플레이오프 진출)
     divisions = []
+    wildcards = []
     for league in ["AL", "NL"]:
+        leader_ids = set()
         for division in DIVISION_ORDER:
             group = [r for r in records.values() if r["league"] == league and r["division"] == division]
-            group.sort(key=lambda r: (-win_pct(r), -r["wins"], r["team_name"]))
+            group.sort(key=sort_key)
 
             leader = group[0] if group else None
-            rows = []
-            for rank, r in enumerate(group, start=1):
-                rows.append({
-                    "rank": rank,
-                    "team_id": r["team_id"],
-                    "team_name": r["team_name"],
-                    "team_code": r["team_code"],
-                    "logo_url": r["logo_url"],
-                    "games": r["wins"] + r["losses"],
-                    "wins": r["wins"],
-                    "losses": r["losses"],
-                    "pct": round(win_pct(r), 3),
-                    "games_behind": games_behind(leader, r),
-                    "streak": streak(r["results"]),
-                    "last10": last_ten(r["results"]),
-                    "trend": r["results"][-15:],          # 최근 15경기 승패 (트렌드 그래프용)
-                    "avg": batting_avg(team_stats.get(r["team_id"])),
-                    "era": team_era(team_stats.get(r["team_id"]))
-                })
-
+            if leader:
+                leader_ids.add(leader["team_id"])
+            rows = [make_row(rank, r, games_behind(leader, r), rank == 1) for rank, r in enumerate(group, start=1)]
             divisions.append({"league": league, "division": division, "teams": rows})
 
-    return {"season": season, "seasons": seasons, "divisions": divisions}
+        # 5. 와일드카드: 지구 1위를 뺀 팀 중 승률 상위 3팀이 진출
+        #    게임차는 마지막 진출 자리(3위) 기준 → 앞서면 "+4", 3위는 "-", 뒤지면 "2.5"
+        others = sorted(
+            (r for r in records.values() if r["league"] == league and r["team_id"] not in leader_ids),
+            key=sort_key
+        )
+        cutoff = others[WILDCARD_SPOTS - 1] if len(others) >= WILDCARD_SPOTS else None
+        rows = [
+            make_row(rank, r, wildcard_games_behind(cutoff, r), rank <= WILDCARD_SPOTS)
+            for rank, r in enumerate(others, start=1)
+        ]
+        wildcards.append({"league": league, "teams": rows})
+
+    return {"season": season, "seasons": seasons, "divisions": divisions, "wildcards": wildcards}
 
 
 def win_pct(r):
@@ -133,6 +155,16 @@ def games_behind(leader, r):
     if gb == 0:
         return "-"
     return f"{gb:g}"                                       # 3.0 → "3", 2.5 → "2.5"
+
+
+def wildcard_games_behind(cutoff, r):
+    # 마지막 진출 팀(cutoff)과의 게임차: 앞서면 "+4", 같으면 "-", 뒤지면 "2.5"
+    if cutoff is None:
+        return "-"
+    gb = ((cutoff["wins"] - r["wins"]) + (r["losses"] - cutoff["losses"])) / 2
+    if gb == 0:
+        return "-"
+    return f"+{-gb:g}" if gb < 0 else f"{gb:g}"
 
 
 def streak(results):
