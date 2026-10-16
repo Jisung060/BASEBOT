@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const API_URL = "/admin/chatbot";
     const PAGE_SIZE = 10;
 
-    const token = sessionStorage.getItem("access_token");
-
     const statCards = document.querySelectorAll(
         ".stat-grid .stat-card strong"
     );
@@ -20,12 +18,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sessionTableBody = tableBodies[0];
     const messageTableBody = tableBodies[1];
-
     const sessionTableWrap = tableWraps[0];
+
+    const pagination = document.getElementById(
+        "chatbot-session-pagination"
+    );
 
     const detailPanel = Array.from(panels).find((panel) => {
         const heading = panel.querySelector(".panel-heading h2");
-
         return heading?.textContent.trim() === "대화 상세 내역";
     });
 
@@ -35,13 +35,14 @@ document.addEventListener("DOMContentLoaded", () => {
         !messageTableBody ||
         !sessionTableWrap ||
         !detailPanel ||
+        !pagination ||
         statCards.length < 4
     ) {
-        console.error(
-            "AI 챗봇 관리 HTML 요소를 찾을 수 없습니다."
-        );
+        console.error("AI 챗봇 관리 HTML 요소를 찾을 수 없습니다.");
         return;
     }
+
+    const token = sessionStorage.getItem("access_token");
 
     if (!token) {
         alert("로그인이 필요합니다.");
@@ -54,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let totalSessions = 0;
     let selectedSessionId = null;
     let isLoading = false;
+    let isDeleting = false;
 
     const detailButtons = detailPanel.querySelectorAll(
         ".button-row button"
@@ -63,35 +65,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const deleteButton = detailButtons[1];
 
     if (!closeButton || !deleteButton) {
-        console.error(
-            "대화 상세 내역의 버튼을 찾을 수 없습니다."
-        );
+        console.error("대화 상세 내역의 버튼을 찾을 수 없습니다.");
         return;
     }
 
-    // 상세 내역은 세션을 선택한 뒤 표시
+    /* ==================================================
+       초기 레이아웃
+       페이지네이션 크기와 간격은 admin.css에서 관리
+    ================================================== */
+
     detailPanel.hidden = true;
     deleteButton.disabled = true;
 
-    /* ==================================================
-       페이징 영역 설정
-    ================================================== */
+    pagination.classList.add("admin-pagination");
 
-    const pagination = document.getElementById(
-        "chatbot-session-pagination"
-    );
-
-    if (!pagination) {
-        console.error("챗봇 페이징 영역을 찾을 수 없습니다.");
-        return;
-    }
-
-    /*
-       세션 테이블과 페이지네이션을 하나의 영역으로 구성합니다.
-       기존 HTML 파일은 수정하지 않습니다.
-    */
     const sessionListArea = document.createElement("div");
-
     sessionListArea.className = "session-list-area";
 
     sessionTableWrap.parentElement.insertBefore(
@@ -102,41 +90,26 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionListArea.appendChild(sessionTableWrap);
     sessionListArea.appendChild(pagination);
 
-    /*
-       목록 영역의 전체 높이를 고정합니다.
-       테이블 영역만 스크롤되며 페이지네이션은 아래쪽에 유지됩니다.
-    */
-    sessionListArea.style.display = "flex";
-    sessionListArea.style.flexDirection = "column";
-    sessionListArea.style.width = "100%";
-    sessionListArea.style.height = "680px";
-    sessionListArea.style.minHeight = "680px";
-    sessionListArea.style.boxSizing = "border-box";
-    sessionListArea.style.minWidth = "0";
+    Object.assign(sessionListArea.style, {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        minWidth: "0",
+        height: "680px",
+        minHeight: "0",
+        boxSizing: "border-box"
+    });
 
-    // 테이블 영역은 남은 공간을 사용하고, 내용은 내부에서 스크롤
-    sessionTableWrap.style.flex = "1 1 0";
-    sessionTableWrap.style.height = "0";
-    sessionTableWrap.style.minHeight = "0";
-    sessionTableWrap.style.width = "100%";
-    sessionTableWrap.style.minWidth = "0";
-    sessionTableWrap.style.overflowY = "auto";
-    sessionTableWrap.style.overflowX = "auto";
-    sessionTableWrap.style.boxSizing = "border-box";
-
-    // 페이지네이션은 항상 아래쪽에 고정하고 가운데 정렬
-    pagination.style.display = "flex";
-    pagination.style.flex = "0 0 64px";
-    pagination.style.width = "100%";
-    pagination.style.height = "64px";
-    pagination.style.minHeight = "64px";
-    pagination.style.justifyContent = "center";
-    pagination.style.alignItems = "center";
-    pagination.style.flexWrap = "wrap";
-    pagination.style.gap = "8px";
-    pagination.style.margin = "0";
-    pagination.style.padding = "16px 0 0";
-    pagination.style.boxSizing = "border-box";
+    Object.assign(sessionTableWrap.style, {
+        flex: "1 1 0",
+        height: "0",
+        minHeight: "0",
+        width: "100%",
+        minWidth: "0",
+        overflowY: "auto",
+        overflowX: "auto",
+        boxSizing: "border-box"
+    });
 
     /* ==================================================
        공통 함수
@@ -206,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ...options,
             headers: {
                 Accept: "application/json",
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${sessionStorage.getItem("access_token") || token}`,
                 ...(options.headers || {})
             }
         });
@@ -244,9 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadStats() {
         try {
-            const result = await apiRequest(
-                `${API_URL}/stats`
-            );
+            const result = await apiRequest(`${API_URL}/stats`);
 
             setText(statCards[0], result.session_count);
             setText(statCards[1], result.total_messages);
@@ -272,14 +243,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         isLoading = true;
+        renderPagination();
 
         showTableMessage(
             sessionTableBody,
             "대화 기록을 불러오는 중입니다.",
             7
         );
-
-        pagination.replaceChildren();
 
         try {
             const formData = new FormData(filterForm);
@@ -312,7 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             params.set("limit", String(PAGE_SIZE));
-
             params.set(
                 "offset",
                 String((currentPage - 1) * PAGE_SIZE)
@@ -322,14 +291,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 `${API_URL}/sessions?${params.toString()}`
             );
 
-            totalSessions = result.total || 0;
+            totalSessions = Number(result.total) || 0;
 
             totalPages = Math.max(
                 1,
                 Math.ceil(totalSessions / PAGE_SIZE)
             );
 
-            // 삭제 또는 검색 결과 감소로 페이지 범위를 벗어난 경우
+            // 검색 결과가 줄어 현재 페이지가 범위를 벗어나면 마지막 페이지로 이동
             if (currentPage > totalPages) {
                 currentPage = totalPages;
                 isLoading = false;
@@ -340,14 +309,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             sessionTableBody.replaceChildren();
 
-            if (!result.items || result.items.length === 0) {
+            if (!Array.isArray(result.items) || result.items.length === 0) {
                 showTableMessage(
                     sessionTableBody,
                     "검색 결과가 없습니다.",
                     7
                 );
 
-                renderPagination();
                 return;
             }
 
@@ -384,8 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 sessionTableBody.appendChild(row);
             });
 
-            renderPagination();
-
         } catch (error) {
             console.error("대화 세션 조회 실패:", error);
 
@@ -395,80 +361,118 @@ document.addEventListener("DOMContentLoaded", () => {
                 7
             );
 
-            pagination.replaceChildren();
-            pagination.style.visibility = "hidden";
-
         } finally {
             isLoading = false;
+            renderPagination();
         }
     }
 
     /* ==================================================
-       페이지 이동
+       페이지네이션
+       이전 / 페이지 번호 최대 5개 / 다음
+       스타일은 admin.css의 공통 스타일 사용
     ================================================== */
 
     function renderPagination() {
         pagination.replaceChildren();
 
-        // 렌더링할 때도 고정 레이아웃 유지
-        pagination.style.display = "flex";
-        pagination.style.flex = "0 0 64px";
-        pagination.style.width = "100%";
-        pagination.style.height = "64px";
-        pagination.style.minHeight = "64px";
-        pagination.style.justifyContent = "center";
-        pagination.style.alignItems = "center";
-        pagination.style.flexWrap = "wrap";
-        pagination.style.gap = "8px";
-        pagination.style.margin = "0";
-        pagination.style.padding = "16px 0 0";
-        pagination.style.boxSizing = "border-box";
+        const visibleTotalPages = Math.max(totalPages, 1);
+        const visiblePageCount = 5;
 
-        // 데이터가 없거나 페이지가 하나뿐이어도 공간은 유지
-        if (totalSessions === 0 || totalPages <= 1) {
-            pagination.style.visibility = "hidden";
-            return;
+        function addPageButton(label, page, options = {}) {
+            const button = createButton(
+                label,
+                options.active
+                    ? "button button-primary active"
+                    : "button button-secondary",
+                () => goToPage(page),
+                isLoading ||
+                    options.disabled === true ||
+                    page < 1 ||
+                    page > totalPages ||
+                    page === currentPage
+            );
+
+            if (options.active) {
+                button.setAttribute("aria-current", "page");
+            }
+
+            pagination.appendChild(button);
         }
 
-        pagination.style.visibility = "visible";
-
         // 이전 버튼
-        pagination.appendChild(
-            createButton(
-                "이전",
-                "button button-secondary",
-                () => goToPage(currentPage - 1),
-                currentPage === 1
-            )
+        addPageButton("이전", currentPage - 1, {
+            disabled: currentPage <= 1
+        });
+
+        // 현재 페이지 기준으로 최대 5개 번호 표시
+        let startPage = Math.max(
+            1,
+            currentPage - Math.floor(visiblePageCount / 2)
         );
 
-        // 페이지 번호
-        for (let page = 1; page <= totalPages; page++) {
-            pagination.appendChild(
-                createButton(
-                    String(page),
-                    page === currentPage
-                        ? "button button-primary"
-                        : "button button-secondary",
-                    () => goToPage(page),
-                    page === currentPage
-                )
+        let endPage = Math.min(
+            visibleTotalPages,
+            startPage + visiblePageCount - 1
+        );
+
+        startPage = Math.max(
+            1,
+            endPage - visiblePageCount + 1
+        );
+
+        // 첫 페이지 및 생략 표시
+        if (startPage > 1) {
+            addPageButton("1", 1, {
+                active: currentPage === 1
+            });
+
+            if (startPage > 2) {
+                const ellipsis = document.createElement("span");
+                ellipsis.className = "pagination-ellipsis";
+                ellipsis.textContent = "...";
+                ellipsis.setAttribute("aria-hidden", "true");
+
+                pagination.appendChild(ellipsis);
+            }
+        }
+
+        // 페이지 번호 버튼
+        for (let page = startPage; page <= endPage; page++) {
+            addPageButton(String(page), page, {
+                active: page === currentPage
+            });
+        }
+
+        // 마지막 페이지 및 생략 표시
+        if (endPage < visibleTotalPages) {
+            if (endPage < visibleTotalPages - 1) {
+                const ellipsis = document.createElement("span");
+                ellipsis.className = "pagination-ellipsis";
+                ellipsis.textContent = "...";
+                ellipsis.setAttribute("aria-hidden", "true");
+
+                pagination.appendChild(ellipsis);
+            }
+
+            addPageButton(
+                String(visibleTotalPages),
+                visibleTotalPages,
+                {
+                    active: currentPage === visibleTotalPages
+                }
             );
         }
 
         // 다음 버튼
-        pagination.appendChild(
-            createButton(
-                "다음",
-                "button button-secondary",
-                () => goToPage(currentPage + 1),
-                currentPage === totalPages
-            )
-        );
+        addPageButton("다음", currentPage + 1, {
+            disabled: currentPage >= totalPages
+        });
     }
 
     function goToPage(page) {
         if (
+            isLoading ||
             page < 1 ||
             page > totalPages ||
             page === currentPage
@@ -515,7 +519,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 `${API_URL}/sessions/${encodeURIComponent(sessionId)}/messages`
             );
 
-            const session = result.session;
+            if (selectedSessionId !== sessionId) {
+                return;
+            }
 
             if (detailHeading) {
                 detailHeading.textContent =
@@ -524,11 +530,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
             messageTableBody.replaceChildren();
 
-            if (!session) {
+            if (!result.session) {
                 throw new Error("대화 세션을 찾을 수 없습니다.");
             }
 
-            if (!result.messages || result.messages.length === 0) {
+            if (
+                !Array.isArray(result.messages) ||
+                result.messages.length === 0
+            ) {
                 showTableMessage(
                     messageTableBody,
                     "등록된 메시지가 없습니다.",
@@ -540,9 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const values = [
                         message.message_id,
-                        message.role === "USER"
-                            ? "사용자"
-                            : "AI 응답",
+                        message.role === "USER" ? "사용자" : "AI 응답",
                         message.content,
                         message.generated_sql,
                         formatDate(message.created_at)
@@ -551,9 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     values.forEach((value) => {
                         const cell = document.createElement("td");
 
-                        // 사용자 입력을 HTML로 해석하지 않도록 textContent 사용
                         setText(cell, value);
-
                         row.appendChild(cell);
                     });
 
@@ -566,13 +571,15 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error("대화 상세 조회 실패:", error);
 
-            showTableMessage(
-                messageTableBody,
-                error.message,
-                5
-            );
+            if (selectedSessionId === sessionId) {
+                showTableMessage(
+                    messageTableBody,
+                    error.message,
+                    5
+                );
 
-            deleteButton.disabled = true;
+                deleteButton.disabled = true;
+            }
         }
     }
 
@@ -591,7 +598,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ================================================== */
 
     deleteButton.addEventListener("click", async () => {
-        if (!selectedSessionId) {
+        if (!selectedSessionId || isDeleting) {
             alert("삭제할 대화 세션을 선택해 주세요.");
             return;
         }
@@ -605,6 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        isDeleting = true;
         deleteButton.disabled = true;
 
         try {
@@ -619,7 +627,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             detailPanel.hidden = true;
             selectedSessionId = null;
-
             currentPage = 1;
 
             await Promise.all([
@@ -631,7 +638,12 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("대화 세션 삭제 실패:", error);
             alert(error.message);
 
-            deleteButton.disabled = false;
+        } finally {
+            isDeleting = false;
+
+            if (selectedSessionId) {
+                deleteButton.disabled = false;
+            }
         }
     });
 
@@ -666,6 +678,7 @@ document.addEventListener("DOMContentLoaded", () => {
        초기 실행
     ================================================== */
 
+    renderPagination();
     loadStats();
     loadSessions();
 });

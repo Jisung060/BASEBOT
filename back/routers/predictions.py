@@ -1,12 +1,16 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text, select, func, or_, and_, desc
+from sqlalchemy.orm import Session, aliased
 
 from database.db_connection import get_session, get_db
 from services.prediction_service import predictor
 from datetime import datetime, timedelta
+
+from models.game import Game
+from models.team import Team
+from models.prediction_vote import PredictionVote
 
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
@@ -512,3 +516,98 @@ def test_settle_game_status(
             "game_status": req.status,
             "message": f"경기 상태가 {req.status}로 정상 변경되었습니다."
         }
+
+
+# ------------------------------------
+# main에 보일 경기 투표
+# ------------------------------------
+@router.get('/main')
+def get_main_prediction_game(
+    db: Session = Depends(get_session)
+):
+    # 홍팀과 원정팀을 각각 조회하기 위한 별칭
+    HomeTeam = aliased(Team)
+    AwayTeam = aliased(Team)
+
+    # 경기별 예측 투표 수 집계
+    vote_counts = (
+        select(
+            PredictionVote.game_id,
+            func.count(PredictionVote.vote_id).label("vote_count")
+        )
+        .group_by(PredictionVote.game_id)
+        .subquery()
+    )
+
+    # 현재 시각 이후에 시작하는 예정 경기 조회
+    query = (
+        select(
+            Game.game_id,
+            Game.game_date,
+            Game.game_time,
+            HomeTeam.team_id.label("home_team_id"),
+            HomeTeam.team_name.label("home_team_name"),
+            HomeTeam.logo_url.label("home_logo_url"),
+            AwayTeam.team_id.label("away_team_id"),
+            AwayTeam.team_name.label("away_team_name"),
+            AwayTeam.logo_url.label("away_logo_url"),
+            func.coalesce(
+                vote_counts.c.vote_count, 0
+            ).label("vote_count")
+        )
+        .join(
+            HomeTeam,
+            Game.home_team_id == HomeTeam.team_id
+        )
+        .join(
+            AwayTeam,
+            Game.away_team_id == AwayTeam.team_id
+        )
+        .outerjoin(
+            vote_counts,
+            Game.game_id == vote_counts.c.game_id
+        )
+        .where(
+            Game.status == "SCHEDULED",
+            Game.game_time.is_not(None),
+            or_(
+                Game.game_date > func.current_date(),
+                and_(
+                    Game.game_date == func.current_date(),
+                    Game.game_time > func.current_time()
+                )
+            )
+        )
+        .order_by(
+            desc("vote_count"),
+            Game.game_date.asc(),
+            Game.game_time.asc()
+        )
+        .limit(1)
+    )
+
+    game = db.execute(query).mappings().first()
+
+    # 표시할 예정 경기가 없는 경우
+    if game is None:
+        return {"game": None}
+
+    # 프론트엔드에서 사용하기 편한 JSON 형태로 반환
+    return {
+        "game": {
+            "game_id": game["game_id"],
+            "game_date": game["game_date"].isoformat(),
+            "game_time": game["game_time"].isoformat(),
+            "home_team": {
+                "team_id": game["home_team_id"],
+                "team_name": game["home_team_name"],
+                "logo_url": game["home_logo_url"]
+            },
+            "away_team": {
+                "team_id": game["away_team_id"],
+                "team_name": game["away_team_name"],
+                "logo_url": game["away_logo_url"]
+            },
+            "vote_count": game["vote_count"]
+        }
+    }

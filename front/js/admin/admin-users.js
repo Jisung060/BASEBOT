@@ -1,4 +1,3 @@
-
 /* ==================================================
    BASEBOT 관리자 - 회원 관리
    파일: front/js/admin/admin-users.js
@@ -7,8 +6,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const API_URL = "/admin/users";
     const PAGE_SIZE = 10;
-
-    const token = sessionStorage.getItem("access_token");
 
     const filterForm = document.querySelector(".filter-form");
     const tableBody = document.querySelector(".table-wrap tbody");
@@ -20,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let totalPages = 1;
     let totalUsers = 0;
     let isLoading = false;
+    let isDetailLoading = false;
+    let selectedUserId = null;
 
     if (
         !filterForm ||
@@ -32,15 +31,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    if (!token) {
+    if (!sessionStorage.getItem("access_token")) {
         alert("로그인이 필요합니다.");
         window.location.href = "/login.html";
         return;
     }
 
+    // 공통 CSS에서 페이지네이션 레이아웃 관리
+    pagination.classList.add("admin-pagination");
+    pagination.setAttribute("aria-label", "회원 목록 페이지 이동");
+
     /* ==================================================
        공통 함수
     ================================================== */
+
+    function getToken() {
+        return sessionStorage.getItem("access_token");
+    }
 
     function setText(element, value) {
         element.textContent =
@@ -50,12 +57,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function formatDate(value) {
-        if (!value) return "-";
+        if (!value) {
+            return "-";
+        }
 
         const date = new Date(value);
 
         if (Number.isNaN(date.getTime())) {
-            return value;
+            return String(value);
         }
 
         return date.toLocaleString("ko-KR");
@@ -71,7 +80,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return labels[value] || value || "-";
     }
 
-    function createButton(text, className, onClick, disabled = false) {
+    function createButton(
+        text,
+        className,
+        onClick,
+        disabled = false
+    ) {
         const button = document.createElement("button");
 
         button.type = "button";
@@ -88,6 +102,14 @@ document.addEventListener("DOMContentLoaded", () => {
     ================================================== */
 
     async function apiRequest(url) {
+        const token = getToken();
+
+        if (!token) {
+            sessionStorage.removeItem("access_token");
+            window.location.href = "/login.html";
+            throw new Error("로그인이 필요합니다.");
+        }
+
         const response = await fetch(url, {
             method: "GET",
             headers: {
@@ -95,6 +117,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 Accept: "application/json"
             }
         });
+
+        const data = await response.json().catch(() => ({}));
 
         if (response.status === 401) {
             sessionStorage.removeItem("access_token");
@@ -110,14 +134,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-
             throw new Error(
-                errorData.detail || `API 오류 (${response.status})`
+                data.detail || `API 오류 (${response.status})`
             );
         }
 
-        return response.json();
+        return data;
     }
 
     /* ==================================================
@@ -143,13 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
     ================================================== */
 
     async function loadUsers() {
-        if (isLoading) return;
+        if (isLoading) {
+            return;
+        }
 
         isLoading = true;
 
         showTableMessage("회원 정보를 불러오는 중입니다.");
         countLabel.textContent = "조회 중...";
-        pagination.replaceChildren();
+        renderPagination();
 
         const formData = new FormData(filterForm);
         const params = new URLSearchParams();
@@ -170,7 +194,6 @@ document.addEventListener("DOMContentLoaded", () => {
             params.set("status", accountStatus);
         }
 
-        // 현재 페이지에 필요한 회원만 조회
         params.set("limit", String(PAGE_SIZE));
         params.set("offset", String((currentPage - 1) * PAGE_SIZE));
 
@@ -179,17 +202,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 `${API_URL}?${params.toString()}`
             );
 
-            totalUsers = result.total ?? 0;
+            totalUsers = Number(result.total) || 0;
+
             totalPages = Math.max(
                 1,
                 Math.ceil(totalUsers / PAGE_SIZE)
             );
 
-            // 회원이 삭제되는 등의 이유로 현재 페이지가
-            // 마지막 페이지를 벗어난 경우 마지막 페이지로 이동
+            // 검색 결과가 줄어 현재 페이지를 벗어난 경우
             if (currentPage > totalPages) {
                 currentPage = totalPages;
                 isLoading = false;
+
                 await loadUsers();
                 return;
             }
@@ -197,9 +221,8 @@ document.addEventListener("DOMContentLoaded", () => {
             countLabel.textContent = `총 ${totalUsers}명`;
             tableBody.replaceChildren();
 
-            if (!result.items || result.items.length === 0) {
+            if (!Array.isArray(result.items) || result.items.length === 0) {
                 showTableMessage("검색 결과가 없습니다.");
-                renderPagination();
                 return;
             }
 
@@ -237,90 +260,121 @@ document.addEventListener("DOMContentLoaded", () => {
                 tableBody.appendChild(row);
             });
 
-            renderPagination();
-
         } catch (error) {
             console.error("회원 목록 조회 실패:", error);
 
             countLabel.textContent = "조회 실패";
             showTableMessage(error.message);
-            pagination.replaceChildren();
 
         } finally {
             isLoading = false;
+            renderPagination();
         }
     }
 
     /* ==================================================
-       페이징 버튼 생성
+       페이지네이션
+       이전 / 페이지 번호 최대 5개 / 다음
     ================================================== */
 
     function renderPagination() {
         pagination.replaceChildren();
 
-        // 결과가 없거나 한 페이지뿐이면 페이지 이동 버튼 숨김
-        if (totalUsers === 0 || totalPages <= 1) {
-            return;
-        }
+        const visibleTotalPages = Math.max(totalPages, 1);
+        const visiblePageCount = 5;
 
-        // 이전 페이지
-        pagination.appendChild(
-            createButton(
-                "이전",
-                "button button-secondary",
-                () => goToPage(currentPage - 1),
-                currentPage === 1
-            )
-        );
+        function addPageButton(label, page, options = {}) {
+            const isActive = options.active === true;
 
-        // 페이지 번호
-        // 현재 페이지 기준으로 최대 5개 번호 표시
-        const startPage = Math.max(
-            1,
-            Math.min(
-                currentPage - 2,
-                totalPages - 4
-            )
-        );
-
-        const endPage = Math.min(
-            totalPages,
-            startPage + 4
-        );
-
-        for (let page = startPage; page <= endPage; page++) {
-            const pageButton = createButton(
-                String(page),
-                page === currentPage
-                    ? "button button-primary"
+            const button = createButton(
+                label,
+                isActive
+                    ? "button button-primary active"
                     : "button button-secondary",
-                () => goToPage(page)
+                () => goToPage(page),
+                isLoading ||
+                    options.disabled === true ||
+                    page < 1 ||
+                    page > totalPages ||
+                    page === currentPage
             );
 
-            if (page === currentPage) {
-                pageButton.setAttribute("aria-current", "page");
+            if (isActive) {
+                button.setAttribute("aria-current", "page");
             }
 
-            pagination.appendChild(pageButton);
+            pagination.appendChild(button);
         }
 
-        // 다음 페이지
-        pagination.appendChild(
-            createButton(
-                "다음",
-                "button button-secondary",
-                () => goToPage(currentPage + 1),
-                currentPage === totalPages
-            )
-        );
-    }
+        // 이전 버튼
+        addPageButton("이전", currentPage - 1, {
+            disabled: currentPage <= 1
+        });
 
-    /* ==================================================
-       페이지 이동
-    ================================================== */
+        // 현재 페이지를 기준으로 최대 5개 번호 표시
+        let startPage = Math.max(
+            1,
+            currentPage - Math.floor(visiblePageCount / 2)
+        );
+
+        let endPage = Math.min(
+            visibleTotalPages,
+            startPage + visiblePageCount - 1
+        );
+
+        startPage = Math.max(
+            1,
+            endPage - visiblePageCount + 1
+        );
+
+        // 첫 페이지와 생략 표시
+        if (startPage > 1) {
+            addPageButton("1", 1, {
+                active: currentPage === 1
+            });
+
+            if (startPage > 2) {
+                const ellipsis = document.createElement("span");
+                ellipsis.className = "pagination-ellipsis";
+                ellipsis.textContent = "...";
+                ellipsis.setAttribute("aria-hidden", "true");
+
+                pagination.appendChild(ellipsis);
+            }
+        }
+
+        // 페이지 번호
+        for (let page = startPage; page <= endPage; page++) {
+            addPageButton(String(page), page, {
+                active: page === currentPage
+            });
+        }
+
+        // 마지막 페이지와 생략 표시
+        if (endPage < visibleTotalPages) {
+            if (endPage < visibleTotalPages - 1) {
+                const ellipsis = document.createElement("span");
+                ellipsis.className = "pagination-ellipsis";
+                ellipsis.textContent = "...";
+                ellipsis.setAttribute("aria-hidden", "true");
+
+                pagination.appendChild(ellipsis);
+            }
+
+            addPageButton(String(visibleTotalPages), visibleTotalPages, {
+                active: currentPage === visibleTotalPages
+            });
+        }
+
+        // 다음 버튼
+        addPageButton("다음", currentPage + 1, {
+            disabled: currentPage >= totalPages
+        });
+    }
 
     function goToPage(page) {
         if (
+            isLoading ||
             page < 1 ||
             page > totalPages ||
             page === currentPage
@@ -337,18 +391,29 @@ document.addEventListener("DOMContentLoaded", () => {
     ================================================== */
 
     async function loadUserDetail(userId) {
-        detailArea.textContent =
-            "회원 상세 정보를 불러오는 중입니다.";
+        if (isDetailLoading) {
+            return;
+        }
+
+        isDetailLoading = true;
+        selectedUserId = userId;
+
+        detailArea.textContent = "회원 상세 정보를 불러오는 중입니다.";
 
         try {
             const user = await apiRequest(
                 `${API_URL}/${encodeURIComponent(userId)}`
             );
 
+            // 요청 중 다른 회원을 선택했다면 이전 결과는 표시하지 않음
+            if (selectedUserId !== userId) {
+                return;
+            }
+
             detailArea.replaceChildren();
 
             const title = document.createElement("h3");
-            title.textContent = `${user.nickname} 회원 정보`;
+            title.textContent = `${user.nickname || user.username} 회원 정보`;
 
             detailArea.appendChild(title);
 
@@ -390,7 +455,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("회원 상세 조회 실패:", error);
-            detailArea.textContent = error.message;
+
+            if (selectedUserId === userId) {
+                detailArea.textContent = error.message;
+            }
+
+        } finally {
+            isDetailLoading = false;
         }
     }
 
@@ -401,13 +472,11 @@ document.addEventListener("DOMContentLoaded", () => {
     filterForm.addEventListener("submit", (event) => {
         event.preventDefault();
 
-        // 새로운 검색은 항상 1페이지부터 시작
         currentPage = 1;
         loadUsers();
     });
 
     filterForm.addEventListener("reset", () => {
-        // 폼의 초기화가 끝난 후 목록 재조회
         setTimeout(() => {
             currentPage = 1;
             loadUsers();
@@ -418,5 +487,6 @@ document.addEventListener("DOMContentLoaded", () => {
        초기 실행
     ================================================== */
 
+    renderPagination();
     loadUsers();
 });

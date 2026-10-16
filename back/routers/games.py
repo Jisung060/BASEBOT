@@ -110,3 +110,52 @@ def get_game_boxscore(game_id: int):
         }
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"MLB API 연동 오류: {str(e)}")
+
+
+# ==========================================================
+# ▼ [추가] 메인 페이지 "오늘의 경기" 전용 조회 라우터 (/api/games/main)
+# ==========================================================
+@router.get("/main")
+def get_main_games(
+    date: Optional[str] = Query(None, description="조회할 날짜 (YYYY-MM-DD)"),
+    limit: int = Query(3, ge=1, le=10),
+    db: Session = Depends(get_session)
+):
+    """
+    메인 화면 오늘의 경기 카드 전용 (팀 풀네임 및 로고 URL 포함)
+    """
+    query_str = """
+                SELECT g.game_id, \
+                       CAST(g.game_date AS CHAR) AS game_date, \
+                       CAST(g.game_time AS CHAR) AS game_time, \
+                       g.status, \
+                       g.home_score, \
+                       g.away_score, \
+                       ht.team_name              AS home_team_name, \
+                       ht.team_code              AS home_team_code, \
+                       ht.logo_url               AS home_logo_url, \
+                       at.team_name              AS away_team_name, \
+                       at.team_code              AS away_team_code, \
+                       at.logo_url               AS away_logo_url
+                FROM games g
+                         JOIN teams ht ON g.home_team_id = ht.team_id
+                         JOIN teams at \
+                ON g.away_team_id = at.team_id
+                WHERE g.status = 'SCHEDULED' \
+                """
+
+    params = {"limit": limit}
+
+    if date:
+        query_str += " AND DATE(g.game_date) = :date"
+        params["date"] = date
+    else:
+        query_str += " AND DATE(g.game_date) >= CURDATE()"
+
+    query_str += """
+        ORDER BY g.game_date ASC, g.game_time ASC
+        LIMIT :limit
+    """
+
+    rows = db.execute(text(query_str), params).mappings().all()
+    return list(rows)

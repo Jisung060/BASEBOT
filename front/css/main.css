@@ -503,88 +503,91 @@ input {
 ================================================== */
 
 .game-list {
-
     display: grid;
-
-    grid-template-columns:
-        repeat(3, 1fr);
-
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
 }
 
 
 .game-card {
-
-    height: 180px;
-
+    min-height: 180px;
+    padding: 18px 15px;
     border: 1px solid #ddd;
-
     background-color: white;
-
     display: flex;
-
     flex-direction: column;
-
-    justify-content: center;
-
+    justify-content: space-between;
     align-items: center;
-
-    gap: 18px;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 
 .game-card:hover {
-
     border-color: #174a9c;
-
-    box-shadow:
-        0 3px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
-
 
 .game-info {
-
-    font-size: 14px;
-
-    color: #777;
-}
-
-
-.game-team {
-
-    width: 80%;
-
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    font-size: 17px;
-
-    font-weight: 700;
-}
-
-
-.game-team strong {
-
     font-size: 13px;
-
     color: #777;
+    font-weight: 500;
+}
+
+/* 팀과 VS 배치 영역 (로고 + 풀네임 최적화) */
+.game-team {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 0 5px;
+}
+
+/* 개별 팀 (원정 / 홈) */
+.game-team span {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 팀 로고 이미지 스타일 */
+.game-team span img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 
-.game-status {
-
-    padding: 5px 15px;
-
-    border-radius: 20px;
-
-    background-color: #eee;
-
+/* VS 텍스트 */
+.game-team strong {
     font-size: 12px;
+    font-weight: 800;
+    color: #999;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
 
+
+/* 경기 상태 배지 */
+.game-status {
+    padding: 4px 14px;
+    border-radius: 20px;
+    background-color: #f1f3f5;
+    font-size: 11.5px;
     color: #555;
+    font-weight: 600;
 }
 
 

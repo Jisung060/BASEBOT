@@ -23,17 +23,90 @@
 <section class="page-intro"><p>관리자 계정에서 수행한 주요 작업과 처리 결과를 확인합니다.</p></section>
 <section class="panel">
     <div class="panel-heading"><div><h2>활동 이력 검색</h2><p>관리자, 작업 유형 및 기간별로 조회합니다.</p></div></div>
-    <form class="filter-form" action="#" method="get">
-        <label>관리자 계정<input type="search" name="admin" placeholder="관리자 아이디"></label>
-        <label>작업 유형<select name="action"><option value="">전체 작업</option><option>회원 관리</option><option>게시글 관리</option><option>신고 처리</option><option>공지사항 관리</option><option>시스템 설정</option></select></label>
-        <label>시작일<input type="date" name="start_date"></label>
-        <label>종료일<input type="date" name="end_date"></label>
+    <form class="filter-form" id="activity-log-search" action="#" method="get">
+        <label>
+            관리자 계정
+            <input
+                type="search"
+                id="activity-log-admin"
+                name="admin"
+                placeholder="관리자 아이디"
+            >
+        </label>
+
+        <label>
+            작업 유형
+            <select id="activity-log-action" name="action">
+                <option value="">전체 작업</option>
+                <option value="USER">회원 관리</option>
+                <option value="COMMUNITY">커뮤니티 관리</option>
+                <option value="BASEBALL_DATA">야구 데이터 관리</option>
+                <option value="NOTICE">공지사항 관리</option>
+                <option value="CHATBOT">챗봇 관리</option>
+            </select>
+        </label>
+
+        <label>
+            시작일
+            <input type="date" id="activity-log-start" name="start_date">
+        </label>
+
+        <label>
+            종료일
+            <input type="date" id="activity-log-end" name="end_date">
+        </label>
+
+        <label>
+            처리 결과
+            <select id="activity-log-result" name="result">
+                <option value="">전체 결과</option>
+                <option value="SUCCESS">성공</option>
+                <option value="FAILURE">실패</option>
+            </select>
+        </label>
+
         <button class="button button-primary" type="submit">조회</button>
     </form>
 </section>
 <section class="panel">
-    <div class="panel-heading"><div><h2>작업 이력</h2><p>관리자 작업 로그 테이블/API 연동 영역</p></div><span class="count-label">총 —건</span></div>
-    <div class="table-wrap"><table><thead><tr><th>일시</th><th>관리자</th><th>작업 유형</th><th>대상</th><th>처리 내용</th><th>결과</th></tr></thead><tbody><tr><td colspan="6" class="table-empty">기록된 활동 이력이 없습니다.</td></tr></tbody></table></div>
+    <div class="panel-heading">
+        <div>
+            <h2>작업 이력</h2>
+            <p>관리자 작업 내역과 처리 결과를 확인합니다.</p>
+        </div>
+
+        <span class="count-label" id="activity-log-total">총 0건</span>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>일시</th>
+                    <th>관리자</th>
+                    <th>작업 유형</th>
+                    <th>대상</th>
+                    <th>처리 내용</th>
+                    <th>결과</th>
+                </tr>
+            </thead>
+
+            <tbody id="activity-log-tbody">
+                <tr>
+                    <td colspan="6" class="table-empty">
+                        활동 이력을 불러오는 중입니다.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 활동 이력 페이지네이션 -->
+    <nav
+        class="pagination admin-pagination"
+        id="activity-log-pagination"
+        aria-label="활동 이력 페이지 이동"
+    ></nav>
 </section>
 <div class="notice-box"><strong>기록 원칙</strong><p>작업 이력은 프런트엔드에서 임의로 만들지 말고, 실제 변경을 수행하는 백엔드에서 성공·실패 결과와 함께 기록해야 합니다.</p></div>
             </div>
@@ -44,5 +117,7 @@
         </main>
     </div>
     <script src="/js/admin/admin-common.js"></script>
+
+    <script src="/js/admin/activity-logs.js"></script>
 </body>
 </html>

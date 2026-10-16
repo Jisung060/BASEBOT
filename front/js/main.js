@@ -690,137 +690,137 @@ if (chatbotInput) {
    경기 결과 불러오기
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", function () {
-    fetchMainGames();
-});
+// document.addEventListener("DOMContentLoaded", function () {
+//     fetchMainGames();
+// });
 
 
 /* ==================================================
    경기 데이터 조회
 ================================================== */
 
-async function fetchMainGames() {
-    try {
-        // 기존에 사용하던 날짜와 limit 값은 유지한다.
-        // localhost를 직접 지정하지 않고 현재 서버의 상대 경로를 사용한다.
-        const res = await fetch(
-            "/api/games?date=2024-04-15&limit=6"
-        );
-
-        if (!res.ok) {
-            throw new Error(
-                `경기 API 요청 실패: HTTP ${res.status}`
-            );
-        }
-
-        const games = await res.json();
-
-        if (!Array.isArray(games)) {
-            throw new Error("경기 API 응답 형식이 배열이 아닙니다.");
-        }
-
-        renderTodayGames(games);
-
-    } catch (err) {
-        console.error("메인 경기 데이터 로드 실패:", err);
-    }
-}
+// async function fetchMainGames() {
+//     try {
+//         // 기존에 사용하던 날짜와 limit 값은 유지한다.
+//         // localhost를 직접 지정하지 않고 현재 서버의 상대 경로를 사용한다.
+//         const res = await fetch(
+//             "/api/games?date=2024-04-15&limit=6"
+//         );
+//
+//         if (!res.ok) {
+//             throw new Error(
+//                 `경기 API 요청 실패: HTTP ${res.status}`
+//             );
+//         }
+//
+//         const games = await res.json();
+//
+//         if (!Array.isArray(games)) {
+//             throw new Error("경기 API 응답 형식이 배열이 아닙니다.");
+//         }
+//
+//         renderTodayGames(games);
+//
+//     } catch (err) {
+//         console.error("메인 경기 데이터 로드 실패:", err);
+//     }
+// }
 
 
 /* ==================================================
    경기 날짜 및 시간 표시
 ================================================== */
 
-function formatGameTime(gameTime) {
-    if (!gameTime) {
-        return "";
-    }
-
-    // DB의 TIME 컬럼이 "14:10:00" 형식으로 반환되는 경우
-    const timeString = String(gameTime);
-
-    const match = timeString.match(/^(\d{1,2}):(\d{2})/);
-
-    if (match) {
-        const hour = match[1].padStart(2, "0");
-        const minute = match[2];
-
-        return `${hour}:${minute}`;
-    }
-
-    // 예상하지 못한 형식은 원본 문자열을 그대로 반환
-    return timeString;
-}
+// function formatGameTime(gameTime) {
+//     if (!gameTime) {
+//         return "";
+//     }
+//
+//     // DB의 TIME 컬럼이 "14:10:00" 형식으로 반환되는 경우
+//     const timeString = String(gameTime);
+//
+//     const match = timeString.match(/^(\d{1,2}):(\d{2})/);
+//
+//     if (match) {
+//         const hour = match[1].padStart(2, "0");
+//         const minute = match[2];
+//
+//         return `${hour}:${minute}`;
+//     }
+//
+//     // 예상하지 못한 형식은 원본 문자열을 그대로 반환
+//     return timeString;
+// }
 
 
 /* ==================================================
    오늘의 경기 카드 영역 렌더링
 ================================================== */
 
-function renderTodayGames(games) {
-    const container = document.querySelector(".game-list");
-
-    // 경기 일정 페이지(game.html)의 #game-list도 같은 클래스라서 건너뜀
-    if (!container || container.id === "game-list") {
-        return;
-    }
-
-    container.innerHTML = "";
-
-    if (games.length === 0) {
-        return;
-    }
-
-    games.slice(0, 3).forEach(game => {
-        const card = document.createElement("div");
-        card.className = "game-card";
-
-        const gameInfo = document.createElement("div");
-        gameInfo.className = "game-info";
-
-        // 경기 날짜와 시간을 분리하여 표시
-        const gameDate = game.game_date
-            ? String(game.game_date).slice(0, 10)
-            : "";
-
-        const gameTime = formatGameTime(game.game_time);
-
-        gameInfo.textContent = [gameDate, gameTime]
-            .filter(Boolean)
-            .join(" ");
-
-        const gameTeam = document.createElement("div");
-        gameTeam.className = "game-team";
-
-        const awayTeam = document.createElement("span");
-        awayTeam.textContent =
-            game.away_team_code ||
-            game.away_team_name ||
-            game.away_team ||
-            "원정팀";
-
-        const versus = document.createElement("strong");
-        versus.textContent = "VS";
-
-        const homeTeam = document.createElement("span");
-        homeTeam.textContent =
-            game.home_team_code ||
-            game.home_team_name ||
-            game.home_team ||
-            "홈팀";
-
-        gameTeam.appendChild(awayTeam);
-        gameTeam.appendChild(versus);
-        gameTeam.appendChild(homeTeam);
-
-        const gameStatus = document.createElement("div");
-        gameStatus.className = "game-status";
-        gameStatus.textContent = game.status || "상태 미정";
-
-        card.appendChild(gameInfo);
-        card.appendChild(gameTeam);
-        card.appendChild(gameStatus);
-
-        container.appendChild(card);
-    });
-}
+// function renderTodayGames(games) {
+//     const container = document.querySelector(".game-list");
+//
+//     // 경기 일정 페이지(game.html)의 #game-list도 같은 클래스라서 건너뜀
+//     if (!container || container.id === "game-list") {
+//         return;
+//     }
+//
+//     container.innerHTML = "";
+//
+//     if (games.length === 0) {
+//         return;
+//     }
+//
+//     games.slice(0, 3).forEach(game => {
+//         const card = document.createElement("div");
+//         card.className = "game-card";
+//
+//         const gameInfo = document.createElement("div");
+//         gameInfo.className = "game-info";
+//
+//         // 경기 날짜와 시간을 분리하여 표시
+//         const gameDate = game.game_date
+//             ? String(game.game_date).slice(0, 10)
+//             : "";
+//
+//         const gameTime = formatGameTime(game.game_time);
+//
+//         gameInfo.textContent = [gameDate, gameTime]
+//             .filter(Boolean)
+//             .join(" ");
+//
+//         const gameTeam = document.createElement("div");
+//         gameTeam.className = "game-team";
+//
+//         const awayTeam = document.createElement("span");
+//         awayTeam.textContent =
+//             game.away_team_code ||
+//             game.away_team_name ||
+//             game.away_team ||
+//             "원정팀";
+//
+//         const versus = document.createElement("strong");
+//         versus.textContent = "VS";
+//
+//         const homeTeam = document.createElement("span");
+//         homeTeam.textContent =
+//             game.home_team_code ||
+//             game.home_team_name ||
+//             game.home_team ||
+//             "홈팀";
+//
+//         gameTeam.appendChild(awayTeam);
+//         gameTeam.appendChild(versus);
+//         gameTeam.appendChild(homeTeam);
+//
+//         const gameStatus = document.createElement("div");
+//         gameStatus.className = "game-status";
+//         gameStatus.textContent = game.status || "상태 미정";
+//
+//         card.appendChild(gameInfo);
+//         card.appendChild(gameTeam);
+//         card.appendChild(gameStatus);
+//
+//         container.appendChild(card);
+//     });
+// }
