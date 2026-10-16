@@ -5,6 +5,38 @@
 ========================================= */
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+// 커뮤니티 사이드바 설정
+// 1) 로그인한 사용자에게만 '내 활동' 표시
+// 2) 현재 보고 있는 메뉴 강조
+function setupCommunitySidebar() {
+    const myActivity = document.getElementById("communityMyActivity");
+
+    if (myActivity) {
+        myActivity.hidden = !sessionStorage.getItem("access_token");
+    }
+
+    const category = (
+        new URLSearchParams(window.location.search).get("category") || ""
+    ).toUpperCase();
+
+    if (category) {
+        document
+            .querySelectorAll(".community-sidebar-submenu a[data-category]")
+            .forEach((link) => {
+                link.classList.toggle(
+                    "active",
+                    link.dataset.category === category
+                );
+            });
+    } else {
+        document
+            .getElementById("communityAllLink")
+            ?.classList.add("active");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", setupCommunitySidebar);
+
 function showBasebotModal(
     title,
     message,
@@ -1448,7 +1480,29 @@ async function loadPosts() {
     }
 }
 
+// 사이드바 링크(?category=GENERAL 등)로 들어왔을 때
+// 상단 분류 필터에 반영
+function applyCategoryFromUrl() {
 
+    const category = (
+        new URLSearchParams(window.location.search).get("category") || ""
+    ).toUpperCase();
+
+    const allowed = ["GENERAL", "ANALYSIS", "GAME_THREAD", "NEWS"];
+
+    // 올바르지 않은 값은 무시
+    if (!allowed.includes(category)) {
+        return;
+    }
+
+    appliedFilter.category = category;
+
+    const categorySelect = document.getElementById("categorySelect");
+
+    if (categorySelect) {
+        categorySelect.value = category;
+    }
+}
 
 
 
@@ -1461,6 +1515,8 @@ async function startCommunity() {
 
     await loadPosts();
     await loadPopularPosts();
+
+    applyCategoryFromUrl();
 
     setupCommunityFilters();
 

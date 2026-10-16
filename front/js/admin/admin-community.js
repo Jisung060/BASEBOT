@@ -618,7 +618,10 @@ let isRefreshing = false;          // 새로고침 중복 클릭 방지
 async function loadAdminCommunityData() {
     communityLoadFailed = false;
 
-    await loadCurrentTabData();
+    await Promise.all([
+        loadCurrentTabData(),
+        loadSummaryCards(),
+    ]);
 
     // 오류가 없을 때만 "마지막 갱신" 시각 변경
     if (!communityLoadFailed) {
@@ -668,6 +671,74 @@ function setupRefreshButton() {
             }, 400);
         }
     });
+}
+
+// ========================================
+// 상단 요약 카드 (총계 + 전일 대비)
+// ========================================
+function renderSummaryCard(numberId, data, todayLabel) {
+    const numberElement = document.getElementById(numberId);
+    if (!numberElement || !data) return;
+
+    numberElement.textContent =
+        Number(data.total || 0).toLocaleString("ko-KR");
+
+    // 증감 영역이 없으면 숫자 바로 아래에 만들기
+    const changeId = `${numberId}Change`;
+    let changeElement = document.getElementById(changeId);
+
+    if (!changeElement) {
+        changeElement = document.createElement("div");
+        changeElement.id = changeId;
+        changeElement.className = "summary-change";
+        numberElement.insertAdjacentElement("afterend", changeElement);
+    }
+
+    const today = Number(data.today || 0);
+    const yesterday = Number(data.yesterday || 0);
+    const diff = today - yesterday;
+
+    // 증감 뱃지 문구
+    let badgeClass = "flat";
+    let badgeText = "– 변동 없음";
+
+    if (diff > 0) {
+        badgeClass = "up";
+        badgeText = yesterday > 0
+            ? `▲ ${Math.round((diff / yesterday) * 100)}%`
+            : "▲ 신규";
+    } else if (diff < 0) {
+        badgeClass = "down";
+        badgeText = `▼ ${Math.round((Math.abs(diff) / yesterday) * 100)}%`;
+    }
+
+    const text = document.createElement("span");
+    text.className = "change-text";
+    text.textContent =
+        `${todayLabel} +${today.toLocaleString("ko-KR")} · ` +
+        `어제 +${yesterday.toLocaleString("ko-KR")}`;
+
+    const badge = document.createElement("span");
+    badge.className = `change-badge ${badgeClass}`;
+    badge.textContent = badgeText;
+
+    changeElement.replaceChildren(text, badge);
+}
+
+
+async function loadSummaryCards() {
+    try {
+        const summary = await requestAdminAPI("/admin/community/summary");
+
+        renderSummaryCard("totalPostCount", summary.posts, "오늘 작성");
+        renderSummaryCard("totalCommentCount", summary.comments, "오늘 작성");
+        renderSummaryCard("totalReportCount", summary.reports, "오늘 접수");
+        renderSummaryCard("completedReportCount", summary.completed, "오늘 처리");
+
+    } catch (error) {
+        // 카드 오류가 목록 로딩을 막지 않도록 콘솔에만 기록
+        console.error("요약 카드 불러오기 실패:", error);
+    }
 }
 
 // ========================================

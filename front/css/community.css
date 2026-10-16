@@ -1,6 +1,7 @@
+
 /* =========================================
-   BASEBOT Community
-   기존 main.css와 함께 사용
+   BASEBOT Community Layout / Sidebar
+   마이페이지 사이드바와 같은 디자인 (하위 메뉴는 항상 펼침)
 ========================================= */
 
 .community-main {
@@ -16,50 +17,113 @@
 }
 
 .community-sidebar {
+    width: 100%;
     padding-top: 8px;
 }
 
+/* 제목 + 진한 구분선 */
 .community-sidebar-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: #172033;
+    padding-bottom: 18px;
+    color: #222;
+    font-size: 21px;
+    font-weight: 700;
 }
 
 .community-sidebar-line {
-    height: 2px;
-    margin: 14px 0 8px;
-    background: #172033;
+    width: 100%;
+    height: 1px;
+    margin-bottom: 10px;
+    background-color: #222;
 }
 
-.community-sidebar-menu a {
-    display: block;
-    padding: 13px 10px;
-    color: #667085;
-    text-decoration: none;
-    border-bottom: 1px solid #edf0f4;
+.community-sidebar-menu {
+    width: 100%;
+}
+
+/* 메뉴 그룹 (전체 게시글 / 내 활동) */
+.community-sidebar-group {
+    margin: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.community-sidebar-group[hidden] {
+    display: none;
+}
+
+/* 그룹 제목 */
+.community-sidebar-group-title {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 15px;
+    box-sizing: border-box;
+
+    color: #222;
     font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    text-decoration: none;
 }
 
-.community-sidebar-menu a:hover,
-.community-sidebar-menu a.active {
-    color: #173f91;
-    font-weight: 700;
-    background: #f4f7fc;
+a.community-sidebar-group-title:hover {
+    background: #f5f7fb;
+    color: #123f91;
 }
+
+/* 링크가 아닌 제목(내 활동)은 호버 효과 없음 */
+.community-sidebar-group-title.is-label {
+    cursor: default;
+}
+
+/* 하위 메뉴 */
+.community-sidebar-submenu {
+    padding: 4px 0 4px 15px;
+}
+
+.community-sidebar-submenu a {
+    display: block;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+
+    color: #555;
+    font-size: 14px;
+    font-weight: 400;
+    text-decoration: none;
+}
+
+.community-sidebar-submenu a:last-child {
+    border-bottom: none;
+}
+
+.community-sidebar-submenu a:hover {
+    background: #f5f7fb;
+    color: #123f91;
+}
+
+/* 현재 선택된 메뉴 */
+.community-sidebar-group-title.active,
+.community-sidebar-submenu a.active {
+    background: #edf3ff;
+    color: #123f91;
+    font-weight: 700;
+}
+
+
 
 .community-title {
-    margin-bottom: 28px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #222;
 }
 
 .community-title h1 {
     margin: 0 0 8px;
-    font-size: 32px;
-    color: #172033;
+    font-size: 30px;
 }
 
 .community-title p {
     margin: 0;
-    color: #7b8494;
+    color: #777;
     font-size: 14px;
 }
 
@@ -817,11 +881,6 @@
 
     .community-sidebar {
         padding-top: 0;
-    }
-
-    .community-sidebar-menu {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .popular-grid {
@@ -1826,4 +1885,124 @@
 .comment-section {
     width: 100%;
     box-sizing: border-box;
+}
+
+/* =========================================
+   페이지 제목: 마이페이지와 통일
+========================================= */
+
+.community-title {
+    padding-bottom: 25px;
+    margin-bottom: 20px;
+}
+
+
+/* =========================================
+   검색 / 필터 영역 축소
+   (선택 상자에 '전체 분류' 같은 안내가 이미 있어서
+    위쪽 작은 라벨은 화면에서만 숨김)
+========================================= */
+
+.league-filter-card {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+
+.search-area {
+    margin-top: 0;
+}
+
+.search-area select,
+.search-area input,
+.search-area .community-btn {
+    height: 36px;
+}
+
+.league-filter-grid {
+    margin-top: 8px;
+    gap: 8px;
+}
+
+.league-filter-grid select {
+    height: 34px;
+}
+
+.league-filter-grid label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+
+/* =========================================
+   인기 게시글 축소
+========================================= */
+
+.section-heading {
+    margin-bottom: 10px;
+}
+
+.section-heading h2 {
+    font-size: 16px;
+}
+
+.popular-grid {
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.popular-card {
+    min-height: 0;
+    padding: 12px 14px;
+}
+
+.popular-card-top {
+    margin-bottom: 6px;
+}
+
+.popular-card h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.popular-card p {
+    margin: 0 0 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+
+/* =========================================
+   모바일: 펼친 사이드바를 작은 버튼 형태로
+========================================= */
+
+@media (max-width: 900px) {
+    .community-sidebar-menu {
+        display: block;
+    }
+
+    .community-sidebar-submenu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 6px 0 10px;
+    }
+
+    .community-sidebar-submenu a,
+    .community-sidebar-submenu a:last-child {
+        padding: 7px 12px;
+        border: 1px solid #e5e5e5;
+        border-radius: 999px;
+    }
 }

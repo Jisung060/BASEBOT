@@ -1310,3 +1310,36 @@
 .dialog-button.outline-danger:hover:not(:disabled) {
     background: #fef2f2;
 }
+
+/* 상단 요약 카드: 전일 대비 */
+.summary-change {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.change-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.change-badge.up {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.change-badge.down {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.change-badge.flat {
+    background: #f3f4f6;
+    color: #6b7280;
+}

@@ -13,14 +13,44 @@
 <main class="community-main">
     <div class="community-layout">
 
+               <!-- 좌측 사이드바 -->
         <aside class="community-sidebar">
             <div class="community-sidebar-title">커뮤니티</div>
             <div class="community-sidebar-line"></div>
-            <nav class="community-sidebar-menu">
-                <a href="community.html" class="active">전체 게시글</a>
+
+            <nav class="community-sidebar-menu" aria-label="커뮤니티 메뉴">
+
+                <!-- 전체 게시글 (하위 메뉴는 항상 펼쳐진 상태) -->
+                <div class="community-sidebar-group">
+                    <a href="community.html"
+                       class="community-sidebar-group-title"
+                       id="communityAllLink">
+                        전체 게시글
+                    </a>
+
+                    <div class="community-sidebar-submenu">
+                        <a href="community.html?category=GENERAL" data-category="GENERAL">자유</a>
+                        <a href="community.html?category=ANALYSIS" data-category="ANALYSIS">분석</a>
+                        <a href="community.html?category=GAME_THREAD" data-category="GAME_THREAD">경기</a>
+                        <a href="community.html?category=NEWS" data-category="NEWS">뉴스</a>
+                    </div>
+                </div>
+
+                <!-- 내 활동 (로그인한 경우에만 표시) -->
+                <div class="community-sidebar-group" id="communityMyActivity" hidden>
+                    <div class="community-sidebar-group-title is-label">내 활동</div>
+
+                    <div class="community-sidebar-submenu">
+                        <a href="my-posts.html">내가 쓴 글</a>
+                        <a href="my-comments.html">내가 쓴 댓글</a>
+                        <a href="my-scraps.html">스크랩한 게시글</a>
+                    </div>
+                </div>
+
             </nav>
         </aside>
 
+        <!-- 우측 본문 -->
         <section class="community-content">
             <div class="community-title">
                 <h1>커뮤니티</h1>
@@ -194,5 +224,6 @@
 <script src="../js/main.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.17/purify.min.js"></script>
 <script src="../js/community.js"></script>
+
 </body>
 </html>

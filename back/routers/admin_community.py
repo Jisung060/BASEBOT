@@ -8,7 +8,7 @@ import re
 import html
 from models.community_image import CommunityImage
 
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 from pydantic import BaseModel
 
@@ -641,6 +641,77 @@ def get_admin_community_reports(
         ],
     }
 
+# ========================================
+# 상단 요약 카드
+# GET /admin/community/summary
+# - 총계 + 오늘/어제 신규 건수 (전일 대비용)
+# ========================================
+
+@router.get("/summary")
+def get_admin_community_summary(
+    db: Session = Depends(get_session),
+    admin: User = Depends(get_admin_user),
+):
+    today_start = datetime.combine(date.today(), time.min)
+    yesterday_start = today_start - timedelta(days=1)
+
+    def count(model, *conditions):
+        query = select(func.count()).select_from(model)
+        if conditions:
+            query = query.where(*conditions)
+        return db.scalar(query) or 0
+
+    def build(model, date_column, *base):
+        return {
+            "total": count(model, *base),
+            "today": count(
+                model,
+                *base,
+                date_column >= today_start,
+            ),
+            "yesterday": count(
+                model,
+                *base,
+                date_column >= yesterday_start,
+                date_column < today_start,
+            ),
+        }
+
+    open_statuses = ("PENDING", "REVIEWED")
+    done_statuses = ("ACCEPTED", "REJECTED")
+
+    return {
+        "posts": build(
+            CommunityPost,
+            CommunityPost.created_at,
+        ),
+        "comments": build(
+            Comment,
+            Comment.created_at,
+        ),
+        # 신고 접수: 미처리 건수 / 접수일 기준 오늘·어제
+        "reports": {
+            "total": count(
+                PostReport,
+                PostReport.status.in_(open_statuses),
+            ),
+            "today": count(
+                PostReport,
+                PostReport.created_at >= today_start,
+            ),
+            "yesterday": count(
+                PostReport,
+                PostReport.created_at >= yesterday_start,
+                PostReport.created_at < today_start,
+            ),
+        },
+        # 처리 완료: 승인+반려 / 처리일 기준 오늘·어제
+        "completed": build(
+            PostReport,
+            PostReport.reviewed_at,
+            PostReport.status.in_(done_statuses),
+        ),
+    }
 
 # ========================================
 # 관리자 신고 상태 변경

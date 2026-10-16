@@ -1030,6 +1030,23 @@
     cursor: pointer;
 }
 
+
+/* 커뮤니티 메뉴 아래 구분선 */
+.auth-sidebar-menu .mypage-menu-group {
+    border-bottom: 1px solid #eee;
+}
+
+/* 커뮤니티 하위 메뉴의 구분선 */
+.auth-sidebar-menu .mypage-submenu a {
+    border-bottom: 1px solid #eee;
+}
+
+/* 하위 메뉴 마지막 항목의 중복 구분선 방지 */
+.auth-sidebar-menu .mypage-submenu a:last-child {
+    border-bottom: none;
+}
+
+
 .auth-sidebar-menu .mypage-menu-group-title:hover {
     background: #f5f7fb;
 }
