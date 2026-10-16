@@ -108,3 +108,27 @@ async function initializeAdminLayout() {
 }
 
 initializeAdminLayout();
+
+
+/* ==================================================
+   관리자 로그아웃
+================================================== */
+
+// 사이드바가 나중에 로드되어도 로그아웃 이벤트 처리
+document.addEventListener("click", function (event) {
+    const logoutLink = event.target.closest("#adminLogoutLink");
+
+    if (!logoutLink) return;
+
+    event.preventDefault();
+
+    // 로그인 토큰 및 사용자 정보 삭제
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("user");
+
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+
+    // 메인 페이지로 이동
+    window.location.replace("/main.html");
+});
