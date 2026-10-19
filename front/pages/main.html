@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BASEBOT</title>
     <!-- CSS -->
-    <link rel="stylesheet" href="/css/main.css?v=20261015c">
+    <link rel="stylesheet" href="/css/main.css?v=20261019a">
 </head>
 
 
@@ -139,52 +139,14 @@
                     더보기 +
                 </a>
             </div>
-            <div class="ranking-table">
-                <!-- 제목 -->
-                <div class="ranking-header">
-                    <span>순위</span>
-                    <span>팀</span>
-                    <span>경기</span>
-                    <span>승</span>
-                    <span>패</span>
-                    <span>승률</span>
-                </div>
-                <!-- 1위 -->
-                <div class="ranking-row">
-                    <span>1</span>
-                    <span>팀 A</span>
-                    <span>100</span>
-                    <span>65</span>
-                    <span>35</span>
-                    <span>0.650</span>
-                </div>
-                <!-- 2위 -->
-                <div class="ranking-row">
-                    <span>2</span>
-                    <span>팀 B</span>
-                    <span>100</span>
-                    <span>62</span>
-                    <span>38</span>
-                    <span>0.620</span>
-                </div>
-                <!-- 3위 -->
-                <div class="ranking-row">
-                    <span>3</span>
-                    <span>팀 C</span>
-                    <span>100</span>
-                    <span>58</span>
-                    <span>42</span>
-                    <span>0.580</span>
-                </div>
-                <!-- 4위 -->
-                <div class="ranking-row">
-                    <span>4</span>
-                    <span>팀 D</span>
-                    <span>100</span>
-                    <span>55</span>
-                    <span>45</span>
-                    <span>0.550</span>
-                </div>
+            <!-- 리그 변경 버튼 (main-standings.js) -->
+            <div class="main-standings-leagues" role="tablist" aria-label="리그 선택">
+                <button type="button" class="main-standings-league selected" data-league="AL" role="tab" aria-selected="true">아메리칸리그</button>
+                <button type="button" class="main-standings-league" data-league="NL" role="tab" aria-selected="false">내셔널리그</button>
+            </div>
+            <!-- 동부 | 중부 | 서부 3칸 순위표 (main-standings.js에서 /api/standings 데이터로 생성) -->
+            <div class="ranking-table main-standings-grid" id="main-standings-grid">
+                <p class="main-standings-message">팀 순위를 불러오는 중입니다.</p>
             </div>
         </section>
 
@@ -366,6 +328,9 @@
 
     <!-- ▼ 오늘 경기 연동 스크립트 추가 -->
     <script src="/js/main-games.js"></script>
+
+    <!-- ▼ 팀 순위 (동부/중부/서부) 연동 스크립트 -->
+    <script src="/js/main-standings.js"></script>
 
     <script>
         /* 메인 공지사항 목록 (고정 공지 먼저, 최신순 5개) */

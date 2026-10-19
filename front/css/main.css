@@ -828,7 +828,7 @@ input {
 
     width: 100%;
 
-    border-top: 2px solid #222;
+    border-top: 1px solid #ddd;   /* 기본 선 (경기 결과 칸과 같음) */
 }
 
 
@@ -868,6 +868,124 @@ input {
     border-bottom: 1px solid #eee;
 
     font-size: 14px;
+}
+
+
+/* --------------------------------------------------
+   메인 팀 순위: 리그 버튼 + 동부 | 중부 | 서부 3칸 (main-standings.js)
+-------------------------------------------------- */
+
+/* '더보기 +' 아래 리그 변경 버튼 (팀 순위 페이지 탭과 같은 스타일) */
+.main-standings-leagues {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    margin: -8px 0 8px;
+}
+
+.main-standings-league {
+    padding: 6px 10px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #788496;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.main-standings-league:hover {
+    color: #174b8a;
+}
+
+.main-standings-league.selected {
+    border-bottom-color: #174b8a;
+    color: #174b8a;
+    font-weight: 700;
+}
+
+/* 3칸 배치 */
+.main-standings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 24px;
+}
+
+.main-standings-division-title {
+    margin: 12px 0 8px;
+    color: #243b5c;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+/* 한 칸 안의 표: 순위 · 팀 · 경기 · 승 · 패 · 승률 */
+.ranking-header.main-standings-row,
+.ranking-row.main-standings-row {
+    grid-template-columns: 36px minmax(0, 1fr) 40px 34px 34px 46px;
+    gap: 4px;
+    height: 44px;
+}
+
+.ranking-header.main-standings-row {
+    font-size: 12px;
+}
+
+.ranking-row.main-standings-row {
+    font-size: 13px;
+}
+
+/* 지구 1위(플레이오프 진출권) → 왼쪽 파란 선 */
+.ranking-row.main-standings-row.is-leader {
+    box-shadow: inset 4px 0 0 #347cff;
+}
+
+.main-standings-rank {
+    color: #174b8a;
+    font-weight: 800;
+}
+
+.main-standings-team {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-align: left;
+}
+
+.main-standings-logo {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    object-fit: contain;
+}
+
+.main-standings-team-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.main-standings-team:hover .main-standings-team-name {
+    color: #174b8a;
+    text-decoration: underline;
+}
+
+.main-standings-message {
+    grid-column: 1 / -1;
+    padding: 25px 10px;
+    color: #777;
+    text-align: center;
+    font-size: 13px;
+}
+
+/* 좁은 화면: 3칸을 위아래로 */
+@media (max-width: 900px) {
+    .main-standings-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 

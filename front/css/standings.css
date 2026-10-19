@@ -122,6 +122,36 @@
     white-space: nowrap;
 }
 
+/* 제목 클릭 정렬 (관리자 페이지와 같은 방식) */
+.standings-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.standings-table th.sortable:hover {
+    background: #eff6ff;
+    color: #174b8a;
+}
+
+.standings-table th .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+.standings-table th.asc,
+.standings-table th.desc {
+    color: #174b8a;
+}
+
+.standings-table th.asc .sort-icon,
+.standings-table th.desc .sort-icon {
+    color: #174b8a;
+    font-weight: 900;
+}
+
 .standings-table tbody tr:hover {
     background: #f8fafc;
 }
