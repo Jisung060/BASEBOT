@@ -598,6 +598,16 @@ def get_mlb_news(
 
     try:
 
+        # 화면에 반환하는 목록은 최대 100개지만, 누적 기사 수는
+        # DB의 전체 ACTIVE 기사 수를 별도로 계산한다.
+        total_count = db.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM mlb_news
+                WHERE status = 'ACTIVE'
+            """)
+        ).scalar_one()
+
         rows = db.execute(
             text("""
                 SELECT
@@ -667,6 +677,7 @@ def get_mlb_news(
             "status": "success",
             "page": page,
             "limit": limit,
+            "total_count": int(total_count),
             "data": data,
             "updated_at": datetime.now().isoformat(),
             "next_crawl_seconds": CRAWL_INTERVAL,
