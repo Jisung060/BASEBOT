@@ -103,14 +103,14 @@
 }
 
 .my-scraps-page .my-scraps-tab:hover {
-    color: #173d70;
+    color: var(--bb-primary);
     background: #f3f7fc;
 }
 
 .my-scraps-page .my-scraps-tab.active {
     color: #fff;
-    background: #173b68;
-    border-color: #173b68;
+    background: var(--bb-primary);
+    border-color: var(--bb-primary);
 }
 
 /* 검색창과 정렬 */
@@ -332,7 +332,7 @@
 }
 
 .my-scraps-page .my-scraps-page-button:hover:not(:disabled) {
-    color: #173d70;
+    color: var(--bb-primary);
     background: #f0f5fc;
 }
 
@@ -345,8 +345,8 @@
 
 .my-scraps-page .my-scraps-page-button.active {
     color: #fff;
-    background: #173b68;
-    border-color: #173b68;
+    background: var(--bb-primary);
+    border-color: var(--bb-primary);
 }
 
 .my-scraps-page .my-scraps-page-button:disabled {

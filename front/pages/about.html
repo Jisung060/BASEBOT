@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>서비스 소개 | BASEBOT</title>
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/common-page.css">
+
+    <!-- 인증/약관 페이지 CSS -->
+    <link rel="stylesheet" href="../css/auth.css">
+
+    <style>
+        /* ========================================
+           서비스 소개 페이지 전용 스타일
+        ======================================== */
+        .about-content {
+            min-width: 0;
+        }
+
+        /* 페이지 타이틀 영역 */
+        .about-title {
+            padding-bottom: 25px;
+            border-bottom: 2px solid #222;
+        }
+
+        .about-title h1 {
+            margin-bottom: 8px;
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .about-title p {
+            font-size: 14px;
+            color: #777;
+        }
+
+        /* 본문 컨테이너 */
+        .about-body {
+            margin-top: 30px;
+            padding: 35px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        /* 히어로 / 브랜드 캐치프레이즈 */
+        .about-hero {
+            padding: 28px 24px;
+            background: var(--bb-bg-soft, #f7f9fc);
+            border-left: 4px solid var(--bb-primary, #123f91);
+            margin-bottom: 35px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .about-hero h2 {
+            margin: 0 0 10px;
+            font-size: 22px;
+            color: var(--bb-navy, #102d63);
+            font-weight: 700;
+        }
+
+        .about-hero p {
+            margin: 0;
+            font-size: 15px;
+            color: #4a5568;
+            word-break: keep-all;
+        }
+
+        /* 섹션 제목 */
+        .about-section-title {
+            margin-top: 40px;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #222;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .about-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        /* 핵심 기능 카드 그리드 (자동 맞춤 배치) */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .feature-card {
+            padding: 22px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        /* 태그 배지 */
+        .feature-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            background: var(--bb-primary-soft, #edf3ff);
+            color: var(--bb-primary, #123f91);
+            letter-spacing: 0.5px;
+        }
+
+        .feature-card h3 {
+            margin: 0 0 8px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .feature-card p {
+            margin: 0;
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* 게이미피케이션 (티어) 영역 */
+        .tier-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 18px 24px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #334155;
+        }
+
+        .tier-item {
+            flex: 1;
+            padding: 8px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .tier-arrow {
+            color: #94a3b8;
+        }
+
+        /* 반응형 모바일 */
+        @media (max-width: 800px) {
+            .about-body {
+                padding: 20px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tier-box {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div id="header"></div>
+
+    <!-- Main -->
+    <main class="auth-main">
+        <div class="auth-layout">
+
+            <!-- Sidebar -->
+            <div id="auth-sidebar"></div>
+
+            <!-- Service About Content -->
+            <section class="about-content">
+
+                <!-- 제목 -->
+                <div class="about-title">
+                    <h1>서비스 소개</h1>
+                    <p>BASEBOT 서비스에 대해 안내해 드립니다.</p>
+                </div>
+
+                <!-- 서비스 소개 본문 -->
+                <div class="about-body">
+
+                    <!-- 브랜딩 히어로 -->
+                    <div class="about-hero">
+                        <h2>AI 기반 통합 야구 플랫폼, BASEBOT</h2>
+                        <p>
+                            흩어져 있던 야구 일정, 팀·선수 기록, 승부 예측, 야구 커뮤니티와 AI 챗봇까지!<br>
+                            야구 팬들이 원하는 모든 소식과 즐길 거리를 한곳에 모은 종합 정보 서비스입니다.
+                        </p>
+                    </div>
+
+                    <!-- 1. 기획 의도 -->
+                    <h2 class="about-section-title">왜 BASEBOT인가요?</h2>
+                    <p>
+                        기존의 야구 정보 서비스는 경기 결과, 통계, 커뮤니티가 각각 분리되어 있어 여러 사이트를 번갈아 확인해야 하는 불편함이 있었습니다.
+                    </p>
+                    <p>
+                        <strong>BASEBOT</strong>은 최신 경기 정보 조회부터 머신러닝 기반 승부 예측, 팬들 간의 자유로운 소통, 그리고 야구 용어와 질문에 답해주는 AI 챗봇을 하나의 서비스로 통합하여 가장 편리한 야구 경험을 선사합니다.
+                    </p>
+
+                    <!-- 2. 주요 기능 소개 (커뮤니티 포함 5개 카드로 구성) -->
+                    <h2 class="about-section-title">BASEBOT 핵심 서비스</h2>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <span class="feature-tag">DATA</span>
+                            <h3>실시간 경기 & 데이터 정보</h3>
+                            <p>해외 야구 경기 일정, 결과, 날짜별·팀별 상세 스탯과 선수 통계를 빠르고 정확하게 제공합니다.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="feature-tag">AI CHAT</span>
+                            <h3>AI 챗봇</h3>
+                            <p>ML 알고리즘으로 분석한 경기 예측을 확인하고, 야구 규칙이나 전문 용어등 야구 관련 정보를 AI 챗봇에게 언제든 질문해 보세요.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="feature-tag">PREDICT</span>
+                            <h3>승부 예측 & 포인트 게임</h3>
+                            <p>직접 경기 결과를 예측하고 적중 시 포인트를 획득하세요. 예측을 적중시킬수록 나의 티어가 올라갑니다.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="feature-tag">NEWS</span>
+                            <h3>실시간 뉴스 & AI 요약</h3>
+                            <p> 최신 야구 기사를 AI가 3줄로 핵심만 요약하여 빠르게 전달합니다.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="feature-tag">COMMUNITY</span>
+                            <h3>야구 팬 커뮤니티</h3>
+                            <p>응원하는 구단에 대해 의견을 나누고 경기 분석글을 공유하세요. 댓글·대댓글, 좋아요, 스크랩, 신고 기능을 제공합니다.</p>
+                        </div>
+
+                    </div>
+
+                    <!-- 3. 티어 시스템 -->
+                    <h2 class="about-section-title">예측하고 적중시켜 티어를 올려보세요!</h2>
+                    <p>
+                        BASEBOT은 단순한 정보 제공에 그치지 않고, 사용자가 직접 참여하는 예측 시스템을 제공합니다. 나의 예측 적중률에 따라 포인트를 얻고 높은 등급에 도전해 보세요.
+                    </p>
+
+                    <div class="tier-box">
+                        <div class="tier-item">BRONZE</div>
+                        <span class="tier-arrow">➔</span>
+                        <div class="tier-item">SILVER</div>
+                        <span class="tier-arrow">➔</span>
+                        <div class="tier-item">GOLD</div>
+                        <span class="tier-arrow">➔</span>
+                        <div class="tier-item">PLATINUM</div>
+                        <span class="tier-arrow">➔</span>
+                        <div class="tier-item" style="color: #0284c7; border-color: #38bdf8;">DIAMOND</div>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <!-- 공통 JS -->
+    <script src="../js/main.js?v=20261019"></script>
+
+    <!-- Sidebar 로드 스크립트 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("../components/auth-sidebar.html")
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("auth-sidebar").innerHTML = data;
+                    const menuItems = document.querySelectorAll(".auth-sidebar-menu a");
+                    menuItems.forEach(item => {
+                        item.classList.remove("active");
+                        if (item.textContent.trim() === "서비스 소개") {
+                            item.classList.add("active");
+                        }
+                    });
+                })
+                .catch(error => console.error("Sidebar 불러오기 실패:", error));
+        });
+    </script>
+
+</body>
+</html>

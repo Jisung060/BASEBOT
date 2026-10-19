@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>문의하기 | BASEBOT</title>
+
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/common-page.css">
+
+    <!-- 인증/약관 페이지 CSS -->
+    <link rel="stylesheet" href="../css/auth.css">
+
+    <style>
+        /* ========================================
+           문의하기 페이지 전용 스타일
+        ======================================== */
+        .contact-content {
+            min-width: 0;
+        }
+
+        /* 페이지 타이틀 영역 (이용약관, 서비스 소개와 동일) */
+        .contact-title {
+            padding-bottom: 25px;
+            border-bottom: 2px solid #222;
+        }
+
+        .contact-title h1 {
+            margin-bottom: 8px;
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .contact-title p {
+            font-size: 14px;
+            color: #777;
+        }
+
+        /* 본문 컨테이너 (여백 및 테두리 통일) */
+        .contact-body {
+            margin-top: 30px;
+            padding: 35px;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .contact-body h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #222;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .contact-body p {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        /* 연락처 정보 카드 (브랜드 색상 활용) */
+        .contact-info-card {
+            padding: 24px 28px;
+            background: var(--bb-bg-soft, #f7f8fa);
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 25px;
+        }
+
+        .contact-info-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .contact-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-info-row strong {
+            color: var(--bb-navy, #102d63);
+            font-size: 15px;
+            display: inline-block;
+            min-width: 90px;
+        }
+
+        .contact-info-row span {
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 800px) {
+            .contact-body {
+                padding: 20px;
+            }
+            .contact-info-card {
+                padding: 18px;
+            }
+            .contact-info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div id="header"></div>
+
+    <!-- Main -->
+    <main class="auth-main">
+        <div class="auth-layout">
+
+            <!-- Sidebar -->
+            <div id="auth-sidebar"></div>
+
+            <!-- Contact Content -->
+            <section class="contact-content">
+
+                <!-- 제목 -->
+                <div class="contact-title">
+                    <h1>문의하기</h1>
+                    <p>BASEBOT 서비스 이용 중 궁금한 점이나 의견을 남겨주세요.</p>
+                </div>
+
+                <!-- 본문 -->
+                <div class="contact-body">
+                    <h2>고객 센터 안내</h2>
+                    <p>BASEBOT을 이용해 주셔서 감사합니다.</p>
+                    <p>
+                        현재 서비스 안정화 및 핵심 기능 고도화를 진행 중이며,
+                        <strong>마이페이지 내 '1:1 문의 게시판' 기능은 추후 업데이트될 예정</strong>입니다.
+                    </p>
+                    <p>
+                        서비스 이용 중 발생한 오류 제보, 불편 사항, 서비스 제안 및 제휴 문의 등은
+                        아래 공식 이메일로 보내주시면 운영팀에서 신속하게 확인 후 답변해 드리겠습니다.
+                    </p>
+
+                    <!-- 연락처 정보 카드 -->
+                    <div class="contact-info-card">
+                        <div class="contact-info-row">
+                            <strong>이메일 문의</strong>
+                            <span>support@basebot.com</span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+
+    <!-- 공통 JS -->
+    <script src="../js/main.js?v=20261019"></script>
+
+    <!-- Sidebar 로드 스크립트 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("../components/auth-sidebar.html")
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("auth-sidebar").innerHTML = data;
+                    const menuItems = document.querySelectorAll(".auth-sidebar-menu a");
+                    menuItems.forEach(item => {
+                        item.classList.remove("active");
+                        if (item.textContent.trim() === "문의하기") {
+                            item.classList.add("active");
+                        }
+                    });
+                })
+                .catch(error => console.error("Sidebar 불러오기 실패:", error));
+        });
+    </script>
+
+</body>
+</html>

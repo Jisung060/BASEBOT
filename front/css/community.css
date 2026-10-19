@@ -391,12 +391,13 @@ a.community-sidebar-group-title:hover {
 
 .board {
     border-top: 2px solid #172033;
+    overflow-x: auto;
 }
 
 .board-header,
 .board-row {
     display: grid;
-    grid-template-columns: 60px 72px minmax(250px, 1fr) 115px 65px 65px 65px;
+    grid-template-columns: 60px 72px minmax(160px, 1fr) 115px 65px 65px 65px;
     align-items: center;
 }
 
@@ -1611,20 +1612,6 @@ a.community-sidebar-group-title:hover {
 
 }
 
-/* ==================================================
-   사이드바 없는 커뮤니티 페이지
-================================================== */
-
-.community-layout.no-sidebar {
-    display: block;
-}
-
-
-.community-layout.no-sidebar .community-content {
-    width: 100%;
-    max-width: none;
-}
-
 /* =========================================
    BASEBOT 공통 팝업
 ========================================= */
@@ -1847,15 +1834,15 @@ a.community-sidebar-group-title:hover {
 
 /* 스크랩 완료 상태 */
 #postScrapButton.scrapped {
-    background: #e5f0ff;
-    color: #175cd3;
-    border-color: #84adff;
+    background: var(--bb-primary-soft);
+    color: var(--bb-primary);
+    border-color: var(--bb-primary);
 }
 
 /* 스크랩 완료 상태에서 마우스를 올렸을 때 */
 #postScrapButton.scrapped:hover {
-    background: #d1e4ff;
-    border-color: #528bff;
+    background: #dce8ff;
+    border-color: var(--bb-primary-hover);
 }
 
 /* 처리 중 버튼 */
@@ -1870,7 +1857,7 @@ a.community-sidebar-group-title:hover {
 
 .community-layout.no-sidebar {
     display: block;
-    width: min(1230px, calc(100% - 40px));
+    width: min(1200px, calc(100% - 40px));
     margin: 0 auto;
 }
 
@@ -2017,26 +2004,3 @@ a.community-sidebar-group-title:hover {
     border-top: none;
 }
 
-/* 작성완료 버튼 및 버튼 영역 투명도/색상 보정 */
-.write-button-area {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 30px;
-    position: relative;
-    z-index: 10; /* 에디터 영역 위로 버튼이 정상적으로 표출되도록 설정 */
-}
-
-/* primary 버튼의 배경색과 글자색 명시적 지정 */
-.community-btn.primary {
-    border-color: var(--bb-primary, #123f91);
-    background-color: var(--bb-primary, #123f91) !important;
-    color: #ffffff !important; /* 글자색이 흰색으로 명확히 보이도록 설정 */
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.community-btn.primary:hover {
-    background-color: var(--bb-primary-hover, #0a2b68) !important;
-    border-color: var(--bb-primary-hover, #0a2b68);
-}
