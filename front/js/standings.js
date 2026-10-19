@@ -259,10 +259,6 @@ function setupEvents() {
         });
     });
     seasonSelect.addEventListener("change", () => loadStandings(seasonSelect.value));
-
-    const topButton = $("scroll-to-top");              // 280px 이상 내려가면 맨 위로 버튼 보이기
-    window.addEventListener("scroll", () => { topButton.hidden = window.scrollY < 280; }, { passive: true });
-    topButton.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 }
 
 setupEvents();
