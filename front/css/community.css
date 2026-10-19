@@ -2016,3 +2016,27 @@ a.community-sidebar-group-title:hover {
 .community-title + .post-detail {
     border-top: none;
 }
+
+/* 작성완료 버튼 및 버튼 영역 투명도/색상 보정 */
+.write-button-area {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+    position: relative;
+    z-index: 10; /* 에디터 영역 위로 버튼이 정상적으로 표출되도록 설정 */
+}
+
+/* primary 버튼의 배경색과 글자색 명시적 지정 */
+.community-btn.primary {
+    border-color: var(--bb-primary, #123f91);
+    background-color: var(--bb-primary, #123f91) !important;
+    color: #ffffff !important; /* 글자색이 흰색으로 명확히 보이도록 설정 */
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.community-btn.primary:hover {
+    background-color: var(--bb-primary-hover, #0a2b68) !important;
+    border-color: var(--bb-primary-hover, #0a2b68);
+}
