@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import Mock, MagicMock
 from pydantic import BaseModel
 
-source = Path(__file__).resolve().parents[1] / 'routers' / 'admin_baseball_data.py'
+source = Path(__file__).resolve().parents[2] / 'routers' / 'admin_baseball_data.py'
 names = {'ManualFetchRequest', '_run_savant_repair', '_execute_pipeline_job', '_run_savant_extension', 'init_admin_baseball_tables'}
 tree = ast.parse(source.read_text(encoding='utf-8'))
 selected = ast.Module(body=[node for node in tree.body if getattr(node, 'name', None) in names], type_ignores=[])

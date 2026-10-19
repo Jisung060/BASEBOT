@@ -1,549 +1,201 @@
-import os
-from pathlib import Path
-
 import joblib
 import pandas as pd
+from pathlib import Path
+from typing import Optional
 from sqlalchemy import text
-
 from database.db_connection import engine
-
-
-# ==================================================
-# 모델 경로
-# ==================================================
-
-MODEL_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "ml"
-    / "game_prediction_model.pkl"
+from ml.train_prediction_model import (
+    MODEL_PATH,
+    FEATURE_COLS,
+    build_team_metrics,
+    get_safe_stat,
+    compute_feature_diff_dict,
 )
 
 
-class GamePredictor:
-
+class MatchupPredictor:
     def __init__(self):
-
-        self.model_data = None
-
-        self.load_model()
-
-    # ==================================================
-    # 모델 로드
-    # ==================================================
-
-    def load_model(self):
-
-        if os.path.exists(MODEL_PATH):
-
-            self.model_data = joblib.load(
-                MODEL_PATH
-            )
-
-        else:
-
-            self.model_data = None
-
-    # ==================================================
-    # 팀 목록 조회
-    # ==================================================
-
-    def get_teams(self, conn):
-
-        query = text("""
-            SELECT
-                team_id,
-                team_name
-            FROM teams
-            ORDER BY team_name
-        """)
-
-        return conn.execute(
-            query
-        ).mappings().all()
-
-    # ==================================================
-    # 질문에서 팀 찾기
-    # ==================================================
-
-    def find_teams_from_question(
-        self,
-        conn,
-        question: str
-    ):
-
-        teams = self.get_teams(conn)
-
-        question_lower = question.lower()
-
-        matched_teams = []
-
-        # --------------------------------------------------
-        # DB의 공식 팀 이름 검색
-        # --------------------------------------------------
-
-        for team in teams:
-
-            team_name = team["team_name"]
-
-            if not team_name:
-                continue
-
-            if team_name.lower() in question_lower:
-
-                if not any(
-                    item["team_id"] == team["team_id"]
-                    for item in matched_teams
-                ):
-
-                    matched_teams.append({
-                        "team_id": team["team_id"],
-                        "team_name": team_name
-                    })
-
-        # --------------------------------------------------
-        # 한국어 팀 별칭
-        # --------------------------------------------------
-
-        aliases = {
-
-            "양키스": "New York Yankees",
-            "뉴욕 양키스": "New York Yankees",
-
-            "레드삭스": "Boston Red Sox",
-            "보스턴 레드삭스": "Boston Red Sox",
-
-            "다저스": "Los Angeles Dodgers",
-            "LA 다저스": "Los Angeles Dodgers",
-            "엘에이 다저스": "Los Angeles Dodgers",
-
-            "애스트로스": "Houston Astros",
-            "휴스턴 애스트로스": "Houston Astros",
-
-            "컵스": "Chicago Cubs",
-            "시카고 컵스": "Chicago Cubs",
-
-            "메츠": "New York Mets",
-            "뉴욕 메츠": "New York Mets",
-
-            "파드리스": "San Diego Padres",
-            "샌디에이고 파드리스": "San Diego Padres",
-
-            "자이언츠": "San Francisco Giants",
-            "샌프란시스코 자이언츠": "San Francisco Giants",
-
-            "필리스": "Philadelphia Phillies",
-            "필라델피아 필리스": "Philadelphia Phillies",
-
-            "브레이브스": "Atlanta Braves",
-            "애틀랜타 브레이브스": "Atlanta Braves",
-
-            "가디언스": "Cleveland Guardians",
-            "클리블랜드 가디언스": "Cleveland Guardians",
-
-            "타이거스": "Detroit Tigers",
-            "디트로이트 타이거스": "Detroit Tigers",
-
-            "트윈스": "Minnesota Twins",
-            "미네소타 트윈스": "Minnesota Twins",
-
-            "화이트삭스": "Chicago White Sox",
-            "시카고 화이트삭스": "Chicago White Sox",
-
-            "로열스": "Kansas City Royals",
-            "캔자스시티 로열스": "Kansas City Royals",
-
-            "레인저스": "Texas Rangers",
-            "텍사스 레인저스": "Texas Rangers",
-
-            "매리너스": "Seattle Mariners",
-            "시애틀 매리너스": "Seattle Mariners",
-
-            "에인절스": "Los Angeles Angels",
-            "LA 에인절스": "Los Angeles Angels",
-
-            "블루제이스": "Toronto Blue Jays",
-            "토론토 블루제이스": "Toronto Blue Jays",
-
-            "오리올스": "Baltimore Orioles",
-            "볼티모어 오리올스": "Baltimore Orioles",
-
-            "레이스": "Tampa Bay Rays",
-            "탬파베이 레이스": "Tampa Bay Rays",
-
-            "레즈": "Cincinnati Reds",
-            "신시내티 레즈": "Cincinnati Reds",
-
-            "브루어스": "Milwaukee Brewers",
-            "밀워키 브루어스": "Milwaukee Brewers",
-
-            "카디널스": "St. Louis Cardinals",
-            "세인트루이스 카디널스": "St. Louis Cardinals",
-
-            "파이리츠": "Pittsburgh Pirates",
-            "피츠버그": "Pittsburgh Pirates",
-
-            "말린스": "Miami Marlins",
-            "마이애미 말린스": "Miami Marlins",
-
-            "내셔널스": "Washington Nationals",
-            "워싱턴 내셔널스": "Washington Nationals",
-
-            "로키스": "Colorado Rockies",
-            "콜로라도 로키스": "Colorado Rockies",
-
-            "다이아몬드백스": "Arizona Diamondbacks",
-            "애리조나 다이아몬드백스": "Arizona Diamondbacks",
-
-            "애슬레틱스": "Athletics"
-        }
-
-        for alias, official_name in aliases.items():
-
-            if alias.lower() not in question_lower:
-                continue
-
-            for team in teams:
-
-                team_name = team["team_name"]
-
-                if not team_name:
-                    continue
-
-                if (
-                    team_name.lower()
-                    == official_name.lower()
-                ):
-
-                    if not any(
-                        item["team_id"]
-                        == team["team_id"]
-                        for item in matched_teams
-                    ):
-
-                        matched_teams.append({
-                            "team_id":
-                                team["team_id"],
-
-                            "team_name":
-                                team_name
-                        })
-
-        # --------------------------------------------------
-        # 두 팀을 찾지 못한 경우
-        # --------------------------------------------------
-
-        if len(matched_teams) < 2:
-
-            return None, None
-
-        return (
-            matched_teams[0],
-            matched_teams[1]
-        )
-
-    # ==================================================
-    # 두 팀 상대전적
-    # ==================================================
-
-    def get_head_to_head_record(
-        self,
-        conn,
-        team_a_id: int,
-        team_b_id: int
-    ):
-        """두 팀 간의 맞대결 전적 집계"""
-
-        h2h_query = text("""
-            SELECT
-                home_team_id,
-                away_team_id,
-                home_score,
-                away_score
-            FROM games
-            WHERE
-                status = 'FINAL'
-                AND (
-                    (
-                        home_team_id = :team_a
-                        AND away_team_id = :team_b
-                    )
-                    OR
-                    (
-                        home_team_id = :team_b
-                        AND away_team_id = :team_a
-                    )
-                )
-        """)
-
-        matches = conn.execute(
-            h2h_query,
-            {
-                "team_a": team_a_id,
-                "team_b": team_b_id
-            }
-        ).mappings().all()
-
-        total_games = len(matches)
-
-        team_a_wins = 0
-        team_b_wins = 0
-
-        team_a_runs = 0
-        team_b_runs = 0
-
-        for match in matches:
-
-            home_id = match["home_team_id"]
-
-            home_score = match["home_score"]
-            away_score = match["away_score"]
-
-            if home_id == team_a_id:
-
-                team_a_runs += home_score
-                team_b_runs += away_score
-
-                if home_score > away_score:
-
-                    team_a_wins += 1
-
-                elif away_score > home_score:
-
-                    team_b_wins += 1
-
-            else:
-
-                team_b_runs += home_score
-                team_a_runs += away_score
-
-                if home_score > away_score:
-
-                    team_b_wins += 1
-
-                elif away_score > home_score:
-
-                    team_a_wins += 1
-
-        return {
-            "total_games": total_games,
-
-            "team_a_wins":
-                team_a_wins,
-
-            "team_b_wins":
-                team_b_wins,
-
-            "team_a_runs":
-                team_a_runs,
-
-            "team_b_runs":
-                team_b_runs
-        }
-
-    # ==================================================
-    # 경기 예측 (12대 세이버메트릭스 모델 연동)
-    # ==================================================
-    def predict_matchup(
-        self,
-        home_team_id: int,
-        away_team_id: int
-    ):
-        if not self.model_data:
-            self.load_model()
-            if not self.model_data:
-                raise FileNotFoundError(
-                    "학습된 예측 모델(.pkl)이 존재하지 않습니다. "
-                    "train_prediction_model.py를 먼저 실행해 주세요."
-                )
-
-        model = self.model_data["model"]
-        feature_cols = self.model_data.get("features", [])
-
+        self.model = None
+        self.model_features = FEATURE_COLS
+        self._load_model()
+
+    def _load_model(self):
+        if MODEL_PATH.exists():
+            try:
+                bundle = joblib.load(MODEL_PATH)
+                if isinstance(bundle, dict):
+                    self.model = bundle.get("model")
+                    self.model_features = bundle.get("features", FEATURE_COLS)
+                else:
+                    self.model = bundle
+            except Exception as e:
+                print(f"[Predictor] 모델 로드 실패 (휴리스틱 모드로 대체): {e}")
+
+    def _resolve_target_season(self, conn, requested_season: Optional[int] = None) -> int:
+        seasons = conn.execute(
+            text("SELECT DISTINCT season FROM player_season_stats WHERE season IS NOT NULL AND games > 0 ORDER BY season DESC")
+        ).scalars().all()
+        avail = [int(s) for s in seasons if s is not None] or [2024]
+        if requested_season and int(requested_season) in avail:
+            return int(requested_season)
+        return avail[0]
+
+    def predict_matchup(self, home_team_id: int, away_team_id: int, season: Optional[int] = None) -> dict:
         with engine.connect() as conn:
-            # 1. 타격 & 수비/주루 지표 조회 (is_pitcher = FALSE)
-            bat_query = text("""
-                SELECT
-                    p.team_id,
-                    AVG(s.wrc_plus) AS wrc_plus,
-                    AVG(s.xwoba) AS xwoba,
-                    AVG(s.avg_exit_velocity) AS avg_exit_velo,
-                    AVG(s.barrel_percentage) AS barrel_pct,
-                    AVG(s.hard_hit_percentage) AS hard_hit_pct,
-                    AVG(s.bwar) AS avg_bwar,
-                    SUM(COALESCE(s.outs_above_average, 0)) AS team_oaa,
-                    AVG(s.sprint_speed) AS sprint_speed,
-                    AVG(s.batting_avg) AS batting_avg
-                FROM players p
-                JOIN player_season_stats s ON p.player_id = s.player_id
-                WHERE p.team_id IN (:home_id, :away_id)
-                  AND s.season = 2024
-                  AND s.is_pitcher = FALSE
-                GROUP BY p.team_id
-            """)
-            bat_rows = conn.execute(bat_query, {"home_id": home_team_id, "away_id": away_team_id}).mappings().all()
+            target_season = self._resolve_target_season(conn, season)
+            team_metrics = build_team_metrics(conn, season=target_season)
 
-            # 2. 투수 지표 조회 (is_pitcher = TRUE)
-            pit_query = text("""
-                SELECT
-                    p.team_id,
-                    AVG(s.era) AS era,
-                    AVG(s.fip) AS fip,
-                    AVG(s.fastball_velocity) AS fastball_velo,
-                    AVG(s.k_percentage) AS pit_k_pct
-                FROM players p
-                JOIN player_season_stats s ON p.player_id = s.player_id
-                WHERE p.team_id IN (:home_id, :away_id)
-                  AND s.season = 2024
-                  AND s.is_pitcher = TRUE
-                GROUP BY p.team_id
-            """)
-            pit_rows = conn.execute(pit_query, {"home_id": home_team_id, "away_id": away_team_id}).mappings().all()
+            # 맞대결 상대전적 조회 (해당 시즌 우선, 없으면 전체 기간)
+            h2h_rows = conn.execute(text("""
+                SELECT home_team_id, away_team_id, home_score, away_score
+                FROM games
+                WHERE status = 'FINAL'
+                  AND YEAR(game_date) = :season
+                  AND ((home_team_id = :hid AND away_team_id = :aid)
+                    OR (home_team_id = :aid AND away_team_id = :hid))
+            """), {"season": target_season, "hid": home_team_id, "aid": away_team_id}).mappings().all()
 
-            # 3. 상대전적
-            h2h = self.get_head_to_head_record(conn, home_team_id, away_team_id)
+            if not h2h_rows:
+                h2h_rows = conn.execute(text("""
+                    SELECT home_team_id, away_team_id, home_score, away_score
+                    FROM games
+                    WHERE status = 'FINAL'
+                      AND ((home_team_id = :hid AND away_team_id = :aid)
+                        OR (home_team_id = :aid AND away_team_id = :hid))
+                """), {"hid": home_team_id, "aid": away_team_id}).mappings().all()
 
-            # 4. 팀 이름 및 코드
-            team_query = text("""
-                SELECT team_id, team_name, team_code
-                FROM teams
-                WHERE team_id IN (:home_id, :away_id)
-            """)
-            team_rows = conn.execute(team_query, {"home_id": home_team_id, "away_id": away_team_id}).mappings().all()
+        h_wins, a_wins = 0, 0
+        for g in h2h_rows:
+            if g["home_score"] > g["away_score"]:
+                if int(g["home_team_id"]) == int(home_team_id):
+                    h_wins += 1
+                else:
+                    a_wins += 1
+            elif g["away_score"] > g["home_score"]:
+                if int(g["away_team_id"]) == int(home_team_id):
+                    h_wins += 1
+                else:
+                    a_wins += 1
 
-        bat_map = {r["team_id"]: r for r in bat_rows}
-        pit_map = {r["team_id"]: r for r in pit_rows}
-        team_map = {r["team_id"]: r["team_name"] for r in team_rows}
+        if (h_wins + a_wins) > 0:
+            h2h_summary = f"상대전적: 원정팀 {a_wins}승 vs 홈팀 {h_wins}승"
+        else:
+            h2h_summary = "맞대결 전적 데이터 없음"
 
-        def val(m, tid, key, default):
-            row = m.get(tid)
-            if not row or row.get(key) is None:
-                return float(default)
-            return float(row[key])
+        h_stat = team_metrics.loc[home_team_id] if home_team_id in team_metrics.index else None
+        a_stat = team_metrics.loc[away_team_id] if away_team_id in team_metrics.index else None
 
-        # 홈/원정 12대 지표 추출
-        h_wrc = val(bat_map, home_team_id, "wrc_plus", 100.0)
-        a_wrc = val(bat_map, away_team_id, "wrc_plus", 100.0)
+        diff_dict = compute_feature_diff_dict(h_stat, a_stat)
 
-        h_xwoba = val(bat_map, home_team_id, "xwoba", 0.315)
-        a_xwoba = val(bat_map, away_team_id, "xwoba", 0.315)
+        # 1. ML 모델 기반 기본 승률 산출
+        ml_home_prob = 0.52
+        if self.model is not None:
+            try:
+                X_input = pd.DataFrame([{col: diff_dict.get(col, 0.0) for col in self.model_features}])
+                ml_home_prob = float(self.model.predict_proba(X_input)[0][1])
+            except Exception as e:
+                print(f"[Predictor] ML 추론 예외: {e}")
 
-        h_velo = val(bat_map, home_team_id, "avg_exit_velo", 88.5)
-        a_velo = val(bat_map, away_team_id, "avg_exit_velo", 88.5)
+        # 2. 세이버메트릭스 종합 파워 스코어 (신규 지표: 배트스피드, 구종가치, 수비가치, 프레이밍 등 반영)
+        saber_score = (
+            diff_dict["diff_wrc_plus"] * 0.0025
+            + diff_dict["diff_batting_rv"] * 0.0008
+            + diff_dict["diff_xwoba"] * 1.2
+            + diff_dict["diff_bat_speed"] * 0.008
+            + diff_dict["diff_pitching_rv"] * 0.0008
+            + (diff_dict["diff_fb_rv"] + diff_dict["diff_brk_rv"] + diff_dict["diff_off_rv"]) * 0.0005
+            - diff_dict["diff_fip"] * 0.045
+            - diff_dict["diff_xera"] * 0.045
+            + diff_dict["diff_fielding_rv"] * 0.0012
+            + diff_dict["diff_framing_runs"] * 0.0010
+            + diff_dict["diff_bsr_rv"] * 0.0010
+            + diff_dict["diff_avg_bwar"] * 0.05
+        )
+        heuristic_home_prob = max(0.20, min(0.80, 0.515 + saber_score))
 
-        h_barrel = val(bat_map, home_team_id, "barrel_pct", 7.5)
-        a_barrel = val(bat_map, away_team_id, "barrel_pct", 7.5)
+        # ML 모델 확률(70%) + 세이버메트릭스 정밀 보정(30%) 블렌딩
+        final_home_prob = round((ml_home_prob * 0.7 + heuristic_home_prob * 0.3) * 100, 1)
+        final_home_prob = max(15.0, min(85.0, final_home_prob))
+        final_away_prob = round(100.0 - final_home_prob, 1)
 
-        h_hh = val(bat_map, home_team_id, "hard_hit_pct", 38.0)
-        a_hh = val(bat_map, away_team_id, "hard_hit_pct", 38.0)
+        predicted_winner_id = home_team_id if final_home_prob >= final_away_prob else away_team_id
 
-        h_bwar = val(bat_map, home_team_id, "avg_bwar", 1.2)
-        a_bwar = val(bat_map, away_team_id, "avg_bwar", 1.2)
-
-        h_ba = val(bat_map, home_team_id, "batting_avg", 0.245)
-        a_ba = val(bat_map, away_team_id, "batting_avg", 0.245)
-
-        h_era = val(pit_map, home_team_id, "era", 4.15)
-        a_era = val(pit_map, away_team_id, "era", 4.15)
-
-        h_fip = val(pit_map, home_team_id, "fip", 4.10)
-        a_fip = val(pit_map, away_team_id, "fip", 4.10)
-
-        h_fvelo = val(pit_map, home_team_id, "fastball_velo", 93.8)
-        a_fvelo = val(pit_map, away_team_id, "fastball_velo", 93.8)
-
-        h_k = val(pit_map, home_team_id, "pit_k_pct", 22.0)
-        a_k = val(pit_map, away_team_id, "pit_k_pct", 22.0)
-
-        h_oaa = val(bat_map, home_team_id, "team_oaa", 0.0)
-        a_oaa = val(bat_map, away_team_id, "team_oaa", 0.0)
-
-        h_spd = val(bat_map, home_team_id, "sprint_speed", 27.0)
-        a_spd = val(bat_map, away_team_id, "sprint_speed", 27.0)
-
-        # 피처 DataFrame 구성 (구버전 4개 피처 모델과 신버전 12개 피처 모델 모두 호환)
-        feature_dict = {
-            "diff_wrc_plus": h_wrc - a_wrc,
-            "diff_xwoba": h_xwoba - a_xwoba,
-            "diff_exit_velo": h_velo - a_velo,
-            "diff_barrel_pct": h_barrel - a_barrel,
-            "diff_hard_hit_pct": h_hh - a_hh,
-            "diff_avg_bwar": h_bwar - a_bwar,
-            "diff_era": h_era - a_era,
-            "diff_fip": h_fip - a_fip,
-            "diff_fastball_velo": h_fvelo - a_fvelo,
-            "diff_pit_k_pct": h_k - a_k,
-            "diff_team_oaa": h_oaa - a_oaa,
-            "diff_sprint_speed": h_spd - a_spd,
-            "diff_batting_avg": h_ba - a_ba,
+        # 3. 프론트엔드 비교 테이블용 전체 지표 딕셔너리 (Extension 제외 전 지표)
+        metrics_comparison = {
+            "season": target_season,
+            # 타격 & 배트 트래킹
+            "away_wrc_plus": int(round(get_safe_stat(a_stat, "wrc_plus"))),
+            "home_wrc_plus": int(round(get_safe_stat(h_stat, "wrc_plus"))),
+            "away_batting_rv": int(round(get_safe_stat(a_stat, "batting_rv"))),
+            "home_batting_rv": int(round(get_safe_stat(h_stat, "batting_rv"))),
+            "away_xwoba": round(get_safe_stat(a_stat, "xwoba"), 3),
+            "home_xwoba": round(get_safe_stat(h_stat, "xwoba"), 3),
+            "away_xba": round(get_safe_stat(a_stat, "xba"), 3),
+            "home_xba": round(get_safe_stat(h_stat, "xba"), 3),
+            "away_xslg": round(get_safe_stat(a_stat, "xslg"), 3),
+            "home_xslg": round(get_safe_stat(h_stat, "xslg"), 3),
+            "away_bat_speed": round(get_safe_stat(a_stat, "bat_speed"), 1),
+            "home_bat_speed": round(get_safe_stat(h_stat, "bat_speed"), 1),
+            "away_squared_up_pct": round(get_safe_stat(a_stat, "squared_up_pct"), 1),
+            "home_squared_up_pct": round(get_safe_stat(h_stat, "squared_up_pct"), 1),
+            "away_avg_exit_velo": round(get_safe_stat(a_stat, "avg_exit_velo"), 1),
+            "home_avg_exit_velo": round(get_safe_stat(h_stat, "avg_exit_velo"), 1),
+            "away_barrel_pct": round(get_safe_stat(a_stat, "barrel_pct"), 1),
+            "home_barrel_pct": round(get_safe_stat(h_stat, "barrel_pct"), 1),
+            "away_hard_hit_pct": round(get_safe_stat(a_stat, "hard_hit_pct"), 1),
+            "home_hard_hit_pct": round(get_safe_stat(h_stat, "hard_hit_pct"), 1),
+            # 마운드 & 구종 가치 (Extension 제외)
+            "away_pitching_rv": int(round(get_safe_stat(a_stat, "pitching_rv"))),
+            "home_pitching_rv": int(round(get_safe_stat(h_stat, "pitching_rv"))),
+            "away_fb_rv": int(round(get_safe_stat(a_stat, "fb_rv"))),
+            "home_fb_rv": int(round(get_safe_stat(h_stat, "fb_rv"))),
+            "away_brk_rv": int(round(get_safe_stat(a_stat, "brk_rv"))),
+            "home_brk_rv": int(round(get_safe_stat(h_stat, "brk_rv"))),
+            "away_off_rv": int(round(get_safe_stat(a_stat, "off_rv"))),
+            "home_off_rv": int(round(get_safe_stat(h_stat, "off_rv"))),
+            "away_fip": round(get_safe_stat(a_stat, "fip"), 2),
+            "home_fip": round(get_safe_stat(h_stat, "fip"), 2),
+            "away_xera": round(get_safe_stat(a_stat, "xera"), 2),
+            "home_xera": round(get_safe_stat(h_stat, "xera"), 2),
+            "away_era": round(get_safe_stat(a_stat, "era"), 2),
+            "home_era": round(get_safe_stat(h_stat, "era"), 2),
+            "away_pit_xba": round(get_safe_stat(a_stat, "pit_xba"), 3),
+            "home_pit_xba": round(get_safe_stat(h_stat, "pit_xba"), 3),
+            "away_fastball_velo": round(get_safe_stat(a_stat, "fastball_velo"), 1),
+            "home_fastball_velo": round(get_safe_stat(h_stat, "fastball_velo"), 1),
+            "away_pit_k_pct": round(get_safe_stat(a_stat, "pit_k_pct"), 1),
+            "home_pit_k_pct": round(get_safe_stat(h_stat, "pit_k_pct"), 1),
+            "away_pit_whiff_pct": round(get_safe_stat(a_stat, "pit_whiff_pct"), 1),
+            "home_pit_whiff_pct": round(get_safe_stat(h_stat, "pit_whiff_pct"), 1),
+            "away_pit_gb_pct": round(get_safe_stat(a_stat, "pit_gb_pct"), 1),
+            "home_pit_gb_pct": round(get_safe_stat(h_stat, "pit_gb_pct"), 1),
+            # 수비 · 포수 프레이밍 · 주루 · WAR
+            "away_fielding_rv": int(round(get_safe_stat(a_stat, "fielding_rv"))),
+            "home_fielding_rv": int(round(get_safe_stat(h_stat, "fielding_rv"))),
+            "away_team_oaa": int(round(get_safe_stat(a_stat, "team_oaa"))),
+            "home_team_oaa": int(round(get_safe_stat(h_stat, "team_oaa"))),
+            "away_arm_value": int(round(get_safe_stat(a_stat, "arm_value"))),
+            "home_arm_value": int(round(get_safe_stat(h_stat, "arm_value"))),
+            "away_framing_runs": int(round(get_safe_stat(a_stat, "framing_runs"))),
+            "home_framing_runs": int(round(get_safe_stat(h_stat, "framing_runs"))),
+            "away_bsr_rv": int(round(get_safe_stat(a_stat, "bsr_rv"))),
+            "home_bsr_rv": int(round(get_safe_stat(h_stat, "bsr_rv"))),
+            "away_sprint_speed": round(get_safe_stat(a_stat, "sprint_speed"), 1),
+            "home_sprint_speed": round(get_safe_stat(h_stat, "sprint_speed"), 1),
+            "away_avg_bwar": round(get_safe_stat(a_stat, "avg_bwar"), 2),
+            "home_avg_bwar": round(get_safe_stat(h_stat, "avg_bwar"), 2),
         }
 
-        features = pd.DataFrame([feature_dict])[feature_cols]
-
-        probabilities = model.predict_proba(features)[0]
-        classes = model.classes_
-
-        prob_home_win = 0.5
-        prob_away_win = 0.5
-
-        for class_value, probability in zip(classes, probabilities):
-            if int(class_value) == 1:
-                prob_home_win = float(probability)
-            elif int(class_value) == 0:
-                prob_away_win = float(probability)
-
-        predicted_winner_id = home_team_id if prob_home_win >= 0.5 else away_team_id
-
-        if h2h["total_games"] > 0:
-            h2h_summary = f"상대전적: {h2h['team_a_wins']}승 {h2h['team_b_wins']}패"
-        else:
-            h2h_summary = "맞대결 기록 없음"
-
         return {
+            "season": target_season,
             "home_team_id": home_team_id,
             "away_team_id": away_team_id,
-            "home_team_name": team_map.get(home_team_id, str(home_team_id)),
-            "away_team_name": team_map.get(away_team_id, str(away_team_id)),
-            "home_win_prob": round(prob_home_win * 100, 1),
-            "away_win_prob": round(prob_away_win * 100, 1),
+            "home_win_prob": final_home_prob,
+            "away_win_prob": final_away_prob,
             "predicted_winner_id": predicted_winner_id,
-            "predicted_winner_name": team_map.get(predicted_winner_id, str(predicted_winner_id)),
-            "head_to_head": h2h,
             "head_to_head_summary": h2h_summary,
-            "metrics_comparison": {
-                # 타격 지표
-                "home_wrc_plus": int(round(h_wrc)),
-                "away_wrc_plus": int(round(a_wrc)),
-                "home_xwoba": round(h_xwoba, 3),
-                "away_xwoba": round(a_xwoba, 3),
-                "home_avg_exit_velo": round(h_velo, 1),
-                "away_avg_exit_velo": round(a_velo, 1),
-                "home_barrel_pct": round(h_barrel, 1),
-                "away_barrel_pct": round(a_barrel, 1),
-                "home_hard_hit_pct": round(h_hh, 1),
-                "away_hard_hit_pct": round(a_hh, 1),
-                "home_batting_avg": round(h_ba, 3),
-                "away_batting_avg": round(a_ba, 3),
-                # 투수 지표
-                "home_era": round(h_era, 2),
-                "away_era": round(a_era, 2),
-                "home_fip": round(h_fip, 2),
-                "away_fip": round(a_fip, 2),
-                "home_fastball_velo": round(h_fvelo, 1),
-                "away_fastball_velo": round(a_fvelo, 1),
-                "home_pit_k_pct": round(h_k, 1),
-                "away_pit_k_pct": round(a_k, 1),
-                # 수비/주루/WAR 지표
-                "home_team_oaa": int(round(h_oaa)),
-                "away_team_oaa": int(round(a_oaa)),
-                "home_sprint_speed": round(h_spd, 1),
-                "away_sprint_speed": round(a_spd, 1),
-                "home_avg_bwar": round(h_bwar, 2),
-                "away_avg_bwar": round(a_bwar, 2),
-            }
+            "metrics_comparison": metrics_comparison
         }
 
-# ==================================================
-# 챗봇에서 사용할 Predictor
-# ==================================================
 
-predictor = GamePredictor()
+predictor = MatchupPredictor()

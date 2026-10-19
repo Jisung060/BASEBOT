@@ -133,6 +133,13 @@ def fetch_fielding_and_arm_value(season: int) -> pd.DataFrame:
         out["arm_value_percentile"] = percentile(raw_arm, True)
         out["arm_value"] = raw_arm.round().astype("Int64")
 
+    if "framing_runs" in df.columns:
+        # This season-scoped CSV supplies framing too; the legacy framing URL
+        # can return the same season for different year parameters.
+        raw_framing = pd.to_numeric(df["framing_runs"], errors="coerce")
+        out["framing_runs"] = raw_framing.round().astype("Int64")
+        out["framing_runs_percentile"] = percentile(raw_framing, True)
+
     out = out.dropna(subset=["player_id"]).copy()
     out["player_id"] = out["player_id"].astype(int)
     return out.drop_duplicates("player_id")
@@ -301,18 +308,6 @@ def fetch_catcher_all(season: int) -> pd.DataFrame:
             sub["cs_above_average_percentile"] = percentile(sub["raw"], True)
             sub["cs_above_average"] = sub["raw"].round().astype(int)
             sub = sub[["player_id", "cs_above_average", "cs_above_average_percentile"]].drop_duplicates("player_id")
-            merged = pd.merge(merged, sub, on="player_id", how="outer") if not merged.empty else sub
-
-    # Framing
-    df_frm = safe_csv_get("/leaderboard/catcher-framing", {"year": season, "min": 1})
-    if not df_frm.empty:
-        c = first_column(df_frm, ("runs_extra_strikes", "framing_runs", "shadow_runs", "runs"))
-        if c:
-            sub = pd.DataFrame({"player_id": player_ids(df_frm), "raw": pd.to_numeric(df_frm[c], errors="coerce")}).dropna()
-            sub["player_id"] = sub["player_id"].astype(int)
-            sub["framing_runs_percentile"] = percentile(sub["raw"], True)
-            sub["framing_runs"] = sub["raw"].round().astype(int)
-            sub = sub[["player_id", "framing_runs", "framing_runs_percentile"]].drop_duplicates("player_id")
             merged = pd.merge(merged, sub, on="player_id", how="outer") if not merged.empty else sub
 
     # Pop Time

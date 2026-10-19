@@ -4,7 +4,7 @@ from unittest.mock import patch
 from pathlib import Path
 import pandas as pd
 
-spec = importlib.util.spec_from_file_location('repair', Path(__file__).with_name('collector_savant_value_repair.py'))
+spec = importlib.util.spec_from_file_location('repair', Path(__file__).resolve().parents[1] / 'collector_savant_value_repair.py')
 repair = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(repair)
 
@@ -114,6 +114,26 @@ class ExtensionOnlyTests(unittest.TestCase):
         self.assertEqual(update.call_args.args[1].columns.tolist(),
                          ["player_id", "pitch_extension", "extension_percentile"])
         self.assertEqual(update.call_args.args[2:4], (2024, True))
+
+class FramingCollectionTests(unittest.TestCase):
+    def test_framing_uses_season_fielding_csv_and_ranks_unrounded_values(self):
+        frame = pd.DataFrame({"id": [668939, 2, 3, 4],
+                              "total_runs": [2.0, 0, 1, 0],
+                              "framing_runs": [2.448, 2.1, 0.0, None]})
+        with patch.object(repair, "safe_csv_get", return_value=frame) as fetch:
+            result = repair.fetch_fielding_and_arm_value(2025).set_index("player_id")
+        self.assertEqual(result.loc[668939, "framing_runs"], 2)
+        self.assertEqual(result.loc[668939, "framing_runs_percentile"], 100)
+        self.assertEqual(result.loc[3, "framing_runs"], 0)
+        self.assertTrue(pd.isna(result.loc[4, "framing_runs"]))
+        self.assertTrue(pd.isna(result.loc[4, "framing_runs_percentile"]))
+        self.assertEqual(fetch.call_args.args[1]["seasonStart"], 2025)
+        self.assertEqual(fetch.call_args.args[1]["seasonEnd"], 2025)
+
+    def test_catcher_collection_no_longer_requests_legacy_framing(self):
+        with patch.object(repair, "safe_csv_get", return_value=pd.DataFrame()) as fetch:
+            repair.fetch_catcher_all(2025)
+        self.assertNotIn("/leaderboard/catcher-framing", [c.args[0] for c in fetch.call_args_list])
 
 if __name__ == '__main__':
     unittest.main()

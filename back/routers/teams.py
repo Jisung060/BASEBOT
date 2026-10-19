@@ -104,15 +104,24 @@ def get_team_standing_and_record(db: Session, team_info: dict, season: int) -> d
 
 
 def get_team_season_sabermetrics(db: Session, team_id: int, season: int) -> dict:
-    """해당 구단의 시즌 12대 세이버메트릭스 요약 지표 산출"""
+    """해당 구단의 시즌 확장 세이버메트릭스 요약 지표 산출 (Extension 제외 전 지표 반영)"""
     bat_sql = text("""
         SELECT 
             ROUND(AVG(s.wrc_plus), 0) AS wrc_plus,
             ROUND(AVG(s.xwoba), 3) AS xwoba,
+            ROUND(AVG(s.xba), 3) AS xba,
+            ROUND(AVG(s.xslg), 3) AS xslg,
             ROUND(AVG(s.avg_exit_velocity), 1) AS avg_exit_velo,
+            ROUND(AVG(s.bat_speed), 1) AS bat_speed,
+            ROUND(AVG(s.squared_up_percentage), 1) AS squared_up_pct,
             ROUND(AVG(s.barrel_percentage), 1) AS barrel_pct,
             ROUND(AVG(s.hard_hit_percentage), 1) AS hard_hit_pct,
+            SUM(COALESCE(s.batting_run_value, 0)) AS team_batting_rv,
+            SUM(COALESCE(s.baserunning_run_value, 0)) AS team_bsr_rv,
+            SUM(COALESCE(s.fielding_run_value, 0)) AS team_fielding_rv,
             SUM(COALESCE(s.outs_above_average, 0)) AS team_oaa,
+            SUM(COALESCE(s.arm_value, 0)) AS team_arm_value,
+            SUM(COALESCE(s.framing_runs, 0)) AS team_framing_runs,
             ROUND(AVG(s.sprint_speed), 1) AS sprint_speed,
             ROUND(AVG(s.bwar), 2) AS avg_bwar
         FROM player_season_stats s
@@ -120,6 +129,7 @@ def get_team_season_sabermetrics(db: Session, team_id: int, season: int) -> dict
         WHERE COALESCE(s.team_id, p.team_id) = :tid
           AND s.season = :season
           AND s.is_pitcher = FALSE
+          AND s.games > 0
     """)
     bat = db.execute(bat_sql, {"tid": team_id, "season": season}).mappings().first() or {}
 
@@ -127,29 +137,58 @@ def get_team_season_sabermetrics(db: Session, team_id: int, season: int) -> dict
         SELECT 
             ROUND(AVG(s.era), 2) AS era,
             ROUND(AVG(s.fip), 2) AS fip,
+            ROUND(AVG(s.xera), 2) AS xera,
+            ROUND(AVG(s.xba), 3) AS pit_xba,
             ROUND(AVG(s.fastball_velocity), 1) AS fastball_velo,
-            ROUND(AVG(s.k_percentage), 1) AS pit_k_pct
+            ROUND(AVG(s.k_percentage), 1) AS pit_k_pct,
+            ROUND(AVG(s.whiff_percentage), 1) AS pit_whiff_pct,
+            ROUND(AVG(s.gb_percentage), 1) AS pit_gb_pct,
+            SUM(COALESCE(s.pitching_run_value, 0)) AS team_pitching_rv,
+            SUM(COALESCE(s.fastball_run_value, 0)) AS team_fb_rv,
+            SUM(COALESCE(s.breaking_run_value, 0)) AS team_brk_rv,
+            SUM(COALESCE(s.offspeed_run_value, 0)) AS team_off_rv
         FROM player_season_stats s
         JOIN players p ON s.player_id = p.player_id
         WHERE COALESCE(s.team_id, p.team_id) = :tid
           AND s.season = :season
           AND s.is_pitcher = TRUE
+          AND s.games > 0
     """)
     pit = db.execute(pit_sql, {"tid": team_id, "season": season}).mappings().first() or {}
 
     return {
+        # 타격 & 배트 트래킹
         "wrc_plus": int(bat["wrc_plus"]) if bat.get("wrc_plus") is not None else 100,
+        "team_batting_rv": int(bat["team_batting_rv"]) if bat.get("team_batting_rv") is not None else 0,
         "xwoba": float(bat["xwoba"]) if bat.get("xwoba") is not None else 0.315,
-        "avg_exit_velo": float(bat["avg_exit_velo"]) if bat.get("avg_exit_velo") is not None else 88.5,
-        "barrel_pct": float(bat["barrel_pct"]) if bat.get("barrel_pct") is not None else 7.5,
-        "hard_hit_pct": float(bat["hard_hit_pct"]) if bat.get("hard_hit_pct") is not None else 38.0,
-        "fip": float(pit["fip"]) if pit.get("fip") is not None else 4.10,
+        "xba": float(bat["xba"]) if bat.get("xba") is not None else 0.245,
+        "xslg": float(bat["xslg"]) if bat.get("xslg") is not None else 0.410,
+        "avg_exit_velo": float(bat["avg_exit_velo"]) if bat.get("avg_exit_velo") is not None else 88.8,
+        "bat_speed": float(bat["bat_speed"]) if bat.get("bat_speed") is not None else 71.5,
+        "squared_up_pct": float(bat["squared_up_pct"]) if bat.get("squared_up_pct") is not None else 25.0,
+        "barrel_pct": float(bat["barrel_pct"]) if bat.get("barrel_pct") is not None else 7.8,
+        "hard_hit_pct": float(bat["hard_hit_pct"]) if bat.get("hard_hit_pct") is not None else 39.0,
+        # 마운드 & 구종 가치 (Extension 제외)
+        "team_pitching_rv": int(pit["team_pitching_rv"]) if pit.get("team_pitching_rv") is not None else 0,
+        "team_fb_rv": int(pit["team_fb_rv"]) if pit.get("team_fb_rv") is not None else 0,
+        "team_brk_rv": int(pit["team_brk_rv"]) if pit.get("team_brk_rv") is not None else 0,
+        "team_off_rv": int(pit["team_off_rv"]) if pit.get("team_off_rv") is not None else 0,
+        "fip": float(pit["fip"]) if pit.get("fip") is not None else 4.12,
         "era": float(pit["era"]) if pit.get("era") is not None else 4.15,
-        "fastball_velo": float(pit["fastball_velo"]) if pit.get("fastball_velo") is not None else 93.8,
-        "pit_k_pct": float(pit["pit_k_pct"]) if pit.get("pit_k_pct") is not None else 22.0,
+        "xera": float(pit["xera"]) if pit.get("xera") is not None else 4.15,
+        "pit_xba": float(pit["pit_xba"]) if pit.get("pit_xba") is not None else 0.245,
+        "fastball_velo": float(pit["fastball_velo"]) if pit.get("fastball_velo") is not None else 93.9,
+        "pit_k_pct": float(pit["pit_k_pct"]) if pit.get("pit_k_pct") is not None else 22.3,
+        "pit_whiff_pct": float(pit["pit_whiff_pct"]) if pit.get("pit_whiff_pct") is not None else 25.0,
+        "pit_gb_pct": float(pit["pit_gb_pct"]) if pit.get("pit_gb_pct") is not None else 42.5,
+        # 수비 · 포수 · 주루 · WAR
+        "team_fielding_rv": int(bat["team_fielding_rv"]) if bat.get("team_fielding_rv") is not None else 0,
         "team_oaa": int(bat["team_oaa"]) if bat.get("team_oaa") is not None else 0,
+        "team_arm_value": int(bat["team_arm_value"]) if bat.get("team_arm_value") is not None else 0,
+        "team_framing_runs": int(bat["team_framing_runs"]) if bat.get("team_framing_runs") is not None else 0,
+        "team_bsr_rv": int(bat["team_bsr_rv"]) if bat.get("team_bsr_rv") is not None else 0,
         "sprint_speed": float(bat["sprint_speed"]) if bat.get("sprint_speed") is not None else 27.0,
-        "avg_bwar": float(bat["avg_bwar"]) if bat.get("avg_bwar") is not None else 1.20
+        "avg_bwar": float(bat["avg_bwar"]) if bat.get("avg_bwar") is not None else 0.25
     }
 
 
@@ -206,20 +245,21 @@ def get_team_detail_and_roster(
         # 4. 구단 12대 세이버메트릭스 요약 지표 산출
         team_sabermetrics = get_team_season_sabermetrics(db, int(team_id), target_season)
 
-        # 5. 타자 로스터
+        # 5. 타자 로스터 (obp, slg, ops 포함)
         batters_query = text("""
             SELECT 
                 p.player_id, p.player_name, p.headshot_url, p.jersey_number,
                 p.position, p.birth_date, p.bats, p.throws,
                 s.games, s.hits, s.home_runs, s.rbi,
-                s.batting_avg,
+                s.batting_avg, s.obp, s.slg, s.ops,
                 s.wrc_plus, s.bwar, s.fwar,
                 s.xba, s.xslg, s.xwoba
             FROM player_season_stats s
             JOIN players p ON s.player_id = p.player_id
-            WHERE s.team_id = :team_id AND s.games > 0
+            WHERE COALESCE(s.team_id, p.team_id) = :team_id 
               AND s.season = :season 
               AND s.is_pitcher = FALSE
+              AND s.games > 0
             ORDER BY s.bwar DESC, s.games DESC
         """)
         raw_batters = db.execute(
@@ -257,11 +297,14 @@ def get_team_detail_and_roster(
             item["bwar"] = float(b["bwar"]) if b.get("bwar") is not None else None
             item["fwar"] = float(b["fwar"]) if b.get("fwar") is not None else None
 
-            if b.get("xslg") is not None:
-                approx_obp = avg_val + 0.065
-                item["ops"] = round(approx_obp + float(b["xslg"]), 3)
-            else:
-                item["ops"] = round(avg_val * 2.5, 3) if avg_val > 0 else "-"
+            # 출루율(OBP), 장타율(SLG), OPS (DB에 공식 값이 있으면 그대로 사용, 없으면 추정치 Fallback)
+            obp_val = float(b["obp"]) if b.get("obp") is not None else (round(avg_val + 0.065, 3) if avg_val > 0 else None)
+            slg_val = float(b["slg"]) if b.get("slg") is not None else (float(b["xslg"]) if b.get("xslg") is not None else (round(avg_val * 1.55, 3) if avg_val > 0 else None))
+            ops_val = float(b["ops"]) if b.get("ops") is not None else (round(obp_val + slg_val, 3) if (obp_val is not None and slg_val is not None) else None)
+
+            item["obp"] = obp_val
+            item["slg"] = slg_val
+            item["ops"] = ops_val
                 
             batters.append(item)
 

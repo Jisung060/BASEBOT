@@ -305,8 +305,12 @@ async function loadSelectedGame(gameId) {
             ...thisGame,
             ...(voteStatus.game_info || {})
         };
+        const gameYear = currentGameData.game_date ? String(currentGameData.game_date).substring(0, 4) : "";
+        const seasonParam = gameYear ? `&season=${gameYear}` : "";
 
-        const predRes = await fetch(`http://127.0.0.1:8000/api/predictions/matchup?home_team_id=${currentGameData.home_team_id}&away_team_id=${currentGameData.away_team_id}`);
+        const predRes = await fetch(
+            `http://127.0.0.1:8000/api/predictions/matchup?home_team_id=${currentGameData.home_team_id}&away_team_id=${currentGameData.away_team_id}${seasonParam}`
+        );
         if (!predRes.ok) throw new Error("예측 API 호출 실패");
         const pred = await predRes.json();
 
@@ -701,14 +705,16 @@ function getVerdictMessage(winnerName, maxProb) {
 }
 
 // ==================================================
-// 세이버메트릭스 비교 표 동적 렌더링 (우세 팀 자동 하이라이트)
+// 세이버메트릭스 비교 표 동적 렌더링 (Extension 제외 전 지표 반영 & 우세 팀 자동 하이라이트)
 // ==================================================
 function renderSaberComparisonTable(mc) {
     const tbody = document.getElementById("saberComparisonBody");
     if (!tbody || !mc) return;
 
+    const fmtSigned = v => (v !== null && v !== undefined) ? (Number(v) > 0 ? `+${v}` : `${v}`) : '-';
+
     const rows = [
-        { category: "⚾ 타격 생산력 및 타구질 (Batting & Statcast)" },
+        { category: "⚾ 타격 생산력 · 배트 트래킹 · 타구질 (Batting & Bat Tracking)" },
         {
             label: "wRC+ (조정 득점 창출력)",
             desc: "리그 평균 100 기준 팀 타선 생산력",
@@ -718,11 +724,37 @@ function renderSaberComparisonTable(mc) {
             higherIsBetter: true
         },
         {
-            label: "xwOBA (기대 가중출루율)",
-            desc: "타구 속도와 발사각 기반 기대 출루 가치",
+            label: "팀 타격 득점 가치 (Batting Run Value)",
+            desc: "Savant Swing-Take 기반 팀 타격 총 득점 기여",
+            away: mc.away_batting_rv,
+            home: mc.home_batting_rv,
+            format: fmtSigned,
+            higherIsBetter: true
+        },
+        {
+            label: "xwOBA / xBA / xSLG (기대 슬래시 라인)",
+            desc: "타구 속도와 발사각 기반 기대 가중출루율 · 기대타율 · 기대장타율",
             away: mc.away_xwoba,
             home: mc.home_xwoba,
-            format: v => v ? Number(v).toFixed(3) : '-',
+            format: (v, side) => side === "away"
+                ? `${Number(mc.away_xwoba || 0).toFixed(3)} / ${Number(mc.away_xba || 0).toFixed(3)} / ${Number(mc.away_xslg || 0).toFixed(3)}`
+                : `${Number(mc.home_xwoba || 0).toFixed(3)} / ${Number(mc.home_xba || 0).toFixed(3)} / ${Number(mc.home_xslg || 0).toFixed(3)}`,
+            higherIsBetter: true
+        },
+        {
+            label: "평균 배트 스피드 (Bat Speed)",
+            desc: "팀 타자들의 평균 스윙 속도",
+            away: mc.away_bat_speed,
+            home: mc.home_bat_speed,
+            format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-',
+            higherIsBetter: true
+        },
+        {
+            label: "스퀘어업 정타 비율 (Squared-Up %)",
+            desc: "스윙 대비 배트 중심에 정확히 맞힌 정타 비율",
+            away: mc.away_squared_up_pct,
+            home: mc.home_squared_up_pct,
+            format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
             higherIsBetter: true
         },
         {
@@ -749,21 +781,43 @@ function renderSaberComparisonTable(mc) {
             format: v => v ? `${Number(v).toFixed(1)}%` : '-',
             higherIsBetter: true
         },
-        { category: "🔥 마운드 억제력 및 구위 (Pitching & Stuff)" },
+        { category: "🔥 마운드 억제력 · 구종별 가치 (Pitching & Pitch Run Value)" },
         {
-            label: "팀 평균 FIP (수비무관 자책점)",
-            desc: "삼진·볼넷·홈런만으로 평가한 투수 본연의 억제력 (낮을수록 우세)",
-            away: mc.away_fip,
-            home: mc.home_fip,
-            format: v => v ? Number(v).toFixed(2) : '-',
+            label: "팀 투구 종합 가치 (Pitching Run Value)",
+            desc: "마운드 전체의 평균 대비 실점 억제 득점 가치",
+            away: mc.away_pitching_rv,
+            home: mc.home_pitching_rv,
+            format: fmtSigned,
+            higherIsBetter: true
+        },
+        {
+            label: "구종별 득점 가치 (속구 / 변화구 / 오프스피드)",
+            desc: "Fastball · Breaking · Offspeed 구종 그룹별 Run Value 합계",
+            away: (mc.away_fb_rv || 0) + (mc.away_brk_rv || 0) + (mc.away_off_rv || 0),
+            home: (mc.home_fb_rv || 0) + (mc.home_brk_rv || 0) + (mc.home_off_rv || 0),
+            format: (v, side) => side === "away"
+                ? `속구 ${fmtSigned(mc.away_fb_rv)} / 변화 ${fmtSigned(mc.away_brk_rv)} / 오프 ${fmtSigned(mc.away_off_rv)}`
+                : `속구 ${fmtSigned(mc.home_fb_rv)} / 변화 ${fmtSigned(mc.home_brk_rv)} / 오프 ${fmtSigned(mc.home_off_rv)}`,
+            higherIsBetter: true
+        },
+        {
+            label: "팀 평균 FIP / xERA (수비무관 · 기대 자책점)",
+            desc: "투수 본연의 억제력(FIP) 및 타구질 기반 기대 평균자책점(xERA) (낮을수록 우세)",
+            away: mc.away_xera,
+            home: mc.home_xera,
+            format: (v, side) => side === "away"
+                ? `FIP ${Number(mc.away_fip || 0).toFixed(2)} / xERA ${Number(mc.away_xera || 0).toFixed(2)}`
+                : `FIP ${Number(mc.home_fip || 0).toFixed(2)} / xERA ${Number(mc.home_xera || 0).toFixed(2)}`,
             higherIsBetter: false
         },
         {
-            label: "팀 평균 ERA (평균자책점)",
-            desc: "9이닝당 평균 자책점 (낮을수록 우세)",
+            label: "팀 평균 ERA / 피기대타율 (xBA)",
+            desc: "9이닝당 평균 자책점 및 투수진 평균 피기대타율 (낮을수록 우세)",
             away: mc.away_era,
             home: mc.home_era,
-            format: v => v ? Number(v).toFixed(2) : '-',
+            format: (v, side) => side === "away"
+                ? `ERA ${Number(mc.away_era || 0).toFixed(2)} / 피xBA ${Number(mc.away_pit_xba || 0).toFixed(3)}`
+                : `ERA ${Number(mc.home_era || 0).toFixed(2)} / 피xBA ${Number(mc.home_pit_xba || 0).toFixed(3)}`,
             higherIsBetter: false
         },
         {
@@ -775,28 +829,58 @@ function renderSaberComparisonTable(mc) {
             higherIsBetter: true
         },
         {
-            label: "투수 탈삼진율 (Pitcher K%)",
-            desc: "상대 타자 대비 탈삼진 유도 비율",
+            label: "탈삼진율 (K%) / 헛스윙 유도율 (Whiff%)",
+            desc: "상대 타자 대비 탈삼진 비율 및 스윙 대비 헛스윙 유도율",
             away: mc.away_pit_k_pct,
             home: mc.home_pit_k_pct,
+            format: (v, side) => side === "away"
+                ? `K% ${Number(mc.away_pit_k_pct || 0).toFixed(1)}% / Whiff% ${Number(mc.away_pit_whiff_pct || 0).toFixed(1)}%`
+                : `K% ${Number(mc.home_pit_k_pct || 0).toFixed(1)}% / Whiff% ${Number(mc.home_pit_whiff_pct || 0).toFixed(1)}%`,
+            higherIsBetter: true
+        },
+        {
+            label: "투수 땅볼 유도율 (GB %)",
+            desc: "인플레이 타구 중 땅볼 유도 비율",
+            away: mc.away_pit_gb_pct,
+            home: mc.home_pit_gb_pct,
             format: v => v ? `${Number(v).toFixed(1)}%` : '-',
             higherIsBetter: true
         },
-        { category: "🧤 수비 · 주루 · 종합 기여도 (Fielding, Running & WAR)" },
+        { category: "🧤 수비 · 포수 프레이밍 · 주루 · WAR (Fielding, Catching & Running)" },
         {
-            label: "팀 수비 범위 (Team OAA)",
-            desc: "평균 대비 추가 아웃 카운트 처리 수",
-            away: mc.away_team_oaa,
-            home: mc.home_team_oaa,
-            format: v => (v !== null && v !== undefined) ? (v > 0 ? `+${v}` : `${v}`) : '-',
+            label: "팀 종합 수비 가치 (Fielding Run Value)",
+            desc: "수비 범위(OAA) + 송구(Arm) + 포수 수비를 통합한 총 수비 득점 가치",
+            away: mc.away_fielding_rv,
+            home: mc.home_fielding_rv,
+            format: fmtSigned,
             higherIsBetter: true
         },
         {
-            label: "팀 평균 주루 속도 (Sprint Speed)",
-            desc: "초당 피트(ft/s) 기준 주루 능력",
+            label: "수비 범위 (OAA) / 외야 송구 가치 (Arm Value)",
+            desc: "평균 대비 추가 아웃 처리 수(OAA) 및 외야수 송구 득점 기여",
+            away: mc.away_team_oaa,
+            home: mc.home_team_oaa,
+            format: (v, side) => side === "away"
+                ? `OAA ${fmtSigned(mc.away_team_oaa)} / Arm ${fmtSigned(mc.away_arm_value)}`
+                : `OAA ${fmtSigned(mc.home_team_oaa)} / Arm ${fmtSigned(mc.home_arm_value)}`,
+            higherIsBetter: true
+        },
+        {
+            label: "포수 프레이밍 득점 가치 (Catcher Framing)",
+            desc: "포수진의 스트라이크 존 보더라인 프레이밍 득점 기여",
+            away: mc.away_framing_runs,
+            home: mc.home_framing_runs,
+            format: fmtSigned,
+            higherIsBetter: true
+        },
+        {
+            label: "팀 주루 가치 (Baserunning RV) / 주루 속도",
+            desc: "도루·추가 진루 기반 주루 득점 가치 및 평균 스프린트 스피드",
             away: mc.away_sprint_speed,
             home: mc.home_sprint_speed,
-            format: v => v ? `${Number(v).toFixed(1)} ft/s` : '-',
+            format: (v, side) => side === "away"
+                ? `BSR ${fmtSigned(mc.away_bsr_rv)} (${Number(mc.away_sprint_speed || 0).toFixed(1)} ft/s)`
+                : `BSR ${fmtSigned(mc.home_bsr_rv)} (${Number(mc.home_sprint_speed || 0).toFixed(1)} ft/s)`,
             higherIsBetter: true
         },
         {
@@ -834,14 +918,14 @@ function renderSaberComparisonTable(mc) {
         html += `
             <tr>
                 <td class="metric-num ${awayBetter ? 'is-better' : ''}">
-                    ${awayBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.away)}
+                    ${awayBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.away, "away")}
                 </td>
                 <td class="metric-label-cell">
                     ${r.label}
                     <span class="metric-sub-desc">${r.desc}</span>
                 </td>
                 <td class="metric-num ${homeBetter ? 'is-better' : ''}">
-                    ${r.format(r.home)}${homeBetter ? '<span class="better-dot"></span>' : ''}
+                    ${r.format(r.home, "home")}${homeBetter ? '<span class="better-dot"></span>' : ''}
                 </td>
             </tr>
         `;

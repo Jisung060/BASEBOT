@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database.db_connection import get_session
+import re
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
@@ -20,6 +21,39 @@ def calculate_age(birth_date_str):
     except Exception:
         return "-"
 
+def format_height_weight(height_str, weight_val) -> dict:
+    """
+    MLB 미국식 키(ft' in")와 몸무게(lbs)를 한국식(cm, kg)과 함께 병기하여 반환
+    예: height_display = '6\' 4" (193cm)', weight_display = '190 lbs (86kg)'
+    """
+    h_us = str(height_str).strip() if height_str else None
+    w_lbs = int(weight_val) if weight_val is not None and str(weight_val).isdigit() else None
+
+    h_cm = None
+    if h_us:
+        m = re.search(r"(\d+)\s*'\s*(\d+)", h_us)
+        if m:
+            feet = int(m.group(1))
+            inches = int(m.group(2))
+            h_cm = round((feet * 12 + inches) * 2.54)
+
+    w_kg = round(w_lbs * 0.45359237) if w_lbs else None
+
+    height_display = f"{h_us} ({h_cm}cm)" if (h_us and h_cm) else (h_us or "-")
+    weight_display = f"{w_lbs} lbs ({w_kg}kg)" if (w_lbs and w_kg) else (f"{w_lbs} lbs" if w_lbs else "-")
+
+    if h_us and h_cm and w_lbs and w_kg:
+        combined_display = f"{h_cm}cm / {w_kg}kg ({h_us}, {w_lbs} lbs)"
+    elif h_us or w_lbs:
+        combined_display = f"{height_display} / {weight_display}"
+    else:
+        combined_display = "-"
+
+    return {
+        "height_display": height_display,
+        "weight_display": weight_display,
+        "physical_display": combined_display
+    }
 
 def get_season_distribution(db: Session, season: int, is_pitcher: bool) -> list[dict]:
     key = (int(season), bool(is_pitcher))
@@ -145,9 +179,9 @@ def search_players_and_teams(q: str = "", limit: int = 12, db: Session = Depends
 def get_player_detail(player_id: int, db: Session = Depends(get_session)):
     p_query = text("""
         SELECT
-            p.player_id, p.player_name, p.headshot_url, p.jersey_number,
-            p.position, p.birth_date, p.bats, p.throws,
-            p.team_id, t.team_name, t.team_code
+            p.*,
+            t.team_name,
+            t.team_code
         FROM players p
         LEFT JOIN teams t ON p.team_id = t.team_id
         WHERE p.player_id = :player_id
@@ -268,6 +302,20 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
     else:
         default_mode = "batting"
 
+    # ★ 가장 최근 시즌(all_stats는 season DESC 정렬됨)의 소속팀을 최우선으로 사용 (맥스 프리드 등 이적생 완벽 대응)
+    latest_team_id = player["team_id"]
+    latest_team_name = player["team_name"]
+    latest_team_code = player["team_code"]
+
+    if all_stats:
+        most_recent = all_stats[0]
+        if most_recent.get("season_team_id"):
+            latest_team_id = most_recent["season_team_id"]
+            latest_team_name = most_recent["season_team_name"]
+            latest_team_code = most_recent["season_team_code"]
+
+    hw_info = format_height_weight(player.get("height"), player.get("weight"))
+
     return {
         "player_id": player["player_id"],
         "player_name": player["player_name"],
@@ -279,9 +327,12 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
         "bats": player["bats"] or "-",
         "throws": player["throws"] or "-",
         "bt": f"{player['bats'] or '-'}/{player['throws'] or '-'}",
-        "team_id": player["team_id"],
-        "team_name": player["team_name"],
-        "team_code": player["team_code"],
+        "height_display": hw_info["height_display"],
+        "weight_display": hw_info["weight_display"],
+        "physical_display": hw_info["physical_display"],
+        "team_id": latest_team_id,
+        "team_name": latest_team_name,
+        "team_code": latest_team_code,
         "default_mode": default_mode,
         "available_seasons": available_seasons,
         "has_batting": len(batting_stats) > 0,

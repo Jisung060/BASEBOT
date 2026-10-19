@@ -286,7 +286,9 @@ def collect_batters_comprehensive(season: int = 2024):
 
         upsert_sql = text("""
             INSERT INTO player_season_stats (
-                player_id, season, team_id, is_pitcher, games, batting_avg, hits, home_runs, rbi, stolen_bases,
+                player_id, season, team_id, is_pitcher, games,
+                batting_avg, obp, slg, ops,
+                hits, home_runs, rbi, stolen_bases,
                 strikeouts, walks, k_percentage, bb_percentage,
                 bwar, fwar, wrc_plus,
                 avg_exit_velocity, barrel_percentage, hard_hit_percentage,
@@ -294,7 +296,9 @@ def collect_batters_comprehensive(season: int = 2024):
                 whiff_percentage, chase_percentage,
                 exit_velo_percentile, barrel_percentile, hard_hit_percentile, xwoba_percentile, sprint_speed_percentile
             ) VALUES (
-                :player_id, :season, :team_id, FALSE, :games, :batting_avg, :hits, :home_runs, :rbi, :stolen_bases,
+                :player_id, :season, :team_id, FALSE, :games,
+                :batting_avg, :obp, :slg, :ops,
+                :hits, :home_runs, :rbi, :stolen_bases,
                 :strikeouts, :walks, :k_percentage, :bb_percentage,
                 :bwar, :fwar, :wrc_plus,
                 :avg_exit_velocity, :barrel_percentage, :hard_hit_percentage,
@@ -306,6 +310,9 @@ def collect_batters_comprehensive(season: int = 2024):
                 team_id = COALESCE(VALUES(team_id), team_id),
                 games = VALUES(games),
                 batting_avg = VALUES(batting_avg),
+                obp = VALUES(obp),
+                slg = VALUES(slg),
+                ops = VALUES(ops),
                 hits = VALUES(hits),
                 home_runs = VALUES(home_runs),
                 rbi = VALUES(rbi),
@@ -354,6 +361,10 @@ def collect_batters_comprehensive(season: int = 2024):
                 'team_id': valid_tid,
                 'games': int(row['games']),
                 'batting_avg': float(row['batting_avg']),
+                'batting_avg': float(row['batting_avg']),
+                'obp': float(row['obp']) if row.get('obp') is not None else None,
+                'slg': float(row['slg']) if row.get('slg') is not None else None,
+                'ops': float(row['ops']) if row.get('ops') is not None else None,
                 'hits': int(row['hits']),
                 'home_runs': int(row['home_runs']),
                 'rbi': int(row['rbi']),

@@ -74,6 +74,12 @@ function bindProfile(data) {
     document.getElementById("playerBT").textContent = data.bt;
     document.getElementById("playerBirthDate").textContent = data.birth_date;
 
+    // ★ 키/몸무게 (cm/kg & ft-in/lbs 병기) 바인딩
+    const physEl = document.getElementById("playerPhysical");
+    if (physEl) {
+        physEl.textContent = data.physical_display || "-";
+    }
+
     if (data.headshot_url) {
         document.getElementById("playerHeadshot").src = data.headshot_url;
     }
@@ -389,13 +395,16 @@ function renderModeView() {
                 <th>시즌</th>
                 <th>소속팀</th>
                 <th>경기</th>
-                <th>타율</th>
                 <th>안타</th>
                 <th>홈런</th>
                 <th>타점</th>
                 <th>도루</th>
                 <th>볼넷</th>
                 <th>삼진</th>
+                <th>타율</th>
+                <th>출루율</th>
+                <th>장타율</th>
+                <th>OPS</th>
                 <th>wRC+</th>
                 <th>xBA</th>
                 <th>xSLG</th>
@@ -410,6 +419,7 @@ function renderModeView() {
                 <th>fWAR</th>
             </tr>
         `;
+        const fmtSlash = v => (v !== null && v !== undefined) ? Number(v).toFixed(3).replace(/^0\./, '.') : '-';
         statsList.forEach(st => {
             const tr = document.createElement("tr");
             const isSelected = Number(st.season) === Number(targetStat.season);
@@ -421,17 +431,20 @@ function renderModeView() {
                 <td><strong>${st.season}</strong></td>
                 <td><span class="season-team-badge">${st.season_team_code || '-'}</span></td>
                 <td>${st.games || 0}</td>
-                <td>${st.batting_avg !== null ? Number(st.batting_avg).toFixed(3).replace('0.', '.') : '-'}</td>
                 <td>${st.hits || 0}</td>
                 <td><strong>${st.home_runs || 0}</strong></td>
                 <td>${st.rbi || 0}</td>
                 <td><strong>${st.stolen_bases !== null ? st.stolen_bases : '-'}</strong></td>
                 <td>${st.walks || 0}</td>
                 <td>${st.strikeouts || 0}</td>
+                <td><strong>${fmtSlash(st.batting_avg)}</strong></td>
+                <td>${fmtSlash(st.obp)}</td>
+                <td>${fmtSlash(st.slg)}</td>
+                <td><strong>${fmtSlash(st.ops)}</strong></td>
                 <td><strong>${st.wrc_plus !== null ? st.wrc_plus : '-'}</strong></td>
-                <td>${st.xba !== null ? Number(st.xba).toFixed(3).replace('0.', '.') : '-'}</td>
-                <td>${st.xslg !== null ? Number(st.xslg).toFixed(3).replace('0.', '.') : '-'}</td>
-                <td>${st.xwoba !== null ? Number(st.xwoba).toFixed(3).replace('0.', '.') : '-'}</td>
+                <td>${fmtSlash(st.xba)}</td>
+                <td>${fmtSlash(st.xslg)}</td>
+                <td>${fmtSlash(st.xwoba)}</td>
                 <td>${st.avg_exit_velocity ? Number(st.avg_exit_velocity).toFixed(1) + ' mph' : '-'}</td>
                 <td><strong>${st.bat_speed != null ? Number(st.bat_speed).toFixed(1) + ' mph' : '-'}</strong></td>
                 <td>${st.squared_up_percentage != null ? Number(st.squared_up_percentage).toFixed(1) + '%' : '-'}</td>

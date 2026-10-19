@@ -335,7 +335,7 @@ def _update_log_progress(log_id: int, message: str):
 
 
 def _sync_season_team_ids(season: int):
-    """수집 직후 player_season_stats.team_id 누락분 동기화"""
+    """수집 직후 player_season_stats.team_id 누락분 동기화 및 players.team_id를 최신 시즌 구단으로 갱신"""
     with engine.begin() as conn:
         conn.execute(text("""
             UPDATE player_season_stats s
@@ -343,6 +343,23 @@ def _sync_season_team_ids(season: int):
             SET s.team_id = p.team_id
             WHERE s.season = :season AND s.team_id IS NULL
         """), {"season": season})
+
+        # players 테이블의 현재 소속팀을 DB 내 가장 최신 시즌(MAX(season))의 소속팀으로 항상 유지
+        conn.execute(text("""
+            UPDATE players p
+            JOIN (
+                SELECT s1.player_id, s1.team_id
+                FROM player_season_stats s1
+                JOIN (
+                    SELECT player_id, MAX(season) AS max_season
+                    FROM player_season_stats
+                    WHERE team_id IS NOT NULL AND games > 0
+                    GROUP BY player_id
+                ) s2 ON s1.player_id = s2.player_id AND s1.season = s2.max_season
+                WHERE s1.team_id IS NOT NULL
+            ) latest ON p.player_id = latest.player_id
+            SET p.team_id = latest.team_id
+        """))
 
 
 def _run_batters(season: int) -> int:

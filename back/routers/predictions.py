@@ -27,15 +27,15 @@ class VoteRequest(BaseModel):
 def predict_teams_matchup(
     home_team_id: int = Query(..., description="홈팀 team_id"),
     away_team_id: int = Query(..., description="원정팀 team_id"),
+    season: Optional[int] = Query(None, description="분석 기준 시즌 연도"),
     db: Session = Depends(get_session)
 ):
     """
-    두 구단의 세이버메트릭스 지표 및 상대전적 기반 AI 승부예측
+    두 구단의 확장 세이버메트릭스 지표(27종) 및 상대전적 기반 AI 승부예측
     """
     if home_team_id == away_team_id:
         raise HTTPException(status_code=400, detail="홈팀과 원정팀이 같을 수 없습니다.")
 
-    # 1. 팀 기본 정보 조회 (이름, 코드, 로고)
     teams_query = text("""
         SELECT team_id, team_name, team_code, logo_url
         FROM teams
@@ -47,13 +47,11 @@ def predict_teams_matchup(
     if home_team_id not in teams_dict or away_team_id not in teams_dict:
         raise HTTPException(status_code=404, detail="팀 정보를 찾을 수 없습니다.")
 
-    # 2. 승부예측 및 상대전적 도출
     try:
-        pred_res = predictor.predict_matchup(home_team_id, away_team_id)
+        pred_res = predictor.predict_matchup(home_team_id, away_team_id, season=season)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 3. 팀 메타데이터 병합
     home_meta = teams_dict[home_team_id]
     away_meta = teams_dict[away_team_id]
 

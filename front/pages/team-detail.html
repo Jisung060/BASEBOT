@@ -193,8 +193,19 @@
             vertical-align: middle;
             margin: 0 6px;
         }
-
-        .section-title h2 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; margin-top: 25px; }
+        .section-title {
+            height: auto !important;
+            padding: 10px 0 12px 0;
+            margin-top: 32px;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #111827;
+        }
+        .section-title h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 !important;
+        }
 
         .roster-table { width: 100%; border-collapse: collapse; font-size: 13px; border-top: 2px solid #111827; margin-bottom: 30px; }
         .roster-table th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 10px 6px; text-align: center; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
@@ -332,10 +343,12 @@
                             <th>나이</th>
                             <th>B/T</th>
                             <th>경기</th>
-                            <th>타율</th>
                             <th>안타</th>
                             <th>홈런</th>
                             <th>타점</th>
+                            <th>타율</th>
+                            <th>출루율</th>
+                            <th>장타율</th>
                             <th>OPS</th>
                             <th>wRC+</th>
                             <th>bWAR</th>
@@ -343,7 +356,7 @@
                         </tr>
                     </thead>
                     <tbody id="battersTbody">
-                        <tr><td colspan="14" class="no-data">타자 로스터를 불러오는 중입니다...</td></tr>
+                        <tr><td colspan="16" class="no-data">타자 로스터를 불러오는 중입니다...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -411,7 +424,7 @@
             btn.textContent = isOpen ? "접기 ▲" : "펼쳐서 보기 ▼";
         }
 
-        // 구단 세이버메트릭스 12대 지표 테이블 렌더링
+        // 구단 세이버메트릭스 확장 지표 테이블 렌더링 (Extension 제외 전 지표 반영)
         function renderTeamSaberTable(teamName, season, sb) {
             const tbody = document.getElementById("teamSaberBody");
             document.getElementById("thTeamSaberName").textContent = `${season} ${teamName}`;
@@ -419,105 +432,153 @@
 
             if (!tbody || !sb) return;
 
+            const fmtSigned = v => (v !== null && v !== undefined) ? (v > 0 ? `+${v}` : `${v}`) : '-';
+
             const rows = [
-                { category: "⚾ 타격 생산력 및 타구질 (Batting & Statcast)" },
+                { category: "⚾ 타격 생산력 · 배트 트래킹 · 타구질 (Batting & Bat Tracking)" },
                 {
                     label: "wRC+ (조정 득점 창출력)",
                     desc: "리그 평균 100 기준 팀 타선 생산력",
-                    teamVal: sb.wrc_plus,
-                    mlbAvg: 100,
-                    format: v => `${v ?? '-'}`,
+                    teamVal: sb.wrc_plus, mlbAvg: 100,
+                    format: v => `${v ?? '-'}`, higherIsBetter: true
+                },
+                {
+                    label: "팀 타격 득점 가치 (Batting Run Value)",
+                    desc: "Savant Swing-Take 기반 팀 타격 총 득점 기여",
+                    teamVal: sb.team_batting_rv, mlbAvg: 0,
+                    format: fmtSigned, higherIsBetter: true
+                },
+                {
+                    label: "xwOBA / xBA / xSLG (기대 슬래시 라인)",
+                    desc: "타구 속도와 발사각 기반 기대 가중출루율 · 기대타율 · 기대장타율",
+                    teamVal: sb.xwoba, mlbAvg: 0.315,
+                    format: (v, isTeam) => isTeam
+                        ? `${Number(sb.xwoba || 0).toFixed(3)} / ${Number(sb.xba || 0).toFixed(3)} / ${Number(sb.xslg || 0).toFixed(3)}`
+                        : `0.315 / 0.245 / 0.410`,
                     higherIsBetter: true
                 },
                 {
-                    label: "xwOBA (기대 가중출루율)",
-                    desc: "타구 속도와 발사각 기반 기대 출루 가치",
-                    teamVal: sb.xwoba,
-                    mlbAvg: 0.315,
-                    format: v => v !== undefined ? Number(v).toFixed(3) : '-',
-                    higherIsBetter: true
+                    label: "평균 배트 스피드 (Bat Speed)",
+                    desc: "팀 타자들의 평균 스윙 속도 (2024~ 트래킹 도입)",
+                    teamVal: sb.bat_speed, mlbAvg: 71.5,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-', higherIsBetter: true
+                },
+                {
+                    label: "스퀘어업 정타 비율 (Squared-Up %)",
+                    desc: "스윙 대비 배트 중심에 정확히 맞힌 정타 비율",
+                    teamVal: sb.squared_up_pct, mlbAvg: 25.0,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-', higherIsBetter: true
                 },
                 {
                     label: "평균 타구속도 (Exit Velocity)",
                     desc: "타자가 타격한 공의 평균 속도",
-                    teamVal: sb.avg_exit_velo,
-                    mlbAvg: 88.8,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-',
-                    higherIsBetter: true
+                    teamVal: sb.avg_exit_velo, mlbAvg: 88.8,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-', higherIsBetter: true
                 },
                 {
                     label: "배럴 타구 비율 (Barrel %)",
                     desc: "장타 확률이 극대화되는 이상적 타구 비율",
-                    teamVal: sb.barrel_pct,
-                    mlbAvg: 7.8,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
-                    higherIsBetter: true
+                    teamVal: sb.barrel_pct, mlbAvg: 7.8,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-', higherIsBetter: true
                 },
                 {
                     label: "하드힛 비율 (Hard-Hit %)",
                     desc: "95mph 이상의 강한 타구 비율",
-                    teamVal: sb.hard_hit_pct,
-                    mlbAvg: 39.0,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
+                    teamVal: sb.hard_hit_pct, mlbAvg: 39.0,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-', higherIsBetter: true
+                },
+                { category: "🔥 마운드 억제력 · 구종별 가치 (Pitching & Pitch Run Value)" },
+                {
+                    label: "팀 투구 종합 가치 (Pitching Run Value)",
+                    desc: "마운드 전체의 평균 대비 실점 억제 득점 가치",
+                    teamVal: sb.team_pitching_rv, mlbAvg: 0,
+                    format: fmtSigned, higherIsBetter: true
+                },
+                {
+                    label: "구종별 득점 가치 (속구 / 변화구 / 오프스피드)",
+                    desc: "Fastball · Breaking · Offspeed 구종 그룹별 누적 Run Value 합계",
+                    teamVal: (sb.team_fb_rv || 0) + (sb.team_brk_rv || 0) + (sb.team_off_rv || 0),
+                    mlbAvg: 0,
+                    format: (v, isTeam) => isTeam
+                        ? `속구 ${fmtSigned(sb.team_fb_rv)} / 변화 ${fmtSigned(sb.team_brk_rv)} / 오프 ${fmtSigned(sb.team_off_rv)}`
+                        : `0 / 0 / 0`,
                     higherIsBetter: true
                 },
-                { category: "🔥 마운드 억제력 및 구위 (Pitching & Stuff)" },
                 {
-                    label: "팀 평균 FIP (수비무관 자책점)",
-                    desc: "삼진·볼넷·홈런만으로 평가한 투수 본연의 억제력 (낮을수록 우세)",
-                    teamVal: sb.fip,
-                    mlbAvg: 4.12,
-                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+                    label: "팀 평균 FIP / xERA (수비무관 · 기대 자책점)",
+                    desc: "투수 본연의 억제력(FIP) 및 타구질 기반 기대 평균자책점(xERA) (낮을수록 우세)",
+                    teamVal: sb.xera, mlbAvg: 4.15,
+                    format: (v, isTeam) => isTeam
+                        ? `FIP ${Number(sb.fip || 0).toFixed(2)} / xERA ${Number(sb.xera || 0).toFixed(2)}`
+                        : `FIP 4.12 / xERA 4.15`,
                     higherIsBetter: false
                 },
                 {
-                    label: "팀 평균 ERA (평균자책점)",
-                    desc: "9이닝당 평균 자책점 (낮을수록 우세)",
-                    teamVal: sb.era,
-                    mlbAvg: 4.15,
-                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
+                    label: "팀 평균 ERA / 피기대타율 (xBA)",
+                    desc: "9이닝당 평균 자책점 및 투수진 평균 피기대타율 (낮을수록 우세)",
+                    teamVal: sb.era, mlbAvg: 4.15,
+                    format: (v, isTeam) => isTeam
+                        ? `ERA ${Number(sb.era || 0).toFixed(2)} / 피xBA ${Number(sb.pit_xba || 0).toFixed(3)}`
+                        : `ERA 4.15 / 피xBA 0.245`,
                     higherIsBetter: false
                 },
                 {
                     label: "포심 평균 구속 (Fastball Velo)",
                     desc: "투수진의 포심 패스트볼 평균 구속",
-                    teamVal: sb.fastball_velo,
-                    mlbAvg: 93.9,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-',
+                    teamVal: sb.fastball_velo, mlbAvg: 93.9,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)} mph` : '-', higherIsBetter: true
+                },
+                {
+                    label: "탈삼진율 (K%) / 헛스윙 유도율 (Whiff%)",
+                    desc: "상대 타자 대비 탈삼진 비율 및 스윙 대비 헛스윙 유도율",
+                    teamVal: sb.pit_k_pct, mlbAvg: 22.3,
+                    format: (v, isTeam) => isTeam
+                        ? `K% ${Number(sb.pit_k_pct || 0).toFixed(1)}% / Whiff% ${Number(sb.pit_whiff_pct || 0).toFixed(1)}%`
+                        : `K% 22.3% / Whiff% 25.0%`,
                     higherIsBetter: true
                 },
                 {
-                    label: "투수 탈삼진율 (Pitcher K%)",
-                    desc: "상대 타자 대비 탈삼진 유도 비율",
-                    teamVal: sb.pit_k_pct,
-                    mlbAvg: 22.3,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-',
-                    higherIsBetter: true
+                    label: "투수 땅볼 유도율 (GB %)",
+                    desc: "인플레이 타구 중 땅볼 유도 비율",
+                    teamVal: sb.pit_gb_pct, mlbAvg: 42.5,
+                    format: v => v !== undefined ? `${Number(v).toFixed(1)}%` : '-', higherIsBetter: true
                 },
-                { category: "🧤 수비 · 주루 · 종합 기여도 (Fielding, Running & WAR)" },
+                { category: "🧤 수비 · 포수 프레이밍 · 주루 · WAR (Fielding, Catching & Running)" },
                 {
-                    label: "팀 수비 범위 (Team OAA)",
-                    desc: "평균 대비 추가 아웃 카운트 처리 수",
-                    teamVal: sb.team_oaa,
-                    mlbAvg: 0,
-                    format: v => (v !== null && v !== undefined) ? (v > 0 ? `+${v}` : `${v}`) : '-',
-                    higherIsBetter: true
+                    label: "팀 종합 수비 가치 (Fielding Run Value)",
+                    desc: "수비 범위(OAA) + 송구(Arm) + 포수 수비를 통합한 총 수비 득점 가치",
+                    teamVal: sb.team_fielding_rv, mlbAvg: 0,
+                    format: fmtSigned, higherIsBetter: true
                 },
                 {
-                    label: "팀 평균 주루 속도 (Sprint Speed)",
-                    desc: "초당 피트(ft/s) 기준 주루 능력",
-                    teamVal: sb.sprint_speed,
-                    mlbAvg: 27.0,
-                    format: v => v !== undefined ? `${Number(v).toFixed(1)} ft/s` : '-',
+                    label: "수비 범위 (OAA) / 외야 송구 가치 (Arm Value)",
+                    desc: "평균 대비 추가 아웃 처리 수(OAA) 및 외야수 송구 득점 기여",
+                    teamVal: sb.team_oaa, mlbAvg: 0,
+                    format: (v, isTeam) => isTeam
+                        ? `OAA ${fmtSigned(sb.team_oaa)} / Arm ${fmtSigned(sb.team_arm_value)}`
+                        : `OAA 0 / Arm 0`,
+                    higherIsBetter: true
+                },
+                {
+                    label: "포수 프레이밍 득점 가치 (Catcher Framing)",
+                    desc: "포수진의 스트라이크 존 보더라인 프레이밍 득점 기여",
+                    teamVal: sb.team_framing_runs, mlbAvg: 0,
+                    format: fmtSigned, higherIsBetter: true
+                },
+                {
+                    label: "팀 주루 가치 (Baserunning RV) / 주루 속도",
+                    desc: "도루·추가 진루 기반 주루 득점 가치 및 평균 스프린트 스피드",
+                    teamVal: sb.sprint_speed, mlbAvg: 27.0,
+                    format: (v, isTeam) => isTeam
+                        ? `BSR ${fmtSigned(sb.team_bsr_rv)} (${Number(sb.sprint_speed || 0).toFixed(1)} ft/s)`
+                        : `BSR 0 (27.0 ft/s)`,
                     higherIsBetter: true
                 },
                 {
                     label: "선수단 평균 bWAR",
                     desc: "대체 선수 대비 평균 승리 기여도",
-                    teamVal: sb.avg_bwar,
-                    mlbAvg: 0.25,
-                    format: v => v !== undefined ? Number(v).toFixed(2) : '-',
-                    higherIsBetter: true
+                    teamVal: sb.avg_bwar, mlbAvg: 0.25,
+                    format: v => v !== undefined ? Number(v).toFixed(2) : '-', higherIsBetter: true
                 }
             ];
 
@@ -546,14 +607,14 @@
                 html += `
                     <tr>
                         <td class="metric-num ${teamBetter ? 'is-better' : ''}">
-                            ${teamBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.teamVal)}
+                            ${teamBetter ? '<span class="better-dot"></span>' : ''}${r.format(r.teamVal, true)}
                         </td>
                         <td class="metric-label-cell">
                             ${r.label}
                             <span class="metric-sub-desc">${r.desc}</span>
                         </td>
                         <td class="metric-num ${avgBetter ? 'is-better' : ''}" style="color: #64748b;">
-                            ${r.format(r.mlbAvg)}
+                            ${r.format(r.mlbAvg, false)}
                         </td>
                     </tr>
                 `;
@@ -618,12 +679,13 @@
                 // ★ 3. 접이식 팀 세이버메트릭스 요약 테이블 렌더링
                 renderTeamSaberTable(t.team_name, activeSeason, data.sabermetrics);
 
-                // 4. 타자 로스터 렌더링
+                // 4. 타자 로스터 렌더링 (타율 / 출루율 / 장타율 / OPS 완비)
                 const bTbody = document.getElementById("battersTbody");
                 bTbody.innerHTML = "";
                 if (!data.batters || data.batters.length === 0) {
-                    bTbody.innerHTML = `<tr><td colspan="14" class="no-data">${activeSeason} 시즌에 등록된 타자 데이터가 없습니다.</td></tr>`;
+                    bTbody.innerHTML = `<tr><td colspan="16" class="no-data">${activeSeason} 시즌에 등록된 타자 데이터가 없습니다.</td></tr>`;
                 } else {
+                    const fmtRate = v => (v !== null && v !== undefined && v !== '-') ? Number(v).toFixed(3).replace(/^0\./, '.') : '-';
                     data.batters.forEach(p => {
                         const tr = document.createElement("tr");
                         tr.onclick = () => location.href = `player-detail.html?id=${p.player_id}&season=${activeSeason}`;
@@ -637,11 +699,13 @@
                             <td>${p.age || '-'}</td>
                             <td>${p.bt || '-'}</td>
                             <td>${p.games || 0}</td>
-                            <td class="stat-highlight">${p.batting_avg !== null ? Number(p.batting_avg).toFixed(3).replace('0.', '.') : '-'}</td>
                             <td>${p.hits || 0}</td>
                             <td class="stat-highlight">${p.home_runs || 0}</td>
                             <td>${p.rbi || 0}</td>
-                            <td class="stat-highlight">${p.ops !== '-' && p.ops !== null ? Number(p.ops).toFixed(3).replace('0.', '.') : '-'}</td>
+                            <td class="stat-highlight">${fmtRate(p.batting_avg)}</td>
+                            <td>${fmtRate(p.obp)}</td>
+                            <td>${fmtRate(p.slg)}</td>
+                            <td class="stat-highlight">${fmtRate(p.ops)}</td>
                             <td class="stat-highlight">${p.wrc_plus !== null ? p.wrc_plus : '-'}</td>
                             <td>${p.bwar !== null ? Number(p.bwar).toFixed(1) : '-'}</td>
                             <td>${p.fwar !== null ? Number(p.fwar).toFixed(1) : '-'}</td>
