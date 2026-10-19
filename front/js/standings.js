@@ -55,11 +55,11 @@ function renderStandings() {                           // 선택한 리그의 �
     message.hidden = true;
 
     const tables = divisions.map(d =>
-        createStandingsTable(`${DIVISION_LABELS[d.division]} (${d.league} ${d.division} Division)`, d.teams)   // 예: 동부지구 (AL East Division)
+        createStandingsTable(`${DIVISION_LABELS[d.division]} (${d.division} Division)`, d.teams)   // 예: 동부지구 (East Division)
     );
     const wildcard = (standings.wildcards || []).find(w => w.league === selectedLeague);
     if (wildcard) {                                    // 지구별 표 아래에 와일드카드 표
-        tables.push(createStandingsTable(`와일드카드 (${selectedLeague} Wild Card)`, wildcard.teams));
+        tables.push(createStandingsTable("와일드카드 (Wild Card)", wildcard.teams));
     }
     const legend = el("p", "standings-legend");        // 파란 선 설명
     legend.append(el("span", "standings-legend-mark"), "플레이오프 진출권 (지구 1위 · 와일드카드 상위 3팀)");
@@ -74,17 +74,83 @@ function createStandingsTable(titleText, teams) {
     const table = el("table", "standings-table");
     const head = el("thead");
     const headRow = el("tr");
-    ["순위", "구단", "경기", "승", "패", "승률", "게임차", "최근 10경기", "연속", "트렌드", "타율", "평균자책"]
-        .forEach(name => headRow.append(el("th", "", name)));
+    const body = el("tbody");
+    let sortedIndex = null;                            // 정렬 중인 칸 (없으면 null = 원래 순위 순서)
+
+    TABLE_COLUMNS.forEach(([name, getValue], index) => {
+        if (!getValue) {                               // 순위·구단은 정렬 안 함
+            headRow.append(el("th", "", name));
+            return;
+        }
+        const th = el("th", "sortable");
+        th.append(name, el("span", "sort-mark", "▼"));  // ▼ 자리는 항상 차지 → 표 모양이 바뀌지 않음
+        th.addEventListener("click", () => {
+            sortedIndex = sortedIndex === index ? null : index;   // 1번: 내림차순, 같은 칸 2번: 원래 순서
+            headRow.querySelectorAll("th").forEach((cell, i) => cell.classList.toggle("sorted", i === sortedIndex));
+            renderRows(sortedIndex === null ? teams : sortDescending(teams, getValue));
+        });
+        headRow.append(th);
+    });
     head.append(headRow);
 
-    const body = el("tbody");
-    teams.forEach(team => body.append(createTeamRow(team)));   // 순위 순서 그대로
+    function renderRows(list) {
+        body.replaceChildren(...list.map(createTeamRow));
+    }
+    renderRows(teams);                                 // 처음엔 순위 순서
 
     table.append(head, body);
     wrap.append(table);
     section.append(wrap);
     return section;
+}
+
+/* ---------- 정렬 ('경기'~'평균자책') ---------- */
+// [제목, 비교할 값] - 값이 없는 칸(순위·구단)은 정렬하지 않음
+const TABLE_COLUMNS = [
+    ["순위"],
+    ["구단"],
+    ["경기", t => t.games],
+    ["승", t => t.wins],
+    ["패", t => t.losses],
+    ["승률", t => t.pct],
+    ["게임차", t => gamesBehindValue(t.games_behind)],
+    ["최근 10경기", t => leadingNumber(t.last10)],
+    ["연속", t => streakValue(t.streak)],
+    ["트렌드", t => (t.trend || []).filter(r => r === "W").length],
+    ["타율", t => numberOrNull(t.avg)],
+    ["평균자책", t => numberOrNull(t.era)]
+];
+
+function sortDescending(teams, getValue) {            // 큰 값부터, 기록 없음(-)은 맨 아래, 같으면 원래 순위
+    return [...teams].sort((a, b) => {
+        const va = getValue(a);
+        const vb = getValue(b);
+        if (va === null && vb === null) return a.rank - b.rank;
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        return (vb - va) || (a.rank - b.rank);
+    });
+}
+
+function numberOrNull(text) {                          // ".254" → 0.254, "-" → null
+    const value = parseFloat(text);
+    return Number.isNaN(value) ? null : value;
+}
+
+function gamesBehindValue(text) {                      // "-" → 0, "+4" → -4, "2.5" → 2.5
+    if (text === "-") return 0;
+    return text.startsWith("+") ? -parseFloat(text.slice(1)) : parseFloat(text);
+}
+
+function leadingNumber(text) {                         // "7승 3패" → 7, "-" → null
+    const match = String(text).match(/^(\d+)/);
+    return match ? Number(match[1]) : null;
+}
+
+function streakValue(text) {                           // "3연승" → 3, "2연패" → -2, "-" → null
+    const count = leadingNumber(text);
+    if (count === null) return null;
+    return text.includes("패") ? -count : count;
 }
 
 function createTeamRow(team) {

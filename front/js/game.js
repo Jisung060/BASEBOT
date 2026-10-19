@@ -380,14 +380,18 @@ function createGameCard(game) {
     const actions = el("div", "game-venue game-actions"); // 오른쪽: 끝난 경기만 버튼 표시
     if (isFinal) {
         const gameDate = String(game.game_date || dateInput.value).slice(0, 10);
-        const detail = el("a", "detail-button", "경기 상세");
-        detail.href = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
-        detail.addEventListener("click", saveState);           // 상세 페이지로 가기 전에 상태 저장
+        const detailUrl = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
+        card.classList.add("is-clickable");                    // 끝난 경기: 카드 클릭 → 경기 상세
+        card.addEventListener("click", event => {
+            if (event.target.closest("a")) return;             // 구단 이름·로고·하이라이트 링크는 원래대로
+            saveState();                                       // 상세 페이지로 가기 전에 상태 저장
+            location.href = detailUrl;
+        });
         const highlight = el("a", "highlight-button score-highlight-link", "하이라이트");
         highlight.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
         highlight.target = "_blank";
         highlight.rel = "noopener noreferrer";
-        actions.append(detail, highlight);
+        actions.append(highlight);
     }
 
     card.append(time, matchup, actions);
@@ -428,8 +432,8 @@ function createScoreNode(game, showScore) {
         const away = el("strong", "", String(game.away_score ?? "-"));
         const home = el("strong", "", String(game.home_score ?? "-"));
         if (game.status === "FINAL") {                 // 이긴 쪽 점수 강조
-            if (Number(game.away_score) > Number(game.home_score)) away.className = "winner";
-            if (Number(game.home_score) > Number(game.away_score)) home.className = "winner";
+            if (Number(game.away_score) > Number(game.home_score)) { away.className = "winner"; home.className = "loser"; }
+            if (Number(game.home_score) > Number(game.away_score)) { home.className = "winner"; away.className = "loser"; }   // 진 쪽은 연하게
         }
         block.append(el("div", "score-line"), el("span", "score-caption", ""));
         block.querySelector(".score-line").append(away, el("span", "", ":"), home);

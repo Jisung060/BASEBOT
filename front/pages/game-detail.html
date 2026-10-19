@@ -34,7 +34,7 @@
 
         <section class="boxscore-section">
             <div class="section-heading"><div><p class="eyebrow">TEAM BATTING</p><h2>주요 타격 지표</h2></div></div>
-            <div class="table-scroll"><table class="box-table"><thead><tr><th>구단</th><th>타율</th><th>출루율</th><th>장타율</th><th>OPS</th><th>홈런</th><th>볼넷</th><th>삼진</th></tr></thead><tbody id="team-stat-body"><tr><td colspan="8">팀 기록을 불러오는 중입니다.</td></tr></tbody></table></div>
+            <div class="team-compare" id="team-compare"><p class="team-compare-message">팀 기록을 불러오는 중입니다.</p></div><!-- 두 구단 기록 비교 막대 (game-detail.js) -->
         </section>
 
         <nav class="detail-tabs" aria-label="경기 기록 종류">
@@ -44,17 +44,16 @@
         </nav>
 
         <section id="batting-panel" class="tab-panel boxscore-section">
-            <div class="section-heading"><div><p class="eyebrow">BATTING</p><h2>타자 기록</h2></div><div id="batting-team-switch" class="team-switch" role="group" aria-label="타자 기록 팀 선택"></div></div>
+            <div class="section-heading"><div id="batting-team-switch" class="team-switch" role="group" aria-label="타자 기록 팀 선택"></div></div>
             <div class="table-scroll"><table class="box-table"><thead><tr><th>타순</th><th>선수</th><th>포지션</th><th>타수</th><th>안타</th><th>2루타</th><th>3루타</th><th>홈런</th><th>타점</th><th>득점</th><th>볼넷</th><th>삼진</th><th>잔루</th><th>타율</th><th>출루율</th><th>장타율</th><th>OPS</th></tr></thead><tbody id="batter-body"><tr><td colspan="17">기록을 불러오는 중입니다.</td></tr></tbody></table></div>
         </section>
 
         <section id="pitching-panel" class="tab-panel boxscore-section">
-            <div class="section-heading"><div><p class="eyebrow">PITCHING</p><h2>투수 기록</h2></div><div id="pitching-team-switch" class="team-switch" role="group" aria-label="투수 기록 팀 선택"></div></div>
+            <div class="section-heading"><div id="pitching-team-switch" class="team-switch" role="group" aria-label="투수 기록 팀 선택"></div></div>
             <div class="table-scroll"><table class="box-table"><thead><tr><th>선수</th><th>이닝</th><th>투구수</th><th>타자수</th><th>피안타</th><th>실점</th><th>자책</th><th>볼넷</th><th>삼진</th><th>피홈런</th><th>ERA</th><th>WHIP</th></tr></thead><tbody id="pitcher-body"><tr><td colspan="12">기록을 불러오는 중입니다.</td></tr></tbody></table></div>
         </section>
 
         <section id="lineup-panel" class="tab-panel active boxscore-section">
-            <div class="section-heading"><div><p class="eyebrow">STARTING LINEUP</p><h2>선발 라인업</h2></div></div>
             <div class="lineup-grid"><article class="lineup-card"><h3 id="away-lineup-title"></h3><ol id="away-lineup"></ol></article><article class="lineup-card"><h3 id="home-lineup-title"></h3><ol id="home-lineup"></ol></article></div>
         </section>
     </main>

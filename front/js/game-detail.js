@@ -58,6 +58,10 @@ function renderGameSummary(game) {
     document.getElementById("home-team-name").textContent = game.home_team_name;
     document.getElementById("away-score").textContent = game.away_score ?? "-";
     document.getElementById("home-score").textContent = game.home_score ?? "-";
+    if (game.status === "FINAL" && game.away_score !== game.home_score) {      // 끝난 경기: 진 팀 점수 연하게
+        const loser = Number(game.away_score) < Number(game.home_score) ? "away" : "home";
+        document.getElementById(`${loser}-score`).classList.add("score-loser");
+    }
     document.getElementById("away-pitcher").textContent = "상세 기록 불러오는 중";
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";
     setTeamLogo("away", game.away_logo_url, game.away_team_code);
@@ -99,12 +103,45 @@ async function loadMlbBoxscore(id) {
     }
 }
 
+// 두 구단 기록 비교 (막대). 안타·실책은 위 이닝 표에 있어서 넣지 않음
+const TEAM_COMPARE_ITEMS = [
+    ["홈런", "homeRuns", true],                         // [이름, MLB 기록 이름, 막대 표시 여부]
+    ["도루", "stolenBases", true],
+    ["삼진", "strikeOuts", true],
+    ["볼넷", "baseOnBalls", true],
+    ["병살", "groundIntoDoublePlay", true],
+    ["타율", "avg", false],                             // 비율 기록은 숫자만
+    ["출루율", "obp", false],
+    ["장타율", "slg", false],
+    ["OPS", "ops", false]
+];
+
 function renderTeamAdvancedStats(boxscore) {
-    const rows = ["away", "home"].map(side => {
-        const batting = boxscore[side].teamStats?.batting || {};
-        return `<tr><td class="team-cell">${escapeHtml(selectedGame[`${side}_team_name`])}</td><td>${escapeHtml(batting.avg)}</td><td>${escapeHtml(batting.obp)}</td><td>${escapeHtml(batting.slg)}</td><td>${escapeHtml(batting.ops)}</td><td>${escapeHtml(batting.homeRuns)}</td><td>${escapeHtml(batting.baseOnBalls)}</td><td>${escapeHtml(batting.strikeOuts)}</td></tr>`;
-    });
-    document.getElementById("team-stat-body").innerHTML = rows.join("");
+    const away = boxscore.away.teamStats?.batting || {};
+    const home = boxscore.home.teamStats?.batting || {};
+    const bar = (value, max, side) =>                    // 큰 값 기준 길이(%)의 막대
+        `<span class="compare-bar ${side}"><i style="width:${max ? Math.round(Number(value || 0) / max * 100) : 0}%"></i></span>`;
+
+    const rows = TEAM_COMPARE_ITEMS.map(([label, key, showBar]) => {
+        const a = away[key] ?? "-";
+        const h = home[key] ?? "-";
+        const max = Math.max(Number(a) || 0, Number(h) || 0);
+        return `<div class="compare-row">
+            ${showBar ? bar(a, max, "away") : "<span></span>"}
+            <strong class="compare-value">${escapeHtml(a)}</strong>
+            <span class="compare-label">${escapeHtml(label)}</span>
+            <strong class="compare-value">${escapeHtml(h)}</strong>
+            ${showBar ? bar(h, max, "home") : "<span></span>"}
+        </div>`;
+    }).join("");
+
+    document.getElementById("team-compare").innerHTML = `
+        <div class="compare-head">
+            <span>${escapeHtml(selectedGame.away_team_name)}</span>
+            <em>VS</em>
+            <span>${escapeHtml(selectedGame.home_team_name)}</span>
+        </div>
+        ${rows}`;
 }
 
 function playerDetailUrl(playerId) {
@@ -164,7 +201,7 @@ function renderTeamStats(boxscore) {
             .sort((a, b) => Number(a.player.battingOrder || a.index) - Number(b.player.battingOrder || b.index));
         const pitchers = (box.pitchers || []).map(id => players[`ID${id}`]).filter(Boolean);
         setPlayerLink(document.getElementById(`${side}-pitcher`), pitchers[0]);
-        document.getElementById(`${side}-lineup-title`).textContent = `${selectedGame[`${side}_team_name`]} 선발 라인업`;
+        document.getElementById(`${side}-lineup-title`).textContent = selectedGame[`${side}_team_name`];   // 예: Los Angeles Angels
         const lineup = document.getElementById(`${side}-lineup`);
         lineup.innerHTML = battingOrder.map(({ player }) => {
             const name = player.person?.fullName || "선수 정보 없음";
@@ -206,7 +243,13 @@ function setupTeamSwitch(containerId, group, bodyId, columns) {
     sides.forEach((side, index) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = selectedGame[`${side}_team_name`];   // 팀 선택 버튼도 정식 이름
+        const logo = document.createElement("img");                  // 구단 로고 아이콘
+        logo.src = selectedGame[`${side}_logo_url`] || "";
+        logo.alt = "";
+        logo.onerror = () => logo.replaceWith(selectedGame[`${side}_team_code`] || "MLB");  // 로고가 없으면 약자
+        button.append(logo);
+        button.title = selectedGame[`${side}_team_name`];           // 마우스를 올리면 구단 이름
+        button.setAttribute("aria-label", selectedGame[`${side}_team_name`]);
         button.classList.toggle("active", index === 0);
         button.setAttribute("aria-pressed", index === 0 ? "true" : "false");
         button.addEventListener("click", () => {
@@ -258,7 +301,7 @@ function showStatsUnavailable(message) {
         pitcher.textContent = "-";
         pitcher.removeAttribute("href");
     });
-    document.getElementById("team-stat-body").innerHTML = `<tr><td colspan="8">팀 타격 지표를 가져오지 못했습니다.</td></tr>`;
+    document.getElementById("team-compare").innerHTML = `<p class="team-compare-message">팀 기록을 가져오지 못했습니다.</p>`;
 }
 
 function showPageError(message) {

@@ -14,6 +14,15 @@
     color: #174b8a;
 }
 
+/* 경로(홈 › 순위)와 큰 제목 사이 간격: 일정·결과 페이지와 같게 8px */
+.standings-page .breadcrumb {
+    margin-bottom: 8px;
+}
+
+.standings-page .page-heading {
+    padding-top: 0;
+}
+
 /* 리그 탭 + 시즌 선택 */
 .standings-tools {
     display: flex;
@@ -120,6 +129,27 @@
     color: #334155;
     text-align: center;
     white-space: nowrap;
+}
+
+/* 제목 클릭 정렬 ('경기'~'평균자책'): 1번 클릭 내림차순, 2번 클릭 원래 순서 */
+.standings-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.standings-table th.sortable:hover,
+.standings-table th.sorted {
+    color: #174b8a;
+}
+
+.standings-table th .sort-mark {
+    visibility: hidden;          /* 자리는 항상 차지 → 정렬해도 칸 너비가 바뀌지 않음 */
+    margin-left: 3px;
+    font-size: 9px;
+}
+
+.standings-table th.sorted .sort-mark {
+    visibility: visible;
 }
 
 .standings-table tbody tr:hover {

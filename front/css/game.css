@@ -175,3 +175,13 @@
   .all-button{left:6px;padding:6px 8px}
   .recent-button{left:50px;padding:6px 8px}
 }
+
+/* 끝난 경기 카드: 클릭하면 경기 상세, 마우스를 올리면 짙은 파란 테두리 */
+.game-card.is-clickable{cursor:pointer}
+.game-card.is-clickable:hover{box-shadow:inset 0 0 0 1px #174a9c,0 3px 10px rgba(0,0,0,.05)}   /* 메인 페이지와 같은 1px 테두리 + 옅은 그림자 */
+/* 하이라이트를 가운데 높이(홈 구단 로고 오른쪽)로 */
+.game-day-cards .game-actions{align-self:center;justify-content:center}
+.game-day-cards .game-actions .score-highlight-link{font-size:12px!important}   /* 하이라이트 글자 10px → 12px (+1.5pt) */
+
+/* 끝난 경기: 진 팀 점수는 연하게 (경기 상세 페이지와 같은 색) */
+.score-line strong.loser{color:#a3b1c6}
