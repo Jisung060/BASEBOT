@@ -875,12 +875,22 @@ input {
    메인 팀 순위: 리그 버튼 + 동부 | 중부 | 서부 3칸 (main-standings.js)
 -------------------------------------------------- */
 
-/* '더보기 +' 아래 리그 변경 버튼 (팀 순위 페이지 탭과 같은 스타일) */
+/* 리그 변경 버튼: 오른쪽 끝, '동부·중부·서부' 지구 이름과 같은 줄 (팀 순위 페이지 탭과 같은 스타일) */
+.main-standings-section {
+    position: relative;
+}
+
 .main-standings-leagues {
+    position: absolute;
+    top: 65px;                   /* 제목 줄(45px) + 간격(15px) 아래, 지구 이름 높이에 맞춤 */
+    right: 0;
+    z-index: 1;
     display: flex;
-    justify-content: flex-end;
     gap: 4px;
-    margin: -8px 0 8px;
+}
+
+.ranking-table.main-standings-grid {
+    border-top: 0;               /* 버튼 줄이 없어져서 회색 선도 정리 */
 }
 
 .main-standings-league {

@@ -3,47 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>경기 상세 · 박스스코어 - BASEBOT</title>
+    <title>경기 상세 - BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/game.css?v=2">
-    <link rel="stylesheet" href="../css/game-detail.css?v=6">
+    <link rel="stylesheet" href="../css/game-detail.css?v=9">
 </head>
 <body>
     <div id="header"></div>
 
     <main class="main game-detail-page">
-        <nav class="breadcrumb" aria-label="현재 위치"><a href="../main.html">홈</a><span>›</span><a href="game.html">경기 일정·결과</a><span>›</span><strong>경기 상세</strong></nav>
-            <div class="detail-heading"><div><p class="eyebrow">MLB GAME CENTER</p><h1>경기 상세 · 박스스코어</h1></div><a class="back-link" href="game.html">← 경기 목록</a></div>
+        <nav class="breadcrumb" aria-label="현재 위치"><a href="../main.html">홈</a><span>›</span><a href="game.html">경기 일정</a><span>›</span><strong>경기 상세</strong></nav>
+            <div class="detail-heading"><div><p class="eyebrow">MLB GAME CENTER</p><h1>경기 상세</h1></div><a class="back-link" href="game.html">← 경기 목록</a></div>
         <p class="sample-notice">경기 요약은 프로젝트 DB, 박스스코어 상세 기록은 MLB Stats API에서 불러옵니다.</p>
 
         <section class="scoreboard-card" aria-label="경기 결과">
-            <div class="game-meta"><span id="game-date"></span><span id="game-venue"></span><span id="game-status" class="status-pill"></span></div>
+            <div class="game-meta"><span id="game-date"></span><span id="game-venue"></span></div>
+            <div class="game-status-row"><span id="game-status" class="status-pill"></span></div><!-- 경기 상태: 장소 아래 줄 -->
             <div class="matchup">
                 <div class="detail-team"><a id="away-team-link" class="team-logo-link" href="#"><span class="team-mark" id="away-mark"><img id="away-logo" alt=""></span></a><h2 id="away-team-name">불러오는 중</h2><p>선발 <a id="away-pitcher" class="player-name-link" href="#">-</a></p></div>
-                <div class="final-score"><span id="away-score"></span><span class="score-separator">:</span><span id="home-score"></span><small>경기 종료</small></div>
+                <div class="final-score"><span id="away-score"></span><span class="score-separator">:</span><span id="home-score"></span></div>
                 <div class="detail-team"><a id="home-team-link" class="team-logo-link" href="#"><span class="team-mark" id="home-mark"><img id="home-logo" alt=""></span></a><h2 id="home-team-name">불러오는 중</h2><p>선발 <a id="home-pitcher" class="player-name-link" href="#">-</a></p></div>
+            </div>
+            <!-- 이닝별 점수: 점수 카드 안에 함께 표시 -->
+            <div class="scoreboard-innings" id="scoreboard-innings">
+                <div class="table-scroll"><table class="box-table inning-table"><thead id="inning-head"></thead><tbody id="inning-body"><tr><td>MLB 경기 기록을 불러오는 중입니다.</td></tr></tbody></table></div>
             </div>
         </section>
 
         <p id="boxscore-notice" class="boxscore-notice" hidden></p>
 
         <section class="boxscore-section">
-            <div class="section-heading"><div><p class="eyebrow">SCORE BY INNING</p><h2>이닝별 점수</h2></div></div>
-            <div class="table-scroll"><table class="box-table inning-table"><thead id="inning-head"></thead><tbody id="inning-body"><tr><td>MLB 경기 기록을 불러오는 중입니다.</td></tr></tbody></table></div>
-        </section>
-
-        <section class="boxscore-section">
-            <div class="section-heading"><div><p class="eyebrow">TEAM BATTING</p><h2>팀 주요 타격 지표</h2></div></div>
+            <div class="section-heading"><div><p class="eyebrow">TEAM BATTING</p><h2>주요 타격 지표</h2></div></div>
             <div class="table-scroll"><table class="box-table"><thead><tr><th>구단</th><th>타율</th><th>출루율</th><th>장타율</th><th>OPS</th><th>홈런</th><th>볼넷</th><th>삼진</th></tr></thead><tbody id="team-stat-body"><tr><td colspan="8">팀 기록을 불러오는 중입니다.</td></tr></tbody></table></div>
         </section>
 
         <nav class="detail-tabs" aria-label="경기 기록 종류">
-            <button class="tab-button active" type="button" data-tab="batting-panel">타자 기록</button>
+            <button class="tab-button active" type="button" data-tab="lineup-panel">선발 라인업</button>
+            <button class="tab-button" type="button" data-tab="batting-panel">타자 기록</button>
             <button class="tab-button" type="button" data-tab="pitching-panel">투수 기록</button>
-            <button class="tab-button" type="button" data-tab="lineup-panel">선발 라인업</button>
         </nav>
 
-        <section id="batting-panel" class="tab-panel active boxscore-section">
+        <section id="batting-panel" class="tab-panel boxscore-section">
             <div class="section-heading"><div><p class="eyebrow">BATTING</p><h2>타자 기록</h2></div><div id="batting-team-switch" class="team-switch" role="group" aria-label="타자 기록 팀 선택"></div></div>
             <div class="table-scroll"><table class="box-table"><thead><tr><th>타순</th><th>선수</th><th>포지션</th><th>타수</th><th>안타</th><th>2루타</th><th>3루타</th><th>홈런</th><th>타점</th><th>득점</th><th>볼넷</th><th>삼진</th><th>잔루</th><th>타율</th><th>출루율</th><th>장타율</th><th>OPS</th></tr></thead><tbody id="batter-body"><tr><td colspan="17">기록을 불러오는 중입니다.</td></tr></tbody></table></div>
         </section>
@@ -53,14 +53,14 @@
             <div class="table-scroll"><table class="box-table"><thead><tr><th>선수</th><th>이닝</th><th>투구수</th><th>타자수</th><th>피안타</th><th>실점</th><th>자책</th><th>볼넷</th><th>삼진</th><th>피홈런</th><th>ERA</th><th>WHIP</th></tr></thead><tbody id="pitcher-body"><tr><td colspan="12">기록을 불러오는 중입니다.</td></tr></tbody></table></div>
         </section>
 
-        <section id="lineup-panel" class="tab-panel boxscore-section">
+        <section id="lineup-panel" class="tab-panel active boxscore-section">
             <div class="section-heading"><div><p class="eyebrow">STARTING LINEUP</p><h2>선발 라인업</h2></div></div>
             <div class="lineup-grid"><article class="lineup-card"><h3 id="away-lineup-title"></h3><ol id="away-lineup"></ol></article><article class="lineup-card"><h3 id="home-lineup-title"></h3><ol id="home-lineup"></ol></article></div>
         </section>
     </main>
 
     <div id="footer"></div>
-    <script src="../js/main.js"></script>
-    <script src="../js/game-detail.js?v=6"></script>
+    <script src="../js/main.js?v=20261019"></script>
+    <script src="../js/game-detail.js?v=8"></script>
 </body>
 </html>

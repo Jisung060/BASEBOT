@@ -167,8 +167,8 @@
   .game-list.team-view{grid-template-columns:1fr}
 }
 
-/* '최근' 버튼: '오늘' 버튼 왼쪽에 약 1cm(38px) 띄워 놓음 */
-.all-button{position:absolute;left:calc(50% - 258px);padding:7px 13px;border-radius:18px;background:#fff;color:#6f7886;font-size:12px}
+/* '최근' 버튼: '오늘' 버튼 왼쪽에 12px 띄워 놓음 */
+.all-button{position:absolute;left:calc(50% - 232px);padding:7px 13px;border-radius:18px;background:#fff;color:#6f7886;font-size:12px}
 .all-button:hover,.recent-button:hover{color:#174b8a}
 /* 휴대폰 화면: 두 버튼을 작게 만들어 왼쪽에 나란히 놓음 */
 @media(max-width:760px){
