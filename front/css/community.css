@@ -68,7 +68,7 @@
 
 a.community-sidebar-group-title:hover {
     background: #f5f7fb;
-    color: #123f91;
+    color: var(--bb-primary);
 }
 
 /* 링크가 아닌 제목(내 활동)은 호버 효과 없음 */
@@ -98,14 +98,14 @@ a.community-sidebar-group-title:hover {
 
 .community-sidebar-submenu a:hover {
     background: #f5f7fb;
-    color: #123f91;
+    color: var(--bb-primary);
 }
 
 /* 현재 선택된 메뉴 */
 .community-sidebar-group-title.active,
 .community-sidebar-submenu a.active {
-    background: #edf3ff;
-    color: #123f91;
+    background: var(--bb-primary-soft);
+    color: var(--bb-primary);
     font-weight: 700;
 }
 
@@ -210,8 +210,8 @@ a.community-sidebar-group-title:hover {
 }
 
 .filter-search-button {
-    border: 1px solid #173f91;
-    background: #173f91;
+    border: 1px solid var(--bb-primary);
+    background: var(--bb-primary);
     color: #fff;
     font-size: 13px;
     font-weight: 800;
@@ -220,7 +220,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .filter-search-button:hover {
-    background: #102f70;
+    background: var(--bb-primary-hover);
 }
 
 .filter-search-button:active {
@@ -254,7 +254,7 @@ a.community-sidebar-group-title:hover {
 
 .section-kicker {
     margin-right: 8px;
-    color: #173f91;
+    color: var(--bb-primary);
     font-size: 11px;
     font-weight: 900;
 }
@@ -326,10 +326,10 @@ a.community-sidebar-group-title:hover {
     color: #566174;
 }
 
-.category-label.analysis { background: #edf2ff; color: #3157a5; }
-.category-label.game { background: #edf8f2; color: #24724b; }
-.category-label.news { background: #fff5e9; color: #a25c0b; }
-.category-label.general { background: #f2f2f2; color: #606060; }
+.category-label.analysis { background: var(--bb-cat-analysis-bg); color: var(--bb-cat-analysis-fg); }
+.category-label.game { background: var(--bb-cat-game-bg); color: var(--bb-cat-game-fg); }
+.category-label.news { background: var(--bb-cat-news-bg); color: var(--bb-cat-news-fg); }
+.category-label.general { background: var(--bb-cat-general-bg); color: var(--bb-cat-general-fg); }
 
 .board-toolbar {
     display: flex;
@@ -344,7 +344,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .board-total strong {
-    color: #173f91;
+    color: var(--bb-primary);
 }
 
 .board-toolbar-right {
@@ -377,8 +377,8 @@ a.community-sidebar-group-title:hover {
 }
 
 .community-btn.primary {
-    border-color: #173f91;
-    background: #173f91;
+    border-color: var(--bb-primary);
+    background: var(--bb-primary);
     color: #fff;
 }
 
@@ -442,7 +442,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .board-row:hover .board-title {
-    color: #173f91;
+    color: var(--bb-primary);
 }
 
 .comment-count {
@@ -473,8 +473,8 @@ a.community-sidebar-group-title:hover {
 .pagination a.active,
 .pagination a:hover {
     color: #fff;
-    background: #173f91;
-    border-color: #173f91;
+    background: var(--bb-primary);
+    border-color: var(--bb-primary);
 }
 
 /* =========================================
@@ -510,7 +510,7 @@ a.community-sidebar-group-title:hover {
 
 .search-area input:focus {
     outline: none;
-    border-color: #173f91;
+    border-color: var(--bb-primary);
     box-shadow: 0 0 0 2px rgba(23, 63, 145, 0.08);
 }
 
@@ -646,7 +646,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .editor-content:focus {
-    box-shadow: inset 0 0 0 1px #173f91;
+    box-shadow: inset 0 0 0 1px var(--bb-primary);
 }
 
 .editor-content p {
@@ -736,15 +736,15 @@ a.community-sidebar-group-title:hover {
 }
 
 .post-action:hover {
-    border-color: #173f91;
-    color: #173f91;
+    border-color: var(--bb-primary);
+    color: var(--bb-primary);
 }
 
 .post-action.like.active,
 .post-action.like.liked,
 .post-action.scrapped {
-    border-color: #173f91;
-    color: #173f91;
+    border-color: var(--bb-primary);
+    color: var(--bb-primary);
     background: #f1f5ff;
 }
 
@@ -773,7 +773,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .comment-section-title span {
-    color: #173f91;
+    color: var(--bb-primary);
 }
 
 .comment-write {
@@ -792,8 +792,8 @@ a.community-sidebar-group-title:hover {
 }
 
 .comment-write button {
-    border: 1px solid #173f91;
-    background: #173f91;
+    border: 1px solid var(--bb-primary);
+    background: var(--bb-primary);
     color: #fff;
     cursor: pointer;
 }
@@ -1008,8 +1008,8 @@ a.community-sidebar-group-title:hover {
 }
 
 .category-toggle.active {
-    border-color: #173f91;
-    background: #173f91;
+    border-color: var(--bb-primary);
+    background: var(--bb-primary);
     color: #fff;
     font-weight: 700;
 }
@@ -1152,7 +1152,7 @@ a.community-sidebar-group-title:hover {
 .comment-like-button:hover,
 .reply-button:hover,
 .comment-edit-button:hover {
-    color: #173f91;
+    color: var(--bb-primary);
 }
 
 .comment-delete-button:hover {
@@ -1212,7 +1212,7 @@ a.community-sidebar-group-title:hover {
 
 .reply-write textarea:focus {
 
-    border-color: #173f91;
+    border-color: var(--bb-primary);
 
     box-shadow:
         0 0 0 2px
@@ -1231,7 +1231,7 @@ a.community-sidebar-group-title:hover {
 
     border-radius: 6px;
 
-    background: #173f91;
+    background: var(--bb-primary);
 
     color: #ffffff;
 
@@ -1763,7 +1763,7 @@ a.community-sidebar-group-title:hover {
 }
 
 .comment-edit-textarea:focus {
-    border-color: #173f91;
+    border-color: var(--bb-primary);
 
     box-shadow:
         0 0 0 2px rgba(
@@ -1798,7 +1798,7 @@ a.community-sidebar-group-title:hover {
 .comment-save-button {
     border: 0;
 
-    background: #173f91;
+    background: var(--bb-primary);
 
     color: #ffffff;
 }
@@ -2005,4 +2005,14 @@ a.community-sidebar-group-title:hover {
         border: 1px solid #e5e5e5;
         border-radius: 999px;
     }
+}
+
+/* =========================================
+   제목 밑줄이 있는 화면(글쓰기 / 글수정 / 게시글 상세)에서
+   표나 본문의 윗선이 겹쳐 두 줄로 보이는 문제 해결
+========================================= */
+
+.community-title + .write-form .write-table,
+.community-title + .post-detail {
+    border-top: none;
 }

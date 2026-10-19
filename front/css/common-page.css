@@ -1,0 +1,32 @@
+/* ==================================================
+   BASEBOT 공통 디자인 값
+   색상을 한 곳에서 관리합니다. (이 파일만으로는 화면이 바뀌지 않습니다)
+================================================== */
+
+:root {
+    /* 파란색 */
+    --bb-navy:          #102d63;   /* 로고, 가장 진한 남색 */
+    --bb-primary:       #123f91;   /* 버튼, 강조, 활성 상태 */
+    --bb-primary-hover: #0a2b68;   /* 버튼 hover */
+    --bb-link-hover:    #174a9c;   /* 메뉴, 링크 hover */
+    --bb-primary-soft:  #edf3ff;   /* 선택된 메뉴 배경 */
+
+    /* 글자 */
+    --bb-text:       #222;
+    --bb-text-sub:   #777;
+    --bb-text-muted: #999;
+
+    /* 선, 배경 */
+    --bb-line:      #ddd;
+    --bb-line-soft: #eee;
+    --bb-bg-soft:   #f7f8fa;
+
+    /* 경고, 삭제 */
+    --bb-danger: #c84d4d;
+
+    /* 게시글 분류 배지 (배경 / 글자) */
+    --bb-cat-general-bg:  #f2f2f2;  --bb-cat-general-fg:  #606060;
+    --bb-cat-analysis-bg: #edf2ff;  --bb-cat-analysis-fg: #3157a5;
+    --bb-cat-game-bg:     #edf8f2;  --bb-cat-game-fg:     #24724b;
+    --bb-cat-news-bg:     #fff5e9;  --bb-cat-news-fg:     #a25c0b;
+}
