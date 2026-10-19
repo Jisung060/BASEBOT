@@ -81,6 +81,24 @@ function initializeAdminPage() {
 }
 
 
+/* 로그인 시 저장한 계정 정보로 사이드바 프로필 표시 */
+function initializeAdminProfile() {
+    try {
+        const user = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "null");
+        if (!user || typeof user !== "object") return;
+
+        const nickname = typeof user.nickname === "string" ? user.nickname.trim() : "";
+        const username = typeof user.username === "string" ? user.username.trim() : "";
+        const displayName = nickname || username || "관리자";
+        document.getElementById("adminProfileNickname").textContent = displayName;
+        document.getElementById("adminProfileUsername").textContent = username || "계정 정보 없음";
+        document.getElementById("adminProfileAvatar").textContent = Array.from(displayName)[0].toUpperCase();
+    } catch (error) {
+        console.warn("관리자 프로필 정보를 표시하지 못했습니다:", error);
+    }
+}
+
+
 /* 컴포넌트 로드가 완료된 뒤 메뉴 초기화 */
 async function initializeAdminLayout() {
     try {
@@ -100,6 +118,7 @@ async function initializeAdminLayout() {
         ]);
 
         initializeAdminPage();
+        initializeAdminProfile();
 
     } catch (error) {
         console.error("관리자 공통 레이아웃 초기화 오류:", error);
