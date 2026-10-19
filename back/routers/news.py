@@ -36,7 +36,7 @@ BASE_URL = "https://www.mlbkor.com"
 NEWS_LIST_URL = BASE_URL + "/news/articleList.html"
 
 CRAWL_INTERVAL = max(60, min(int(os.getenv("MLB_NEWS_INTERVAL", "3600")), 86400))
-MAX_LIST_ITEMS = max(1, min(int(os.getenv("MLB_NEWS_MAX_ITEMS", "20")), 100))
+MAX_LIST_ITEMS = max(1, min(int(os.getenv("MLB_NEWS_MAX_ITEMS", "50")), 100))
 
 HEADERS = {
     "User-Agent": (
@@ -214,7 +214,7 @@ def fetch_news_list():
     # 2. 고유 기사 번호(idxno)가 클수록 최신 기사이므로, 확실하게 번호순 내림차순 정렬!
     result.sort(key=lambda x: int(x["source_id"]) if x["source_id"].isdigit() else 0, reverse=True)
 
-    # 3. 최대 개수(50개)까지만 잘라서 반환
+    # 3. 수집 주기마다 최대 MAX_LIST_ITEMS개를 확인 (기본 50개)
     return result[:MAX_LIST_ITEMS]
 
 

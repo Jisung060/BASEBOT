@@ -96,35 +96,35 @@ app.include_router(news_router) # 뉴스
 app.include_router(notice_router) # 공지사항
 
 
-# 정적 파일
+# 정적 파일 경로 설정
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONT_DIR = BASE_DIR / "front"
+
 # CSS
 app.mount(
     "/css",
-    StaticFiles(directory="../front/css"),
+    StaticFiles(directory=str(FRONT_DIR / "css")),
     name="css"
 )
-
 
 # JS
 app.mount(
     "/js",
-    StaticFiles(directory="../front/js"),
+    StaticFiles(directory=str(FRONT_DIR / "js")),
     name="js"
 )
-
 
 # Components
 app.mount(
     "/components",
-    StaticFiles(directory="../front/components"),
+    StaticFiles(directory=str(FRONT_DIR / "components")),
     name="components"
 )
-
 
 # Assets
 app.mount(
     "/assets",
-    StaticFiles(directory="../front/assets"),
+    StaticFiles(directory=str(FRONT_DIR / "assets")),
     name="assets"
 )
 
@@ -151,10 +151,7 @@ app.mount(
 # 메인 페이지
 @app.get("/")
 def root():
-
-    return FileResponse(
-        "../front/pages/main.html"
-    )
+    return FileResponse(FRONT_DIR / "pages" / "main.html")
 
 # HTML 페이지
 
