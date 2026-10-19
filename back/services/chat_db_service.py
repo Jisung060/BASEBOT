@@ -511,18 +511,10 @@ def _team_stats_context(
     타자와 투수 집계를 분리해 서로 다른 기록이
     JOIN 과정에서 중복 집계되지 않도록 합니다.
     """
-    q = question.casefold()
     teams = _find_team_names(db, question)
 
     params: dict[str, Any] = {"limit": MAX_ROWS}
-    team_filter = ""
 
-    if teams:
-        params["team_id"] = teams[0]["team_id"]
-        team_filter = "AND s.team_id = :team_id"
-
-    # 특정 팀 기록을 요청한 경우에는 해당 팀의 시즌 기록을
-    # 선수별로 보여줍니다. 전체 구단 요청은 구단별 집계입니다.
     if teams:
         return _stats_context(db, question)
 
@@ -1325,9 +1317,28 @@ def get_database_context(
     # -----------------------------------------------------
     # 예측 참여 현황 질문 구분
     # -----------------------------------------------------
-    is_vote_question = any(
+
+    # 오늘/금일 + 예측/승부/투표/참여 표현이 함께 있으면
+    # 오늘의 경기별 예측 투표 현황 질문으로 처리합니다.
+    is_today_vote_question = (
+        any(word in q for word in ("오늘", "금일"))
+        and any(
+            word in q
+            for word in (
+                "예측",
+                "승부",
+                "투표",
+                "참여",
+            )
+        )
+    )
+
+    # 기존 투표 현황 질문 표현은 그대로 지원합니다.
+    is_vote_question = is_today_vote_question or any(
         word in q
         for word in (
+            "경기 예측",
+            "승부 예측",
             "예측 참여",
             "투표 현황",
             "예측 투표",
@@ -1347,6 +1358,7 @@ def get_database_context(
     )
 
     # 실제 승부예측 요청은 기존 ML predictor에서 처리합니다.
+    # 단, 위에서 판별한 투표 현황 질문은 DB 조회를 우선합니다.
     if (
         not is_vote_question
         and any(

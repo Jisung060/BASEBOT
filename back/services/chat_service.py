@@ -657,7 +657,7 @@ def chat_with_ai(
     # 5. 추가된 DB 조회 서비스 실행
     # 관련 DB 질문이면 조회 결과를 사용하고,
     # 해당하지 않으면 None이 반환되어 기존 분기로 진행한다.
-    if question_type in ("personal", "prediction", "rag"):
+    if question_type in ("personal", "rag"):
         database_context = None
     else:
         database_context = get_database_context(
