@@ -1,5 +1,4 @@
-const DIVISION_LABELS = { East: "동부", Central: "중부", West: "서부" };   // 지구 영어 → 한글
-const LEAGUE_LABELS = { AL: "아메리칸리그", NL: "내셔널리그" };
+const DIVISION_LABELS = { East: "동부지구", Central: "중부지구", West: "서부지구" };   // 지구 영어 → 한글
 
 const $ = id => document.getElementById(id);           // id로 요소를 찾는 짧은 함수
 const seasonSelect = $("standings-season-select");     // 시즌 선택 목록
@@ -18,19 +17,19 @@ function el(tag, className, text) {                    // 요소를 만드는 �
 /* ---------- 데이터 불러오기 ---------- */
 
 async function loadStandings(season) {
-    message.textContent = "팀 순위를 불러오는 중입니다...";
+    message.textContent = "구단 순위를 불러오는 중입니다...";
     message.hidden = false;
     list.replaceChildren();
     try {
         const query = season ? `?season=${encodeURIComponent(season)}` : "";
         const response = await fetch(`/api/standings${query}`);
-        if (!response.ok) throw new Error(`팀 순위 API 오류 (${response.status})`);
+        if (!response.ok) throw new Error(`구단 순위 API 오류 (${response.status})`);
         standings = await response.json();
         renderSeasonOptions();
         renderStandings();
     } catch (error) {
         console.error(error);
-        message.textContent = "팀 순위를 불러오지 못했습니다. FastAPI 서버를 확인해 주세요.";
+        message.textContent = "구단 순위를 불러오지 못했습니다. FastAPI 서버를 확인해 주세요.";
     }
 }
 
@@ -56,11 +55,11 @@ function renderStandings() {                           // 선택한 리그의 �
     message.hidden = true;
 
     const tables = divisions.map(d =>
-        createStandingsTable(`${LEAGUE_LABELS[d.league]} ${DIVISION_LABELS[d.division]}`, d.teams)
+        createStandingsTable(`${DIVISION_LABELS[d.division]} (${d.league} ${d.division} Division)`, d.teams)   // 예: 동부지구 (AL East Division)
     );
     const wildcard = (standings.wildcards || []).find(w => w.league === selectedLeague);
     if (wildcard) {                                    // 지구별 표 아래에 와일드카드 표
-        tables.push(createStandingsTable(`${LEAGUE_LABELS[selectedLeague]} 와일드카드`, wildcard.teams));
+        tables.push(createStandingsTable(`와일드카드 (${selectedLeague} Wild Card)`, wildcard.teams));
     }
     const legend = el("p", "standings-legend");        // 파란 선 설명
     legend.append(el("span", "standings-legend-mark"), "플레이오프 진출권 (지구 1위 · 와일드카드 상위 3팀)");
@@ -75,7 +74,7 @@ function createStandingsTable(titleText, teams) {
     const table = el("table", "standings-table");
     const head = el("thead");
     const headRow = el("tr");
-    ["순위", "팀", "경기", "승", "패", "승률", "게임차", "최근 10경기", "연속", "트렌드", "타율", "평균자책"]
+    ["순위", "구단", "경기", "승", "패", "승률", "게임차", "최근 10경기", "연속", "트렌드", "타율", "평균자책"]
         .forEach(name => headRow.append(el("th", "", name)));
     head.append(headRow);
 
