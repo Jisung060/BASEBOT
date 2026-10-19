@@ -76,10 +76,6 @@ function setupEvents() {
     $("btn-all").addEventListener("click", goToRecentGame);   // '최근' 버튼: 오늘 기준 가장 최근 경기 날짜로 이동
     $("btn-today").addEventListener("click", goToToday);      // '오늘' 버튼: 오늘 날짜 경기로 이동
     $("btn-calendar").addEventListener("click", toggleCalendar);
-
-    const topButton = $("scroll-to-top");              // 280px 이상 내려가면 맨 위로 버튼 보이기
-    window.addEventListener("scroll", () => { topButton.hidden = window.scrollY < 280; }, { passive: true });
-    topButton.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
     // 월 버튼은 init()에서 보여 줄 날짜가 정해진 뒤에 그림 (처음에 4월이 잠깐 보이는 문제 방지)
 }
 
