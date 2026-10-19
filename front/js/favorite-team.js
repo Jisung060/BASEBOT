@@ -1,5 +1,5 @@
 /* ==================================================
-   관심 팀 페이지
+   관심 구단 페이지
 ================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -52,7 +52,7 @@ function getGameStatus(status) {
 }
 
 
-/* 관심 팀 정보 조회 */
+/* 관심 구단 정보 조회 */
 async function loadFavoriteTeam() {
     const teamInfo = document.getElementById("favorite-team-info");
     const teamSetting = document.getElementById("favorite-team-setting");
@@ -63,12 +63,12 @@ async function loadFavoriteTeam() {
     if (!token) {
         teamInfo.innerHTML = `
             <h2>로그인이 필요합니다.</h2>
-            <p>로그인 후 관심 팀을 확인할 수 있습니다.</p>
+            <p>로그인 후 관심 구단을 확인할 수 있습니다.</p>
         `;
 
         gamesContainer.innerHTML = `
             <div class="mypage-empty">
-                로그인 후 관심 팀의 최근 경기를 확인할 수 있습니다.
+                로그인 후 관심 구단의 최근 경기를 확인할 수 있습니다.
             </div>
         `;
 
@@ -99,40 +99,40 @@ async function loadFavoriteTeam() {
         }
 
         if (!response.ok) {
-            throw new Error(`관심 팀 조회 실패: ${response.status}`);
+            throw new Error(`관심 구단 조회 실패: ${response.status}`);
         }
 
         const data = await response.json();
 
-        // 관심 팀이 없는 경우
+        // 관심 구단이 없는 경우
         if (!data.favorite_team) {
             teamInfo.innerHTML = `
-                <h2>관심 팀이 없습니다.</h2>
-                <p>회원정보 수정에서 관심 팀을 선택해주세요.</p>
+                <h2>관심 구단이 없습니다.</h2>
+                <p>회원정보 수정에서 관심 구단을 선택해주세요.</p>
             `;
 
             teamSetting.style.display = "inline-flex";
 
             gamesContainer.innerHTML = `
                 <div class="mypage-empty">
-                    관심 팀을 설정하면 최근 경기 결과가 표시됩니다.
+                    관심 구단을 설정하면 최근 경기 결과가 표시됩니다.
                 </div>
             `;
 
             return;
         }
 
-        // 관심 팀 출력
+        // 관심 구단 출력
         renderFavoriteTeam(data.favorite_team);
 
         // 최근 경기 출력
         renderRecentGames(data.recent_games || []);
 
     } catch (error) {
-        console.error("관심 팀 조회 오류:", error);
+        console.error("관심 구단 조회 오류:", error);
 
         teamInfo.innerHTML = `
-            <h2>관심 팀 정보를 불러오지 못했습니다.</h2>
+            <h2>관심 구단 정보를 불러오지 못했습니다.</h2>
             <p>잠시 후 다시 시도해주세요.</p>
         `;
 
@@ -146,7 +146,7 @@ async function loadFavoriteTeam() {
 
 
 /* ==================================================
-   관심 팀 표시
+   관심 구단 표시
 ================================================== */
 function renderFavoriteTeam(team) {
     const teamInfo = document.getElementById("favorite-team-info");
@@ -209,7 +209,7 @@ function renderRecentGames(games) {
     if (!games.length) {
         container.innerHTML = `
             <div class="mypage-empty">
-                해당 관심 팀의 경기 기록이 없습니다.
+                해당 관심 구단의 경기 기록이 없습니다.
             </div>
         `;
 

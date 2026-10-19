@@ -228,84 +228,28 @@ function escapeHtml(value) {
 let teams = [];
 let teamNamesByCode = {};
 
-const koreanTeamNames = {
-    BAL: "볼티모어 오리올스",
-    BOS: "보스턴 레드삭스",
-    NYY: "뉴욕 양키스",
-    TB: "탬파베이 레이스",
-    TOR: "토론토 블루제이스",
-
-    CWS: "시카고 화이트삭스",
-    CLE: "클리블랜드 가디언스",
-    DET: "디트로이트 타이거스",
-    KC: "캔자스시티 로열스",
-    MIN: "미네소타 트윈스",
-
-    HOU: "휴스턴 애스트로스",
-    LAA: "LA 에인절스",
-    OAK: "오클랜드 애슬레틱스",
-    ATH: "애슬레틱스",
-    SEA: "시애틀 매리너스",
-    TEX: "텍사스 레인저스",
-
-    ATL: "애틀랜타 브레이브스",
-    MIA: "마이애미 말린스",
-    NYM: "뉴욕 메츠",
-    PHI: "필라델피아 필리스",
-    WSH: "워싱턴 내셔널스",
-
-    CHC: "시카고 컵스",
-    CIN: "신시내티 레즈",
-    MIL: "밀워키 브루어스",
-    PIT: "피츠버그 파이리츠",
-    STL: "세인트루이스 카디널스",
-
-    ARI: "애리조나 다이아몬드백스",
-    AZ: "애리조나 다이아몬드백스",
-    ARIZ: "애리조나 다이아몬드백스",
-    COL: "콜로라도 로키스",
-    LAD: "LA 다저스",
-    SD: "샌디에이고 파드리스",
-    SF: "샌프란시스코 자이언츠"
-};
-
 /* =========================================
-   DB에서 팀 목록 가져오기
+   DB에서 팀 목록 가져오기 (community.js)
 ========================================= */
-
 async function loadTeams() {
-
     try {
-
-        const response = await fetch(
-            `${API_BASE_URL}/api/teams`
-        );
-
+        const response = await fetch(`${API_BASE_URL}/api/teams`);
         if (!response.ok) {
-            throw new Error(
-                `팀 목록 조회 실패: ${response.status}`
-            );
+            throw new Error(`팀 목록 조회 실패: ${response.status}`);
         }
 
         teams = await response.json();
-
         console.log("DB에서 가져온 팀 목록:", teams);
 
-        // 팀 코드 → 팀 이름
+        // 팀 코드 → 한글 팀 이름 매핑
         teamNamesByCode = {};
-
         teams.forEach(team => {
-            teamNamesByCode[team.team_code] =
-                team.team_name;
+            const koreanName = window.koreanTeamNames && window.koreanTeamNames[team.team_code];
+            teamNamesByCode[team.team_code] = koreanName || team.team_name;
         });
 
     } catch (error) {
-
-        console.error(
-            "팀 목록을 불러오는 중 오류:",
-            error
-        );
-
+        console.error("팀 목록을 불러오는 중 오류:", error);
         teams = [];
         teamNamesByCode = {};
     }

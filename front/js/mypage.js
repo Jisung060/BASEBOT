@@ -371,7 +371,7 @@ async function loadUserInfoFromDB() {
 
 
         /* ==================================================
-           회원정보 - 관심 팀
+           회원정보 - 관심 구단
         ================================================== */
 
         const userFavoriteTeam =
@@ -389,7 +389,7 @@ async function loadUserInfoFromDB() {
             } else {
 
                 userFavoriteTeam.textContent =
-                    "설정된 관심 팀이 없습니다.";
+                    "설정된 관심 구단이 없습니다.";
             }
         }
 
