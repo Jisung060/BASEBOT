@@ -36,7 +36,7 @@ async function loadGame() {
         if (!selectedGame) throw new Error("선택한 경기 정보를 DB에서 찾지 못했습니다.");
         renderGameSummary(selectedGame);
         if (selectedGame.status !== "FINAL") {
-            document.querySelectorAll(".boxscore-section, .detail-tabs, .scoreboard-innings").forEach(section => section.hidden = true); // 이닝 표(점수 카드 안)도 숨김
+            document.querySelectorAll(".boxscore-section, .detail-tabs").forEach(section => section.hidden = true);
             const notice = document.getElementById("boxscore-notice");
             notice.textContent = "경기 종료 후 박스스코어를 확인할 수 있습니다.";
             notice.hidden = false;
@@ -143,9 +143,9 @@ function renderInnings(linescore, boxscore) {
         return;
     }
     const labels = innings.map(inning => `<th>${inning.num}</th>`).join("");
-    document.getElementById("inning-head").innerHTML = `<tr><th>구단</th>${labels}<th>득점</th><th>안타</th><th>실책</th><th>잔루</th></tr>`;
+    document.getElementById("inning-head").innerHTML = `<tr><th>팀</th>${labels}<th>득점</th><th>안타</th><th>실책</th><th>잔루</th></tr>`;
     document.getElementById("inning-body").innerHTML = ["away", "home"].map(side => {
-        const team = selectedGame[`${side}_team_name`];       // 약자 대신 정식 이름 (예: Los Angeles Angels)
+        const team = selectedGame[`${side}_team_code`];
         const totals = linescore.teams?.[side] || {};
         const runs = innings.map(inning => inning[side]?.runs ?? (side === "home" && inning.isTopInning ? "" : "-")).map(value => `<td>${value}</td>`).join("");
         const fallbackTotals = boxscore[side].teamStats?.batting || {};
@@ -171,11 +171,11 @@ function renderTeamStats(boxscore) {
             const href = playerDetailUrl(player.person?.id);
             const headshot = playerHeadshotUrl(player.person?.id);
             const photo = headshot ? `<img class="boxscore-player-headshot" src="${escapeHtml(headshot)}" alt="" aria-hidden="true" loading="lazy">` : "";
-            const number = player.jerseyNumber ? `<em class="lineup-jersey">#${escapeHtml(player.jerseyNumber)}</em>` : ""; // 등번호: 이름 바로 옆
             const playerName = href
-                ? `<a class="player-profile-link" href="${escapeHtml(href)}">${photo}<span>${escapeHtml(name)}${number}</span></a>`
-                : `${escapeHtml(name)}${number}`;
-            return `<li><span>${playerName}</span><span>${escapeHtml(player.position?.abbreviation)}</span></li>`;
+                ? `<a class="player-profile-link" href="${escapeHtml(href)}">${photo}<span>${escapeHtml(name)}</span></a>`
+                : escapeHtml(name);
+            const number = player.jerseyNumber ? ` #${escapeHtml(player.jerseyNumber)}` : "";
+            return `<li><span>${playerName}${number}</span><span>${escapeHtml(player.position?.abbreviation)}</span></li>`;
         }).join("") || `<li><span>라인업 정보 없음</span></li>`;
         bindPlayerHeadshotFallback(lineup);
         box._battingRows = battingOrder.map(({ player }, index) => ({
@@ -206,7 +206,7 @@ function setupTeamSwitch(containerId, group, bodyId, columns) {
     sides.forEach((side, index) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = selectedGame[`${side}_team_name`];   // 팀 선택 버튼도 정식 이름
+        button.textContent = selectedGame[`${side}_team_code`];
         button.classList.toggle("active", index === 0);
         button.setAttribute("aria-pressed", index === 0 ? "true" : "false");
         button.addEventListener("click", () => {

@@ -2,7 +2,7 @@
    Header 불러오기
 ================================================== */
 
-fetch("/components/header.html", { cache: "no-store" })   // 브라우저에 저장된 예전 헤더 대신 항상 새로 불러오기
+fetch("/components/header.html")
     .then(response => {
         if (!response.ok) {
             throw new Error("Header 파일을 불러오지 못했습니다.");
