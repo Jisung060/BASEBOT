@@ -1,3 +1,4 @@
+
 /* ==================================================
    Header 불러오기
 ================================================== */
@@ -114,14 +115,18 @@ async function updateHeader() {
 
     // 1. 닉네임 표시 (세션에 nickname이 없으면 백엔드에서 보완 조회)
     if (userGreetingArea && userNicknameText) {
-        let displayName = user ? (user.nickname || user.username || user.name) : null;
+        let displayName = user
+            ? (user.nickname || user.username || user.name)
+            : null;
 
         if (!displayName && user && (user.user_id || user.id)) {
             try {
                 const uid = user.user_id || user.id;
                 const res = await fetch(`/api/rankings/me?user_id=${uid}`);
+
                 if (res.ok) {
                     const rankData = await res.json();
+
                     if (rankData.user_info && rankData.user_info.nickname) {
                         displayName = rankData.user_info.nickname;
                         user.nickname = displayName;
@@ -180,6 +185,7 @@ function initHeaderSearch() {
     // 상세 페이지 이동 헬퍼
     function navigateToItem(item) {
         if (!item) return;
+
         if (item.type === "team") {
             location.href = `/team-detail.html?id=${item.id}`;
         } else {
@@ -194,7 +200,9 @@ function initHeaderSearch() {
         resultList.innerHTML = "";
 
         if (currentItems.length === 0) {
-            resultList.innerHTML = `<li class="savant-no-result">검색 결과가 없습니다.</li>`;
+            resultList.innerHTML =
+                `<li class="savant-no-result">검색 결과가 없습니다.</li>`;
+
             dropdown.style.display = "block";
             return;
         }
@@ -209,9 +217,9 @@ function initHeaderSearch() {
                 : "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current";
 
             li.innerHTML = `
-                <img 
-                    class="savant-item-thumb ${item.type === 'team' ? 'is-team' : ''}" 
-                    src="${item.image_url}" 
+                <img
+                    class="savant-item-thumb ${item.type === 'team' ? 'is-team' : ''}"
+                    src="${item.image_url}"
                     onerror="this.src='${fallbackImg}'"
                     alt="${item.name}"
                 >
@@ -231,10 +239,17 @@ function initHeaderSearch() {
     // API 호출
     async function fetchSearchResults(query) {
         try {
-            const res = await fetch(`/api/players/search/autocomplete?q=${encodeURIComponent(query)}&limit=12`);
-            if (!res.ok) throw new Error("검색 API 오류");
+            const res = await fetch(
+                `/api/players/search/autocomplete?q=${encodeURIComponent(query)}&limit=12`
+            );
+
+            if (!res.ok) {
+                throw new Error("검색 API 오류");
+            }
+
             const data = await res.json();
             renderDropdown(data.results || []);
+
         } catch (err) {
             console.error("검색 실패:", err);
         }
@@ -243,11 +258,13 @@ function initHeaderSearch() {
     // 입력 이벤트 (디바운스 200ms)
     input.addEventListener("input", () => {
         const val = input.value.trim();
+
         if (clearBtn) {
             clearBtn.style.display = val.length > 0 ? "flex" : "none";
         }
 
         clearTimeout(debounceTimer);
+
         if (val.length < 1) {
             dropdown.style.display = "none";
             currentItems = [];
@@ -269,23 +286,28 @@ function initHeaderSearch() {
     // 키보드 방향키(↑, ↓) 및 Enter 지원
     input.addEventListener("keydown", (e) => {
         const itemsEl = resultList.querySelectorAll(".savant-result-item");
+
         if (!itemsEl.length) return;
 
         if (e.key === "ArrowDown") {
             e.preventDefault();
             activeIndex = (activeIndex + 1) % itemsEl.length;
             updateActiveHighlight(itemsEl);
+
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
             activeIndex = (activeIndex - 1 + itemsEl.length) % itemsEl.length;
             updateActiveHighlight(itemsEl);
+
         } else if (e.key === "Enter") {
             e.preventDefault();
+
             if (activeIndex >= 0 && currentItems[activeIndex]) {
                 navigateToItem(currentItems[activeIndex]);
             } else if (currentItems.length > 0) {
                 navigateToItem(currentItems[0]);
             }
+
         } else if (e.key === "Escape") {
             dropdown.style.display = "none";
         }
@@ -294,6 +316,7 @@ function initHeaderSearch() {
     function updateActiveHighlight(itemsEl) {
         itemsEl.forEach((el, idx) => {
             el.classList.toggle("active", idx === activeIndex);
+
             if (idx === activeIndex) {
                 el.scrollIntoView({ block: "nearest" });
             }
@@ -332,6 +355,7 @@ function initHeaderSearch() {
     });
 }
 
+
 /* ==================================================
    로그아웃
 ================================================== */
@@ -346,7 +370,7 @@ function logout() {
     localStorage.removeItem("user");
 
     // 현재 페이지의 챗봇 세션 초기화
-    chatbotSessionId = null;
+    window.chatbotSessionId = null;
 
     alert("로그아웃되었습니다.");
 
@@ -356,337 +380,60 @@ function logout() {
 
 
 /* ==================================================
-   AI CHATBOT DOM 요소
+   공통 AI 챗봇 컴포넌트 불러오기
 ================================================== */
 
-const chatbotButton = document.getElementById("chatbotButton");
-const chatbotWindow = document.getElementById("chatbotWindow");
-const chatbotClose = document.getElementById("chatbotClose");
-const chatbotInput = document.getElementById("chatbotInput");
-const chatbotSend = document.getElementById("chatbotSend");
-const chatbotBody = document.querySelector(".chatbot-body");
-
-
-/* ==================================================
-   챗봇 세션 ID
-================================================== */
-
-// 페이지가 열려 있는 동안 같은 대화의 세션 ID를 유지한다.
-// 페이지를 새로고침하면 새 대화가 시작된다.
-let chatbotSessionId = null;
-
-
-/* ==================================================
-   챗봇 요청 상태
-================================================== */
-
-// 답변을 기다리는 동안 중복 요청 방지
-let isChatSending = false;
-
-
-/* ==================================================
-   챗봇 열기 / 닫기
-================================================== */
-
-if (chatbotButton && chatbotWindow) {
-    chatbotButton.addEventListener("click", function () {
-        chatbotWindow.classList.toggle("active");
-
-        if (
-            chatbotWindow.classList.contains("active") &&
-            chatbotInput
-        ) {
-            chatbotInput.focus();
-        }
-    });
-}
-
-
-/* ==================================================
-   챗봇 닫기
-================================================== */
-
-if (chatbotClose && chatbotWindow) {
-    chatbotClose.addEventListener("click", function () {
-        chatbotWindow.classList.remove("active");
-    });
-}
-
-
-/* ==================================================
-   사용자 메시지
-================================================== */
-
-function addUserMessage(message) {
-    if (!chatbotBody) {
+async function loadChatbotComponent() {
+    // 이미 삽입되어 있으면 중복 삽입 방지
+    if (document.getElementById("basebot-chatbot")) {
         return;
     }
-
-    const messageElement = document.createElement("div");
-    messageElement.className = "chatbot-message user";
-
-    const content = document.createElement("div");
-    content.className = "message-content";
-
-    // 사용자 입력을 HTML로 해석하지 않도록 textContent 사용
-    content.textContent = message;
-
-    messageElement.appendChild(content);
-    chatbotBody.appendChild(messageElement);
-
-    scrollChatToBottom();
-}
-
-
-/* ==================================================
-   AI 메시지
-================================================== */
-
-function addBotMessage(message) {
-    if (!chatbotBody) {
-        return;
-    }
-
-    const messageElement = document.createElement("div");
-    messageElement.className = "chatbot-message bot";
-
-    const icon = document.createElement("div");
-    icon.className = "message-icon";
-    icon.textContent = "AI";
-
-    const content = document.createElement("div");
-    content.className = "message-content";
-
-    // AI 답변의 줄바꿈은 CSS white-space 설정으로 표시할 수 있다.
-    // 서버 응답을 HTML로 실행하지 않도록 textContent 사용
-    content.textContent = message;
-
-    messageElement.appendChild(icon);
-    messageElement.appendChild(content);
-
-    chatbotBody.appendChild(messageElement);
-
-    scrollChatToBottom();
-}
-
-
-/* ==================================================
-   로딩
-================================================== */
-
-function addLoadingMessage() {
-    if (!chatbotBody) {
-        return;
-    }
-
-    // 기존 로딩 메시지가 있다면 중복 생성하지 않는다.
-    if (document.getElementById("chatbotLoading")) {
-        return;
-    }
-
-    const messageElement = document.createElement("div");
-
-    messageElement.id = "chatbotLoading";
-    messageElement.className = "chatbot-message bot";
-
-    const icon = document.createElement("div");
-    icon.className = "message-icon";
-    icon.textContent = "AI";
-
-    const content = document.createElement("div");
-    content.className = "message-content";
-    content.textContent = "답변을 생각하고 있어요...";
-
-    messageElement.appendChild(icon);
-    messageElement.appendChild(content);
-
-    chatbotBody.appendChild(messageElement);
-
-    scrollChatToBottom();
-}
-
-
-/* ==================================================
-   로딩 제거
-================================================== */
-
-function removeLoadingMessage() {
-    const loading = document.getElementById("chatbotLoading");
-
-    if (loading) {
-        loading.remove();
-    }
-}
-
-
-/* ==================================================
-   스크롤
-================================================== */
-
-function scrollChatToBottom() {
-    if (!chatbotBody) {
-        return;
-    }
-
-    chatbotBody.scrollTop = chatbotBody.scrollHeight;
-}
-
-
-/* ==================================================
-   챗봇 입력 상태 변경
-================================================== */
-
-function setChatInputDisabled(disabled) {
-    if (chatbotInput) {
-        chatbotInput.disabled = disabled;
-    }
-
-    if (chatbotSend) {
-        chatbotSend.disabled = disabled;
-    }
-}
-
-
-/* ==================================================
-   메시지 전송
-================================================== */
-
-async function sendChatMessage() {
-    // 입력 요소가 없는 페이지에서는 실행하지 않는다.
-    if (!chatbotInput || !chatbotBody) {
-        return;
-    }
-
-    // 요청 처리 중에는 중복 전송하지 않는다.
-    if (isChatSending) {
-        return;
-    }
-
-    const message = chatbotInput.value.trim();
-
-    if (!message) {
-        return;
-    }
-
-    // 요청 상태 변경
-    isChatSending = true;
-    setChatInputDisabled(true);
-
-    // 사용자 메시지 출력
-    addUserMessage(message);
-
-    // 입력창 초기화
-    chatbotInput.value = "";
-
-    // 로딩 표시
-    addLoadingMessage();
 
     try {
-        const accessToken = sessionStorage.getItem("access_token");
-
-        const headers = {
-            "Content-Type": "application/json"
-        };
-
-        // 토큰이 있는 경우 Authorization 헤더 전달
-        // 백엔드에서 JWT 인증을 처리하도록 연결해야 실제 인증이 적용된다.
-        if (accessToken) {
-            headers["Authorization"] = `Bearer ${accessToken}`;
-        }
-
-        const response = await fetch("/chat", {
-            method: "POST",
-
-            headers: headers,
-
-            body: JSON.stringify({
-                message: message,
-                session_id: chatbotSessionId
-            })
-        });
+        const response = await fetch("/components/chatbot.html");
 
         if (!response.ok) {
-            let errorMessage = "챗봇 API 요청 실패";
-
-            try {
-                const errorData = await response.json();
-
-                if (errorData.detail) {
-                    errorMessage = errorData.detail;
-                }
-            } catch (parseError) {
-                // 오류 응답이 JSON이 아닌 경우 기본 메시지 사용
-            }
-
             throw new Error(
-                `${errorMessage} (HTTP ${response.status})`
+                `챗봇 컴포넌트를 불러오지 못했습니다. HTTP ${response.status}`
             );
         }
 
-        const data = await response.json();
+        const html = await response.text();
 
-        // 응답 데이터 확인
-        if (typeof data.answer !== "string") {
-            throw new Error("챗봇 응답에 answer가 없습니다.");
+        // 챗봇 CSS 연결
+        if (!document.querySelector('link[data-chatbot-css]')) {
+            const link = document.createElement("link");
+
+            link.rel = "stylesheet";
+            link.href = "/css/chatbot.css";
+            link.dataset.chatbotCss = "true";
+
+            document.head.appendChild(link);
         }
 
-        // 서버에서 반환한 세션 ID 유지
-        if (data.session_id) {
-            chatbotSessionId = data.session_id;
+        // 챗봇 HTML 삽입
+        document.body.insertAdjacentHTML("beforeend", html);
+
+        // 챗봇 JS 연결
+        // chatbot.js는 HTML 삽입 후 한 번만 불러온다.
+        if (!document.querySelector('script[data-chatbot-js]')) {
+            const script = document.createElement("script");
+
+            script.src = "/js/chatbot.js";
+            script.dataset.chatbotJs = "true";
+
+            script.onerror = () => {
+                console.error("챗봇 JavaScript 파일을 불러오지 못했습니다.");
+            };
+
+            document.body.appendChild(script);
         }
-
-        // 로딩 제거
-        removeLoadingMessage();
-
-        // AI 답변 출력
-        addBotMessage(data.answer);
 
     } catch (error) {
-        console.error("AI 챗봇 오류:", error);
-
-        removeLoadingMessage();
-
-        addBotMessage(
-            "죄송합니다. 현재 AI 챗봇과 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."
-        );
-
-    } finally {
-        // 요청 상태 초기화
-        isChatSending = false;
-
-        // 입력창과 버튼 활성화
-        setChatInputDisabled(false);
-
-        // 입력창에 포커스
-        if (
-            chatbotWindow &&
-            chatbotWindow.classList.contains("active") &&
-            chatbotInput
-        ) {
-            chatbotInput.focus();
-        }
+        console.error("챗봇 컴포넌트 로딩 실패:", error);
     }
 }
 
 
-/* ==================================================
-   전송 버튼
-================================================== */
-
-if (chatbotSend) {
-    chatbotSend.addEventListener("click", sendChatMessage);
-}
-
-
-/* ==================================================
-   Enter 키로 메시지 전송
-================================================== */
-
-if (chatbotInput) {
-    chatbotInput.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            sendChatMessage();
-        }
-    });
-}
+// 공통 챗봇 로딩 실행
+loadChatbotComponent();
