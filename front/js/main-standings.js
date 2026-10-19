@@ -184,9 +184,9 @@ function getValidLogoUrl(value) {
 /**&#xA; * HTML 이스케이프&#xA; * DB에서 가져온 팀 이름과 이미지 URL을 HTML에 삽입할 때 사용&#xA; */
 function escapeStandingsHtml(value) {
     return String(value ?? "")
-        .replaceAll("&", "&")
-        .replaceAll("<", "<")
-        .replaceAll(">", ">")
-        .replaceAll('"', """)
-        .replaceAll("'", "'");
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
