@@ -1529,13 +1529,17 @@ async function loadPostDetail() {
                 }
             );
 
-        if (!viewResponse.ok) {
+         if (!viewResponse.ok) {
+
+            // 숨김 처리되었거나 삭제된 게시글
+            if (viewResponse.status === 404) {
+                throw new Error("POST_NOT_AVAILABLE");
+            }
 
             throw new Error(
                 "조회수 증가에 실패했습니다."
             );
         }
-
 
         // =================================
         // 게시글 상세 조회
@@ -1547,6 +1551,10 @@ async function loadPostDetail() {
             );
 
         if (!response.ok) {
+
+            if (response.status === 404) {
+                throw new Error("POST_NOT_AVAILABLE");
+            }
 
             throw new Error(
                 "게시글을 불러오지 못했습니다."
@@ -1898,7 +1906,7 @@ async function loadPostDetail() {
 
         await loadComments(post.post_id);
 
-                /* =================================
+        /* =================================
            수정 / 삭제 버튼
            게시글 작성자에게만 표시
         ================================= */
@@ -1985,6 +1993,22 @@ async function loadPostDetail() {
             "게시글 상세 조회 오류:",
             error
         );
+
+        if (error.message === "POST_NOT_AVAILABLE") {
+
+            showBasebotModal(
+                "볼 수 없는 게시글",
+                "신고 처리 결과 숨김 처리되었거나 삭제된 게시글이라 볼 수 없습니다.",
+                () => {
+                    // 신고 내역 등 이전 화면으로, 직접 들어온 경우엔 목록으로
+                    if (document.referrer) {
+                        window.history.back();
+                    } else {
+                        window.location.href = "community.html";
+                    }
+                }
+            );
+        }
 
     }
 }

@@ -25,7 +25,7 @@ document.addEventListener(
             return;
         }
 
-        /* ==================================================
+/* ==================================================
            HTML 요소
         ================================================== */
 
@@ -49,6 +49,36 @@ document.addEventListener(
             document.getElementById(
                 "memberEditForm"
             );
+
+        /* ==================================================
+           팀 목록 로드 함수 (회원정보 조회 전에 옵션 생성)
+        ================================================== */
+        async function loadFavoriteTeams() {
+            if (!favoriteTeam) return;
+
+            try {
+                const response = await fetch("/api/teams");
+                if (!response.ok) throw new Error("팀 목록 조회 실패");
+
+                const teams = await response.json();
+                favoriteTeam.innerHTML = '<option value="">선택하지 않음</option>';
+
+                teams.forEach(team => {
+                    const option = document.createElement("option");
+                    option.value = team.team_id || team.id;
+
+                    const koreanName = window.koreanTeamNames && window.koreanTeamNames[team.team_code];
+                    option.textContent = koreanName || team.team_name;
+
+                    favoriteTeam.appendChild(option);
+                });
+            } catch (error) {
+                console.error("관심 팀 목록 로딩 오류:", error);
+            }
+        }
+
+        // 팀 목록 옵션을 먼저 채웁니다.
+        await loadFavoriteTeams();
 
         /* ==================================================
            현재 회원정보 조회
@@ -402,46 +432,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-document.addEventListener("DOMContentLoaded", async function () {
-
-    // -----------------------------------------
-    // 1. 관심 구단 한글 목록 로드 함수
-    // -----------------------------------------
-    const selectElement = document.getElementById("editFavoriteTeam");
-
-    async function loadFavoriteTeams() {
-        if (!selectElement) return;
-
-        try {
-            const response = await fetch("http://127.0.0.1:8000/api/teams");
-            if (!response.ok) throw new Error("팀 목록 조회 실패");
-
-            const teams = await response.json();
-
-            // 기존 하드코딩 옵션(영문) 초기화
-            selectElement.innerHTML = '<option value="">선택하지 않음</option>';
-
-            teams.forEach(team => {
-                const option = document.createElement("option");
-                option.value = team.team_id || team.id;
-
-                // main.js의 전역 한글 매핑 객체 활용
-                const koreanName = window.koreanTeamNames && window.koreanTeamNames[team.team_code];
-                option.textContent = koreanName || team.team_name;
-
-                selectElement.appendChild(option);
-            });
-
-        } catch (error) {
-            console.error("관심 팀 목록 로딩 오류:", error);
-        }
-    }
-
-    // -----------------------------------------
-    // 2. 초기 실행
-    // -----------------------------------------
-    await loadFavoriteTeams(); // 관심 구단 목록 채우기
-
-    // (기존에 작성된 회원정보 조회 / 비밀번호 변경 / 탈퇴 처리 로직이 있다면 이 아래에 위치)
-
-});

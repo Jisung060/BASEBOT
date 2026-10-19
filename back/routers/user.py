@@ -214,6 +214,7 @@ def get_mypage_info(
 
     # 관심 팀 이름
     favorite_team_name = None
+    favorite_team_code = None
 
     if current_user.favorite_team_id:
 
@@ -225,7 +226,7 @@ def get_mypage_info(
 
         if favorite_team:
             favorite_team_name = favorite_team.team_name
-
+            favorite_team_code = favorite_team.team_code
 
     return MyPageResponse(
         user_id=current_user.user_id,
@@ -235,6 +236,7 @@ def get_mypage_info(
 
         favorite_team_id=current_user.favorite_team_id,
         favorite_team_name=favorite_team_name,
+        favorite_team_code=favorite_team_code,
 
         point=current_user.point,
         grade=current_user.grade,

@@ -371,7 +371,7 @@ async function loadUserInfoFromDB() {
 
 
         /* ==================================================
-           회원정보 - 관심 구단
+           회원정보 - 관심 구단 (한글 매핑 추가)
         ================================================== */
 
         const userFavoriteTeam =
@@ -381,10 +381,19 @@ async function loadUserInfoFromDB() {
 
         if (userFavoriteTeam) {
 
-            if (data.favorite_team_name) {
+            // 1. DB에서 내려오는 팀 코드 추출
+            const teamCode = data.favorite_team_code || data.team_code;
 
-                userFavoriteTeam.textContent =
-                    data.favorite_team_name;
+            // 2. main.js의 전역 한글 팀명 객체에서 검색
+            const koreanName = window.koreanTeamNames && teamCode ? window.koreanTeamNames[teamCode] : null;
+
+            if (koreanName) {
+
+                userFavoriteTeam.textContent = koreanName;
+
+            } else if (data.favorite_team_name) {
+
+                userFavoriteTeam.textContent = data.favorite_team_name;
 
             } else {
 

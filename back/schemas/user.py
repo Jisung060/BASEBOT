@@ -94,6 +94,7 @@ class MyPageResponse(BaseModel):
     email: EmailStr
     favorite_team_id: int | None
     favorite_team_name: str | None
+    favorite_team_code: str | None = None
     point: int
     grade: str
     prediction_streak: int
