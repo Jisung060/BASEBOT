@@ -73,7 +73,6 @@ function setupEvents() {
     });
     $("btn-prev-year").addEventListener("click", () => moveYear(-1));
     $("btn-next-year").addEventListener("click", () => moveYear(1));
-    $("btn-all").addEventListener("click", goToRecentGame);   // '최근' 버튼: 오늘 기준 가장 최근 경기 날짜로 이동
     $("btn-today").addEventListener("click", goToToday);      // '오늘' 버튼: 오늘 날짜 경기로 이동
     $("btn-calendar").addEventListener("click", toggleCalendar);
     // 월 버튼은 init()에서 보여 줄 날짜가 정해진 뒤에 그림 (처음에 4월이 잠깐 보이는 문제 방지)
@@ -381,7 +380,7 @@ function createGameCard(game) {
     const actions = el("div", "game-venue game-actions"); // 오른쪽: 끝난 경기만 버튼 표시
     if (isFinal) {
         const gameDate = String(game.game_date || dateInput.value).slice(0, 10);
-        const detail = el("a", "detail-button", "박스스코어");
+        const detail = el("a", "detail-button", "경기 상세");
         detail.href = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
         detail.addEventListener("click", saveState);           // 상세 페이지로 가기 전에 상태 저장
         const highlight = el("a", "highlight-button score-highlight-link", "하이라이트");
