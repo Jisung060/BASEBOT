@@ -62,8 +62,7 @@
 /* 경기 결과: 진 팀 점수는 연하게 */
 .final-score .score-loser{color:#a3b1c6}
 
-/* 타자·투수 기록: 제목 줄을 지우고 구단 선택(로고) 버튼만 오른쪽에 */
-.tab-panel .section-heading{justify-content:flex-end}
+/* 타자·투수 기록: 구단 선택(로고) 버튼 (제목 오른쪽) */
 .team-switch button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:38px;padding:4px}
 .team-switch button img{width:26px;height:26px;object-fit:contain}
 .team-switch button.active{background:#eaf1fa;border-color:#1b5595}   /* 선택된 로고: 연한 파란 배경 + 파란 테두리 */

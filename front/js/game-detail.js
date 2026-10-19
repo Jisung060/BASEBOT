@@ -119,19 +119,23 @@ const TEAM_COMPARE_ITEMS = [
 function renderTeamAdvancedStats(boxscore) {
     const away = boxscore.away.teamStats?.batting || {};
     const home = boxscore.home.teamStats?.batting || {};
-    const bar = (value, max, side) =>                    // 큰 값 기준 길이(%)의 막대
+    const bar = (value, max, side) =>                    // 공통 기준 대비 길이(%)의 막대
         `<span class="compare-bar ${side}"><i style="width:${max ? Math.round(Number(value || 0) / max * 100) : 0}%"></i></span>`;
+
+    // 모든 막대 공통 기준 (최소 15, 더 큰 기록이 있으면 그 값) → 숫자가 클수록 긴 막대
+    const scale = Math.max(15, ...TEAM_COMPARE_ITEMS
+        .filter(([, , showBar]) => showBar)
+        .flatMap(([, key]) => [Number(away[key]) || 0, Number(home[key]) || 0]));
 
     const rows = TEAM_COMPARE_ITEMS.map(([label, key, showBar]) => {
         const a = away[key] ?? "-";
         const h = home[key] ?? "-";
-        const max = Math.max(Number(a) || 0, Number(h) || 0);
         return `<div class="compare-row">
-            ${showBar ? bar(a, max, "away") : "<span></span>"}
+            ${showBar ? bar(a, scale, "away") : "<span></span>"}
             <strong class="compare-value">${escapeHtml(a)}</strong>
             <span class="compare-label">${escapeHtml(label)}</span>
             <strong class="compare-value">${escapeHtml(h)}</strong>
-            ${showBar ? bar(h, max, "home") : "<span></span>"}
+            ${showBar ? bar(h, scale, "home") : "<span></span>"}
         </div>`;
     }).join("");
 
@@ -309,10 +313,5 @@ function showPageError(message) {
     document.getElementById("game-date").textContent = message;
     showStatsUnavailable(message);
 }
-
-document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => {
-    document.querySelectorAll(".tab-button").forEach(item => item.classList.toggle("active", item === button));
-    document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === button.dataset.tab));
-}));
 
 loadGame();
