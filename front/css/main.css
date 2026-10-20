@@ -1766,3 +1766,15 @@ input {
     white-space: nowrap;
     text-align: left;
 }
+
+
+/* 메인 페이지 클릭 가능한 박스 */
+.clickable-section {
+    cursor: pointer;
+}
+
+/* 마우스를 올렸을 때 클릭 가능한 영역 표시 */
+.clickable-section:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 4px;
+}
