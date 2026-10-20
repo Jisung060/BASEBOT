@@ -10,6 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedSeason = Number(initialSeason);
     }
     fetchPlayerDetail(playerId);
+    const btnDl = document.getElementById("btnRunDlPredict");
+    const selSeason = document.getElementById("dlTargetSeasonSelect");
+    const selScen = document.getElementById("dlScenarioSelect");
+    if (btnDl) btnDl.addEventListener("click", loadDlPrediction);
+    if (selSeason) selSeason.addEventListener("change", loadDlPrediction);
+    if (selScen) selScen.addEventListener("change", loadDlPrediction);
 });
 
 // ★ Baseball Savant 공식 다중 스펙트럼 컬러맵 (재즈 치좀 주니어 그래프 색상 100% 재현)
@@ -513,6 +519,219 @@ function renderModeView() {
                 <td>${st.fwar !== null ? Number(st.fwar).toFixed(1) : '-'}</td>
             `;
             tbody.appendChild(tr);
+            syncDlSeasonSelector();
+            loadDlPrediction();
         });
+    }
+}
+
+// ★ 선수의 DB 보유 시즌을 기반으로 [미래 예측(+1~+3년)] + [과거 백테스트(보유 전 시즌)] 드롭다운 동적 생성
+function syncDlSeasonSelector() {
+    const dlSelect = document.getElementById("dlTargetSeasonSelect");
+    if (!dlSelect || !currentPlayerData) return;
+
+    const isBat = (activeMode === "batting");
+    const statsList = isBat ? currentPlayerData.batting_stats : currentPlayerData.pitching_stats;
+    if (!statsList || statsList.length === 0) {
+        dlSelect.innerHTML = `<option value="">데이터 없음</option>`;
+        return;
+    }
+
+    const prevSelected = dlSelect.value ? Number(dlSelect.value) : null;
+
+    // 보유 시즌 정렬 (내림차순, 예: [2025, 2024, 2023, ...])
+    const ownedSeasons = [...new Set(statsList.map(s => Number(s.season)))].sort((a, b) => b - a);
+    const maxSeason = ownedSeasons[0]; // 데이터가 존재하는 가장 최근 시즌
+    const minSeason = ownedSeasons[ownedSeasons.length - 1];
+
+    dlSelect.innerHTML = "";
+
+    // 1) 미래 예측 그룹: 가장 최근 데이터 시즌 +1년 ~ +3년 자동 생성
+    const futureGroup = document.createElement("optgroup");
+    futureGroup.label = `🔮 미래 시즌 성적 예측 (${maxSeason}년 데이터 기반)`;
+    for (let yr = maxSeason + 1; yr <= maxSeason + 3; yr++) {
+        const tag = (yr === maxSeason + 1) ? "차기 시즌 예측" : `+${yr - maxSeason}년 후 장기 예측`;
+        const opt = new Option(`${yr} 시즌 (${tag})`, yr);
+        futureGroup.appendChild(opt);
+    }
+    dlSelect.appendChild(futureGroup);
+
+    // 2) 과거 백테스트 그룹: 데이터가 존재하는 모든 시즌과 비교 가능
+    const pastGroup = document.createElement("optgroup");
+    pastGroup.label = `🎯 과거 시즌 백테스트 (AI 예측 vs 실제 성적 비교)`;
+    ownedSeasons.forEach(yr => {
+        const desc = (yr > minSeason)
+            ? `이전 시즌 기록 기반 예측 vs 실제 비교`
+            : `단일 시즌 기대지표(xStats) vs 실제 비교`;
+        const opt = new Option(`${yr} 시즌 (${desc})`, yr);
+        pastGroup.appendChild(opt);
+    });
+    dlSelect.appendChild(pastGroup);
+
+    // 이전에 선택한 연도가 새 옵션 목록에 존재하면 유지하고, 없으면 기본값(maxSeason + 1) 선택
+    const allOptionValues = Array.from(dlSelect.options).map(o => Number(o.value));
+    if (prevSelected && allOptionValues.includes(prevSelected)) {
+        dlSelect.value = String(prevSelected);
+    } else {
+        dlSelect.value = String(maxSeason + 1);
+    }
+}
+
+async function loadDlPrediction() {
+    if (!currentPlayerData || !currentPlayerData.player_id) return;
+    const gridEl = document.getElementById("dlPredCardsGrid");
+    const insightEl = document.getElementById("dlPredInsightBox");
+    if (!gridEl || !insightEl) return;
+
+    const dlSelect = document.getElementById("dlTargetSeasonSelect");
+    if (!dlSelect || !dlSelect.value) {
+        syncDlSeasonSelector();
+    }
+
+    const targetSeason = dlSelect?.value || "2026";
+    const scenario = document.getElementById("dlScenarioSelect")?.value || "normal";
+
+    gridEl.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: #64748b; font-weight: 600;">🧠 PyTorch 신경망 시뮬레이션 계산 중...</div>`;
+
+    try {
+        const res = await fetch(
+            `http://127.0.0.1:8000/api/players/${currentPlayerData.player_id}/predict-dl?target_season=${targetSeason}&mode=${activeMode}&scenario=${scenario}`
+        );
+        if (!res.ok) throw new Error("예측 실패");
+        const data = await res.json();
+
+        const p = data.predicted || {};
+        const d = data.deltas || {};
+        const act = data.actual;
+        const isBat = data.mode === "batting";
+
+        const fmtDelta = (val, inverse = false, decimals = 0) => {
+            if (val === undefined || val === null || Number(val) === 0) {
+                return `<span style="color:#64748b; font-size:11.5px; font-weight:600;">• 직전 시즌(${data.baseline_season})과 동일</span>`;
+            }
+            const num = Number(val);
+            const isGood = inverse ? num < 0 : num > 0;
+            const color = isGood ? "#15803d" : "#b91c1c";
+            const bg = isGood ? "#dcfce7" : "#fee2e2";
+            const arrow = num > 0 ? "▲" : "▼";
+            const absStr = decimals > 0 ? Math.abs(num).toFixed(decimals) : Math.abs(num);
+            return `<span style="display:inline-block; background:${bg}; color:${color}; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800;">${arrow} ${absStr} (vs ${data.baseline_season})</span>`;
+        };
+
+        let cards = [];
+        if (isBat) {
+            cards = [
+                {
+                    title: "예상 타율 / OPS",
+                    val: `${Number(p.batting_avg).toFixed(3).replace(/^0\./, '.')} / ${Number(p.ops).toFixed(3)}`,
+                    delta: fmtDelta(d.ops, false, 3),
+                    actText: act ? `실제 ${data.target_season} 기록: ${Number(act.batting_avg || 0).toFixed(3).replace(/^0\./, '.')} / ${Number(act.ops || 0).toFixed(3)}` : null
+                },
+                {
+                    title: "예상 출루율 / 장타율",
+                    val: `${Number(p.obp).toFixed(3).replace(/^0\./, '.')} / ${Number(p.slg).toFixed(3).replace(/^0\./, '.')}`,
+                    delta: fmtDelta(d.slg, false, 3),
+                    actText: act ? `실제 ${data.target_season} 기록: ${Number(act.obp || 0).toFixed(3).replace(/^0\./, '.')} / ${Number(act.slg || 0).toFixed(3).replace(/^0\./, '.')}` : null
+                },
+                {
+                    title: "예상 홈런 / 타점",
+                    val: `${p.home_runs} HR / ${p.rbi} RBI`,
+                    delta: fmtDelta(d.home_runs, false, 0),
+                    actText: act ? `실제 ${data.target_season} 기록: ${act.home_runs} HR / ${act.rbi} RBI` : null
+                },
+                {
+                    title: "예상 wRC+ (득점창출력)",
+                    val: `${p.wrc_plus}`,
+                    delta: fmtDelta(d.wrc_plus, false, 0),
+                    actText: act ? `실제 ${data.target_season} wRC+: ${act.wrc_plus}` : null
+                },
+                {
+                    title: "예상 bWAR / fWAR",
+                    val: `${Number(p.bwar).toFixed(1)} / ${Number(p.fwar).toFixed(1)}`,
+                    delta: fmtDelta(d.fwar, false, 1),
+                    actText: act ? `실제 ${data.target_season} WAR: ${act.bwar} / ${act.fwar}` : null
+                },
+                {
+                    title: "예상 출전 / 도루",
+                    val: `${p.games}G / ${p.stolen_bases}SB`,
+                    delta: `<span style="display:inline-block; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">만 ${data.predicted_age}세 시즌 기준</span>`,
+                    actText: act ? `실제 ${data.target_season} 기록: ${act.games}G / ${act.stolen_bases}SB` : null
+                }
+            ];
+        } else {
+            cards = [
+                {
+                    title: "예상 ERA / FIP",
+                    val: `${Number(p.era).toFixed(2)} / ${Number(p.fip).toFixed(2)}`,
+                    delta: fmtDelta(d.era, true, 2),
+                    actText: act ? `실제 ${data.target_season} 기록: ${Number(act.era || 0).toFixed(2)} / ${Number(act.fip || 0).toFixed(2)}` : null
+                },
+                {
+                    title: "예상 다승 / 패전",
+                    val: `${p.wins}승 ${p.losses}패`,
+                    delta: fmtDelta(d.wins, false, 0),
+                    actText: act ? `실제 ${data.target_season} 기록: ${act.wins}승 ${act.losses}패` : null
+                },
+                {
+                    title: "예상 이닝 / 탈삼진",
+                    val: `${Number(p.innings_pitched).toFixed(1)} IP / ${p.strikeouts} K`,
+                    delta: fmtDelta(d.strikeouts, false, 0),
+                    actText: act ? `실제 ${data.target_season} 기록: ${act.innings_pitched} IP / ${act.strikeouts} K` : null
+                },
+                {
+                    title: "예상 WHIP",
+                    val: `${Number(p.whip).toFixed(2)}`,
+                    delta: fmtDelta(d.whip, true, 2),
+                    actText: act ? `실제 ${data.target_season} WHIP: ${Number(act.whip || 0).toFixed(2)}` : null
+                },
+                {
+                    title: "예상 bWAR / fWAR",
+                    val: `${Number(p.bwar).toFixed(1)} / ${Number(p.fwar).toFixed(1)}`,
+                    delta: fmtDelta(d.fwar, false, 1),
+                    actText: act ? `실제 ${data.target_season} WAR: ${act.bwar} / ${act.fwar}` : null
+                },
+                {
+                    title: "예상 등판 경기",
+                    val: `${p.games}경기`,
+                    delta: `<span style="display:inline-block; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">만 ${data.predicted_age}세 시즌 기준</span>`,
+                    actText: act ? `실제 ${data.target_season} 등판: ${act.games}경기` : null
+                }
+            ];
+        }
+
+        gridEl.innerHTML = cards.map(c => {
+            // ★ c.actText가 존재할 때만 하단에 파란색 실제 기록 박스 조각 생성 (템플릿 리터럴 깨짐 방지)
+            const actHtml = c.actText 
+                ? `<div style="margin-top: 8px; padding: 6px 10px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 6px; font-size: 11.5px; color: #1d4ed8; font-weight: 800;">🎯 ${c.actText}</div>` 
+                : '';
+
+            return `
+                <div style="background: #fcfdfe; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);">
+                    <div style="font-size: 12px; color: #64748b; font-weight: 700;">${c.title}</div>
+                    <div style="font-size: 22px; font-weight: 900; color: #102d63; letter-spacing: -0.3px;">${c.val}</div>
+                    <div style="margin-top: 2px;">${c.delta}</div>
+                    ${actHtml}
+                </div>
+            `;
+        }).join("");
+
+        const modeBadge = act
+            ? `<span style="background:#dbeafe; color:#1d4ed8; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px;">백테스트 검증 모드 (실제 기록 존재)</span>`
+            : `<span style="background:#e0e7ff; color:#3730a3; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px;">미래 시즌 예측 모드</span>`;
+
+        const insightsHtml = (data.insights || []).map(line => `<li style="margin-bottom: 4px;">${line}</li>`).join("");
+        insightEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <strong style="color:#0f172a; font-size:14px;">📋 PyTorch DL 스카우팅 리포트 (${data.prior_seasons_used.join(', ')} 시즌 기반 ➔ ${data.target_season} 시즌 예측)</strong>
+                    ${modeBadge}
+                </div>
+                <span style="font-size:11.5px; color:#64748b; font-weight:600;">${data.model_info?.architecture || ''}</span>
+            </div>
+            <ul style="margin: 0; padding-left: 18px; color: #334155;">${insightsHtml}</ul>
+        `;
+    } catch (e) {
+        console.error(e);
+        gridEl.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 16px; color: #b91c1c;">예측 데이터를 산출할 수 없습니다.</div>`;
     }
 }

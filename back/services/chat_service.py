@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from services.prediction_service import predictor
+from services.player_dl_predictor import get_dl_prediction_chat_context
 from services.rag_service import search_documents
 from services.chat_db_service import get_database_context
 
@@ -556,7 +557,8 @@ def classify_question(
 
     prediction_keywords = (
         "승부예측", "승률", "누가 이길", "누가 이겨", "승부",
-        "예측", "승리 가능성", "이길 가능성", "경기 예상", "경기 전망"
+        "예측", "승리 가능성", "이길 가능성", "경기 예상", "경기 전망",
+        "성적 예측", "성적 예상", "성적 전망", "예상 성적", "예상 기록", "몇 홈런", "예상해"
     )
 
     if any(keyword in q for keyword in prediction_keywords):
@@ -709,28 +711,41 @@ DB 조회 결과가 없거나 오류라고 표시되면 그 사실을 그대로 
 
     elif question_type == "prediction":
 
-        try:
-            with engine.connect() as conn:
-                home_team, away_team = predictor.find_teams_from_question(
-                    conn,
-                    question
-                )
+        # ★ 1순위: 질문에 특정 선수 성적 예측 요청이 포함되어 있는지 먼저 확인 (PyTorch DL 모델 호출)
+        player_dl_context = get_dl_prediction_chat_context(db, question)
+        if player_dl_context is not None:
+            context = f"""
+{player_dl_context}
 
-            if home_team is None or away_team is None:
-                context = """
-사용자가 경기 승부예측을 요청했다.
-질문에서 예측할 두 팀을 찾지 못했다.
-사용자에게 예측을 원하는 두 팀의 이름을 입력해 달라고 안내해라.
+위 결과는 BASEBOT의 PyTorch 딥러닝(MLP) 선수 성적 예측 모델이 산출한 시뮬레이션 결과이다.
+제시된 예측 수치(타율, OPS, 홈런, ERA, FIP, WAR 등)를 임의로 변경하지 말고 그대로 설명해라.
+만약 참고(실제 시즌 기록)가 함께 제공되었다면, 딥러닝 예측치와 실제 기록을 비교해서 설명해라.
+"""
+        else:
+            # ★ 2순위: 기존 팀 대 팀 경기 승부예측 (RandomForest ML 모델 호출)
+            try:
+                with engine.connect() as conn:
+                    home_team, away_team = predictor.find_teams_from_question(
+                        conn,
+                        question
+                    )
+
+                if home_team is None or away_team is None:
+                    context = """
+사용자가 예측을 요청했으나 질문에서 대상 구단(2개 팀) 또는 선수 이름을 찾지 못했다.
+경기 승부예측을 원하면 두 팀 이름을, 선수 성적 예측을 원하면 선수 이름과 연도를 입력해 달라고 안내해라.
 
 예시:
 양키스와 레드삭스 중 누가 이길까?
-다저스와 파드리스 승부예측 해줘.
+Aaron Judge 2027년 성적 예측해줘.
+오타니 쇼헤이 내년 성적 예상해줘.
 """
-            else:
-                prediction = predictor.predict_matchup(
-                    home_team_id=home_team["team_id"],
-                    away_team_id=away_team["team_id"]
-                )
+                else:
+                    prediction = predictor.predict_matchup(
+                        home_team_id=home_team["team_id"],
+                        away_team_id=away_team["team_id"]
+                    )
+                    # (기존 context 생성 코드 그대로 유지)
 
                 context = f"""
 [경기 예측 머신러닝 결과]
@@ -795,15 +810,15 @@ DB 조회 결과가 없거나 오류라고 표시되면 그 사실을 그대로 
 예측은 참고용 결과임을 간단하게 안내할 수 있다.
 """
 
-        except FileNotFoundError as e:
-            print(f"[경기 예측 모델 파일 오류] {e}")
-            context = """
+            except FileNotFoundError as e:
+                print(f"[경기 예측 모델 파일 오류] {e}")
+                context = """
 경기 예측 모델 파일을 사용할 수 없다.
 현재 경기 예측 기능을 사용할 수 없다고 안내해라.
 """
-        except Exception as e:
-            print(f"[경기 예측 오류] {e}")
-            context = """
+            except Exception as e:
+                print(f"[경기 예측 오류] {e}")
+                context = """
 경기 예측을 처리하는 과정에서 오류가 발생했다.
 현재 경기 예측을 처리할 수 없다고 간단하게 안내해라.
 """

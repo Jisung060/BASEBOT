@@ -340,3 +340,29 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
         "batting_stats": batting_stats,
         "pitching_stats": pitching_stats
     }
+
+from services.player_dl_predictor import dl_predictor
+
+@router.get("/{player_id}/predict-dl")
+def predict_player_stats_dl(
+    player_id: int,
+    target_season: int = 2027,
+    mode: str = "batting",
+    scenario: str = "normal",
+    db: Session = Depends(get_session),
+):
+    """
+    PyTorch 딥러닝(MLP) 모델을 활용한 선수 시즌 성적 예측 및 백테스트 시뮬레이터 API
+    """
+    try:
+        return dl_predictor.predict_player_season(
+            db=db,
+            player_id=player_id,
+            target_season=target_season,
+            mode=mode,
+            scenario=scenario,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DL 성적 예측 오류: {e}")

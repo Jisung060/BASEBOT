@@ -117,6 +117,51 @@
                 </table>
             </div>
 
+           <!-- ★ PyTorch DL 성적 예측 플레이그라운드 패널 (페이지 통일 라이트 테마) -->
+            <div class="dl-playground-card" id="dlPlaygroundSection" style="margin-top: 36px; background: #ffffff; border: 1px solid #e2e8f0; border-top: 3px solid #102d63; border-radius: 12px; padding: 26px 28px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid #eef2f7; padding-bottom: 18px; margin-bottom: 22px;">
+                    <div>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; margin-bottom: 8px;">
+                            🧠 PYTORCH DEEP LEARNING PLAYGROUND
+                        </div>
+                        <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #0f172a;">AI 시즌 성적 예측 시뮬레이터</h3>
+                        <p style="margin: 5px 0 0; font-size: 13px; color: #64748b;">
+                            과거 시즌 Statcast 타구질·구위 기대지표(xStats)와 에이징 커브를 학습한 PyTorch 신경망으로 미래 성적 예측 및 과거 시즌 백테스트를 수행합니다.
+                        </p>
+                    </div>
+
+                    <!-- 플레이그라운드 조작 컨트롤 (동적 연도 드롭다운) -->
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #f8fafc; padding: 10px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                        <label style="font-size: 12.5px; color: #334155; font-weight: 700; display: flex; align-items: center;">
+                            예측 시즌
+                            <select id="dlTargetSeasonSelect" style="margin-left: 8px; padding: 7px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-weight: 700; font-size: 13px; cursor: pointer; outline: none;">
+                                <!-- JS에서 선수 보유 데이터 기준 미래(+3년) 및 과거 전체 시즌 자동 생성 -->
+                            </select>
+                        </label>
+                        <label style="font-size: 12.5px; color: #334155; font-weight: 700; display: flex; align-items: center;">
+                            출전 시나리오
+                            <select id="dlScenarioSelect" style="margin-left: 8px; padding: 7px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-weight: 700; font-size: 13px; cursor: pointer; outline: none;">
+                                <option value="normal" selected>⚖️ 기본 전망 (최근 평균 출전 유지)</option>
+                                <option value="full">🔥 풀타임 주전 (건강 풀시즌 소화)</option>
+                                <option value="conservative">🛡️ 보수적 전망 (체력 안배 / 에이징)</option>
+                            </select>
+                        </label>
+                        <button type="button" id="btnRunDlPredict" style="padding: 8px 16px; border-radius: 6px; border: none; background: #102d63; color: #ffffff; font-weight: 800; font-size: 13px; cursor: pointer; transition: background 0.2s;">
+                            시뮬레이션 실행
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 예측 결과 카드 그리드 (3열 정돈 레이아웃) -->
+                <div id="dlPredCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 18px;">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #64748b;">딥러닝 예측 모델을 실행 중입니다...</div>
+                </div>
+
+                <!-- AI 스카우팅 리포트 & 백테스트 비교 박스 -->
+                <div id="dlPredInsightBox" style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #102d63; border-radius: 8px; padding: 16px 20px; font-size: 13.5px; line-height: 1.65; color: #334155;">
+                </div>
+            </div>
+
             <div class="bottom-action-bar">
                 <button type="button" class="btn-list" onclick="history.back()">목록으로 돌아가기</button>
             </div>
