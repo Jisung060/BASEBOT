@@ -134,17 +134,39 @@ def search_players_and_teams(q: str = "", limit: int = 12, db: Session = Depends
     teams = db.execute(team_sql, {"kw": like_pattern, "starts": starts_pattern}).mappings().all()
 
     player_sql = text("""
-        SELECT
-            p.player_id, p.player_name, p.headshot_url, p.position, p.throws,
-            t.team_name, t.team_code,
-            (SELECT MAX(s.season) FROM player_season_stats s WHERE s.player_id = p.player_id) AS latest_season
-        FROM players p
-        LEFT JOIN teams t ON p.team_id = t.team_id
-        WHERE p.player_name LIKE :kw OR t.team_name LIKE :kw OR t.team_code LIKE :kw
-        ORDER BY CASE WHEN p.player_name LIKE :starts THEN 0 ELSE 1 END, p.player_name ASC
-        LIMIT :limit
-    """)
-    players = db.execute(player_sql, {"kw": like_pattern, "starts": starts_pattern, "limit": limit}).mappings().all()
+                      SELECT p.player_id,
+                             p.player_name,
+                             p.player_name_ko,
+                             p.headshot_url,
+                             p.position,
+                             p.throws,
+                             t.team_name,
+                             t.team_code,
+                             (SELECT MAX(s.season)
+                              FROM player_season_stats s
+                              WHERE s.player_id = p.player_id) AS latest_season
+                      FROM players p
+                               LEFT JOIN teams t ON p.team_id = t.team_id
+                      WHERE p.player_name LIKE :kw
+                         OR p.player_name_ko LIKE :kw
+                         OR t.team_name LIKE :kw
+                         OR t.team_code LIKE :kw
+                      ORDER BY CASE
+                                   WHEN p.player_name_ko LIKE :starts THEN 0
+                                   WHEN p.player_name LIKE :starts THEN 1
+                                   ELSE 2
+                                   END,
+                               p.player_name ASC LIMIT :limit
+                      """)
+
+    players = db.execute(
+        player_sql,
+        {
+            "kw": like_pattern,
+            "starts": starts_pattern,
+            "limit": max(1, min(limit, 50)),
+        },
+    ).mappings().all()
 
     results = []
     for t in teams:
@@ -167,9 +189,26 @@ def search_players_and_teams(q: str = "", limit: int = 12, db: Session = Depends
         results.append({
             "type": "player",
             "id": p["player_id"],
-            "name": p["player_name"],
-            "image_url": p["headshot_url"] or "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,q_auto:best/v1/people/generic/headshot/67/current",
-            "subtext": f"MLB | {season_str} | {pos} | {short_team}"
+
+            # 자동완성 화면에 표시할 이름
+            "name": p["player_name_ko"] or p["player_name"],
+
+            # 원본 및 한국어 이름 모두 제공
+            "name_ko": p["player_name_ko"],
+            "name_en": p["player_name"],
+
+            "image_url": (
+                    p["headshot_url"]
+                    or "https://img.mlbstatic.com/mlb-photos/image/upload/"
+                       "w_213,q_auto:best/v1/people/generic/headshot/67/current"
+            ),
+
+            "subtext": (
+                f"MLB | "
+                f"{p['latest_season'] or '-'} | "
+                f"{pos} | "
+                f"{short_team}"
+            ),
         })
 
     return {"results": results}
