@@ -4,7 +4,7 @@
 // 다른 메인 스크립트와 이름이 겹치지 않게 함수 안에 넣음
 // ==================================================
 (() => {
-    const DIVISION_LABELS = { East: "동부", Central: "중부", West: "서부" };
+    const DIVISION_LABELS = { East: "동부지구", Central: "중부", West: "서부" };
     const grid = document.getElementById("main-standings-grid");
     const leagueButtons = document.querySelectorAll(".main-standings-league");
     let standings = null;                              // API에서 받은 순위 데이터
