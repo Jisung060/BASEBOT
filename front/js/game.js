@@ -63,6 +63,31 @@ function formatTime(dateTime) {                        // 시작 시간을 "07:4
     }).format(date);
 }
 
+// 홈구장 현지 시간대 (승부 예측 페이지 prediction.js와 같은 표, 나머지 구단은 동부 시간)
+const TEAM_TIMEZONES = {
+    158: "America/Chicago", 112: "America/Chicago", 145: "America/Chicago", 138: "America/Chicago",
+    142: "America/Chicago", 118: "America/Chicago", 117: "America/Chicago", 140: "America/Chicago",
+    115: "America/Denver", 109: "America/Phoenix",
+    119: "America/Los_Angeles", 108: "America/Los_Angeles", 135: "America/Los_Angeles",
+    137: "America/Los_Angeles", 136: "America/Los_Angeles", 133: "America/Los_Angeles"
+};
+
+// DB의 game_date + game_time(UTC) → 한국 "04:10" / 현지 "09-27 12:10 PDT" (시간 정보가 없으면 null)
+function getGameTimes(game) {
+    if (!game.game_date || !game.game_time) return null;
+    const utc = new Date(`${String(game.game_date).slice(0, 10)}T${String(game.game_time).slice(0, 8)}Z`);
+    if (Number.isNaN(utc.getTime())) return null;
+    const format = timeZone => {
+        const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+            timeZone, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short"
+        }).formatToParts(utc).map(part => [part.type, part.value]));
+        return { date: `${parts.month}-${parts.day}`, time: `${parts.hour === "24" ? "00" : parts.hour}:${parts.minute}`, zone: parts.timeZoneName };
+    };
+    const kst = format("Asia/Seoul");
+    const local = format(TEAM_TIMEZONES[Number(game.home_team_id)] || "America/New_York");
+    return { kst: kst.time, local: `${local.date} ${local.time} ${local.zone}` };   // "04:10" / "09-27 12:10 PDT"
+}
+
 /* ---------- 이벤트 연결 ---------- */
 
 function setupEvents() {
@@ -391,16 +416,20 @@ function createGameCard(game) {
     if (hasFavorite && teamSelect.value !== favoriteId) card.classList.add("favorite-game-card");
     if (game.status === "CANCELLED") card.classList.add("is-cancelled"); // 취소 경기: 흐리게 (클릭 안 됨)
 
-    const time = el("div", "game-time");               // 왼쪽: 시간과 구장 (구장은 DB 값)
+    const time = el("div", "game-time");               // 위쪽 줄: 한국 시간 + 현지 시간 ……… 구장(오른쪽 끝) (DB 값)
+    const times = getGameTimes(game);
     time.append(
-        el("strong", "", formatTime(game.scheduled_at)),
-        el("small", "game-venue-name", game.venue_name || "구장 정보 없음")
+        el("strong", "", times ? times.kst : "시간 미정"),                    // 한국 "04:10" (날짜는 목록 제목과 같아서 뺌)
+        el("small", "game-local-time", times ? ` (${times.local})` : ""),     // 현지 " (09-27 12:10 PDT)"
+        el("small", "game-venue-name", game.venue_name || "구장 정보 없음")   // 구장: 카드 오른쪽 위
     );
+
+    const scoreNode = createScoreNode(game, isFinal || isLive);
 
     const matchup = el("div", "matchup-summary");      // 가운데: 원정팀 · 점수 · 홈팀
     matchup.append(
         createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFav(game.away_team_id)),
-        createScoreNode(game, isFinal || isLive),
+        scoreNode,
         createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFav(game.home_team_id))
     );
 
@@ -445,7 +474,12 @@ function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavori
     const copy = el("span", "team-copy");              // 팀 이름과 선발 투수
     const label = el("a", "team-name", name || "팀 정보 없음");
     label.href = teamHref;
-    const pitcher = el("small", "team-pitcher", pitcherName ? `선발 ${pitcherName}` : "선발 미정");
+    if (side === "home") {                             // 오른쪽 = 홈팀: 구단명 왼쪽에 집 모양 아이콘
+        label.insertAdjacentHTML("afterbegin",
+            `<svg class="home-team-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 1 7.6h2V14h3.6v-4h2.8v4H13V7.6h2z"/></svg>`);
+        label.title = `${name} (홈)`;
+    }
+    const pitcher = el("small", "team-pitcher", pitcherName ? `${pitcherName} 선발` : "선발 미정");   // 선수명 뒤에 '선발'
     copy.append(label, pitcher);
 
     if (side === "home") slot.append(copy, logoLink);  // 홈팀은 글자가 로고 앞
@@ -489,7 +523,11 @@ async function fetchMonthGames(dateStr) {              // 한 달 경기 가져�
     const games = rawGames
         .map(game => {
             const merged = { ...game, ...(schedule.get(String(game.game_id)) || {}) }; // MLB 선발 투수 정보 합치기
-            return { ...merged, display_date: koreanDate(merged.scheduled_at, merged.game_date) };
+            // 한국 날짜로 묶기: DB의 game_date + game_time은 UTC → 한국 시간 날짜 (시간이 없으면 game_date 그대로)
+            const startUtc = merged.game_time
+                ? `${String(merged.game_date).slice(0, 10)}T${String(merged.game_time).slice(0, 8)}Z`
+                : null;
+            return { ...merged, display_date: koreanDate(startUtc, merged.game_date) };
         })
         .filter(game => game.display_date.startsWith(monthKey)); // 요청한 달만 남기기
 

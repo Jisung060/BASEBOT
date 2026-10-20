@@ -84,3 +84,7 @@
 .compare-bar.away i{background:#8ec9f5}
 .compare-bar.home i{background:#152b52}
 .team-compare-message{margin:0;padding:12px;color:#777;text-align:center;font-size:13px}
+
+/* 선수 얼굴 사진 크게 (얼굴이 잘 보이게): 라인업 25→40px, 타자·투수 표 28→34px */
+.lineup-card .boxscore-player-headshot{width:40px;height:40px;flex-basis:40px}
+.box-table .boxscore-player-headshot{width:34px;height:34px;flex-basis:34px}

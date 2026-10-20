@@ -187,3 +187,19 @@
 
 /* 끝난 경기: 진 팀 점수는 연하게 (경기 상세 페이지와 같은 색) */
 .score-line strong.loser{color:#a3b1c6}
+
+/* 경기 카드 조금 크게 + 글자 키우기 (일정·결과 목록만) */
+#game-list .game-card{height:auto!important;min-height:88px;padding:12px 16px}
+#game-list .game-time{align-items:baseline}   /* 한국 시간 · (현지 시간) · 구장 높이 맞추기 */
+#game-list .game-time strong{margin:0;font-size:13px}
+#game-list .game-time small{font-size:12px}
+#game-list .game-time{gap:0}   /* 한국 시간과 현지 시간 사이는 띄어쓰기 한 칸만 */
+#game-list .game-time .game-local-time{font-size:13px;line-height:inherit;white-space:pre}   /* 현지 시간: 한국 시간과 같은 크기·높이, 앞 공백 유지 */
+#game-list .game-time .game-venue-name{margin-left:auto;padding-left:8px;font-size:13px;white-space:nowrap}   /* 구장: 카드 오른쪽 위, 시간과 같은 크기 */
+#game-list .team-name{font-size:14px}
+#game-list .team-pitcher{font-size:11px}
+#game-list .score-line strong{font-size:22px}
+#game-list .score-caption{font-size:11px}
+#game-list .home-team-icon{display:inline-block;width:13px;height:13px;margin-right:4px;vertical-align:-1px;fill:#174b8a}   /* 홈팀 구단명 왼쪽 집 아이콘 */
+#game-list .game-day-cards .team-mark.team-logo-img,#game-list .game-day-cards .team-mark-fallback{width:34px!important;min-width:34px!important;max-width:34px!important;height:34px!important;min-height:34px!important;max-height:34px!important}   /* 구단 로고 22px → 34px */
+#game-list .game-actions .score-highlight-link{font-size:13px!important}

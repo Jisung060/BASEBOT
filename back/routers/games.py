@@ -1,4 +1,5 @@
 from typing import Optional
+import json
 import requests
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import text
@@ -110,6 +111,59 @@ def get_game_boxscore(game_id: int):
         }
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"MLB API 연동 오류: {str(e)}")
+
+
+# ==========================================================
+# ▼ [추가] 경기 상세 페이지 전용: DB에 저장된 이닝 점수 + 선수별 기록 (/api/games/{game_id}/detail)
+#   - games.linescore(JSON) + game_boxscores + players(이름·사진)
+#   - DB에 기록이 없으면 has_data=false → 프런트에서 MLB API로 대신 불러옴
+# ==========================================================
+@router.get("/{game_id}/detail")
+def get_game_detail(game_id: int, db: Session = Depends(get_session)):
+    game = db.execute(
+        text("SELECT game_id, linescore FROM games WHERE game_id = :game_id"),
+        {"game_id": game_id},
+    ).mappings().first()
+    if not game:
+        raise HTTPException(status_code=404, detail="해당 경기를 DB에서 찾을 수 없습니다.")
+
+    linescore = game["linescore"]
+    if isinstance(linescore, str):                    # JSON 컬럼이 문자열로 오는 경우
+        try:
+            linescore = json.loads(linescore)
+        except ValueError:
+            linescore = None
+
+    players = db.execute(text("""
+        SELECT
+            b.player_id, p.player_name, p.headshot_url, b.team_id,
+            b.batting_order, b.position,
+            b.at_bats, b.hits, b.home_runs, b.rbi, b.walks, b.strikeouts,
+            b.innings_pitched, b.earned_runs, b.runs_allowed, b.hits_allowed,
+            b.strikeouts_pitched, b.pitch_count,
+            -- 이 경기 시즌의 누적 기록 (player_season_stats): 타자 타율·출루율·장타율·OPS, 투수 ERA·WHIP
+            bat.batting_avg AS season_avg, bat.obp AS season_obp, bat.slg AS season_slg, bat.ops AS season_ops,
+            pit.era AS season_era, pit.whip AS season_whip
+        FROM game_boxscores b
+        JOIN players p ON p.player_id = b.player_id
+        JOIN games g ON g.game_id = b.game_id
+        LEFT JOIN player_season_stats bat
+            ON bat.player_id = b.player_id AND bat.season = YEAR(g.game_date) AND bat.is_pitcher = 0
+        LEFT JOIN player_season_stats pit
+            ON pit.player_id = b.player_id AND pit.season = YEAR(g.game_date) AND pit.is_pitcher = 1
+        WHERE b.game_id = :game_id
+        ORDER BY b.boxscore_id
+    """), {"game_id": game_id}).mappings().all()
+
+    return {
+        "game_id": game_id,
+        "has_data": bool(players),
+        "linescore": linescore or [],
+        "players": [
+            {**row, "innings_pitched": float(row["innings_pitched"] or 0)}   # Decimal → 숫자
+            for row in players
+        ],
+    }
 
 
 # ==========================================================
