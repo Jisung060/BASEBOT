@@ -395,8 +395,10 @@ async function executeManualSync(payload) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error("수집 요청 실패");
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(data.detail || "수집 요청 실패");
+        }
 
         if (typeof showAdminMessage === "function") {
             showAdminMessage(data.message || "파이프라인 실행이 시작되었습니다.");
@@ -416,41 +418,13 @@ async function executeManualSync(payload) {
                 logPollTimer = null;
                 loadDashboardSummary();
                 loadCategoryData();
+                loadSchedules();
             }
         }, 3000);
 
     } catch (e) {
         console.error(e);
-        alert("데이터 가져오기 실행 중 오류가 발생했습니다.");
-    }
-}
-
-async function executeManualSync(payload) {
-    try {
-        const res = await fetch("/api/admin/baseball-data/fetch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("수집 요청 실패");
-        const data = await res.json();
-
-        if (typeof showAdminMessage === "function") {
-            showAdminMessage(data.message || "데이터 수집 작업이 시작되었습니다.");
-        } else {
-            alert(data.message || "데이터 수집 작업이 시작되었습니다.");
-        }
-
-        // 즉시 로그 갱신 및 2.5초 후 완료 상태 재조회
-        loadSyncLogs();
-        setTimeout(() => {
-            loadSyncLogs();
-            loadDashboardSummary();
-            loadCategoryData();
-        }, 2500);
-    } catch (e) {
-        console.error(e);
-        alert("데이터 가져오기 실행 중 오류가 발생했습니다.");
+        alert(e.message || "데이터 가져오기 실행 중 오류가 발생했습니다.");
     }
 }
 

@@ -14,6 +14,7 @@ from auth.jwt import decode_access_token
 from database.db_connection import SessionFactory, get_session
 from models.user import User
 from routers import news as news_module
+from datetime import datetime
 
 router = APIRouter(prefix="/admin/news", tags=["Admin - News"])
 bearer_scheme = HTTPBearer()
@@ -22,8 +23,14 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BACKEND_DIR.parent
 FRONT_DIR = Path(os.getenv("BASEBOT_FRONT_DIR", str(PROJECT_DIR / "front"))).resolve()
 PAGE_FILE = FRONT_DIR / "pages" / "admin" / "news.html"
+
+# ★ back/config/basebot_admin_settings.json 으로 하위 폴더 분리 및 환경변수명 변경
+DEFAULT_SETTINGS_PATH = BACKEND_DIR / "config" / "basebot_admin_settings.json"
 SETTINGS_FILE = Path(
-    os.getenv("MLB_NEWS_SETTINGS_FILE", str(BACKEND_DIR / "mlb_news_settings.json"))
+    os.getenv(
+        "BASEBOT_SETTINGS_FILE",
+        os.getenv("MLB_NEWS_SETTINGS_FILE", str(DEFAULT_SETTINGS_PATH))
+    )
 ).resolve()
 
 DEFAULT_INTERVAL = max(
@@ -65,20 +72,32 @@ def get_admin_user(
     return user
 
 
-def _read_interval() -> int:
+def _read_settings_payload() -> dict:
     try:
-        payload = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return {}
+
+
+def _read_interval() -> int:
+    payload = _read_settings_payload()
+    try:
         value = int(payload.get("interval_seconds", DEFAULT_INTERVAL))
         return max(60, min(value, 86400))
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+    except (ValueError, TypeError):
         return DEFAULT_INTERVAL
 
 
 def _write_interval(seconds: int) -> None:
     SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = _read_settings_payload()
+    payload["interval_seconds"] = seconds
+    payload["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     temp_file = SETTINGS_FILE.with_suffix(".tmp")
     temp_file.write_text(
-        json.dumps({"interval_seconds": seconds}, ensure_ascii=False, indent=2),
+        json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     temp_file.replace(SETTINGS_FILE)

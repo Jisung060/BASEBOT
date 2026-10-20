@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import os
 import subprocess
 import sys
 import threading
@@ -18,6 +20,170 @@ from database.db_connection import engine, get_db
 router = APIRouter(prefix="/api/admin/baseball-data", tags=["Admin Baseball Data"])
 
 BACK_DIR = Path(__file__).resolve().parent.parent
+
+# ★ admin_news.py와 동일하게 back/config/basebot_admin_settings.json 공유
+DEFAULT_SETTINGS_PATH = BACK_DIR / "config" / "basebot_admin_settings.json"
+SETTINGS_FILE = Path(
+    os.getenv(
+        "BASEBOT_SETTINGS_FILE",
+        os.getenv("MLB_NEWS_SETTINGS_FILE", str(DEFAULT_SETTINGS_PATH))
+    )
+).resolve()
+
+# ★ 동시 실행 방지 락 & 워커 이벤트/상태 플래그 (news.py 패턴과 통일)
+baseball_sync_lock = threading.Lock()
+_scheduler_wake_event = threading.Event()
+_scheduler_started = False
+
+DEFAULT_SCHEDULES = [
+    {
+        "schedule_id": 1,
+        "data_type": "PIPELINE_PLAYERS",
+        "label": "선수 통합 파이프라인 (타자/투수 ➔ 메타 ➔ Savant)",
+        "is_enabled": False,
+        "interval_type": "DAILY",
+        "run_time": "04:00",
+        "target_option": "2024",
+        "last_run_at": None,
+    },
+    {
+        "schedule_id": 2,
+        "data_type": "PIPELINE_GAMES",
+        "label": "경기 통합 파이프라인 (경기 ➔ 박스스코어 ➔ 시간/구장 보정)",
+        "is_enabled": True,
+        "interval_type": "EVERY_6H",
+        "run_time": "00:00",
+        "target_option": "RECENT_3DAYS",
+        "last_run_at": None,
+    },
+    {
+        "schedule_id": 3,
+        "data_type": "STEP_SAVANT_REPAIR",
+        "label": "Savant 심화 지표 빠른 갱신 (Extension 제외)",
+        "is_enabled": False,
+        "interval_type": "DAILY",
+        "run_time": "05:00",
+        "target_option": "2024",
+        "last_run_at": None,
+    },
+    {
+        "schedule_id": 4,
+        "data_type": "STEP_SAVANT_EXTENSION",
+        "label": "투수 Extension 단독 갱신 (장시간 소요)",
+        "is_enabled": False,
+        "interval_type": "WEEKLY",
+        "run_time": "06:00",
+        "target_option": "2024",
+        "last_run_at": None,
+    },
+    {
+        "schedule_id": 5,
+        "data_type": "STEP_SEED_TEAMS",
+        "label": "30개 구단 기초 정보 동기화 (seed_teams)",
+        "is_enabled": False,
+        "interval_type": "WEEKLY",
+        "run_time": "03:00",
+        "target_option": "ALL",
+        "last_run_at": None,
+    },
+]
+
+
+# =========================================================
+# 유틸리티: 전역 설정 JSON 파일 Read / Write 및 DB 동기화
+# =========================================================
+def _read_global_settings() -> dict:
+    try:
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return {}
+
+
+def _write_global_settings(payload: dict) -> None:
+    SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = SETTINGS_FILE.with_suffix(".tmp")
+    temp_file.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    temp_file.replace(SETTINGS_FILE)
+
+
+def _load_schedules_from_settings() -> list[dict]:
+    """전역 설정 파일(mlb_news_settings.json)에서 야구 데이터 스케줄을 읽고, 없으면 DB/기본값으로 초기화"""
+    payload = _read_global_settings()
+    saved_list = payload.get("baseball_data_schedules")
+
+    if isinstance(saved_list, list) and len(saved_list) > 0:
+        saved_map = {item.get("data_type"): item for item in saved_list if isinstance(item, dict)}
+        merged = []
+        for idx, default_item in enumerate(DEFAULT_SCHEDULES, start=1):
+            dtype = default_item["data_type"]
+            if dtype in saved_map:
+                cur = dict(default_item)
+                cur.update(saved_map[dtype])
+                cur["schedule_id"] = cur.get("schedule_id") or idx
+                cur["label"] = default_item["label"]
+                merged.append(cur)
+            else:
+                merged.append(dict(default_item))
+        return merged
+
+    # 파일에 아직 없으면 DB에 저장된 기존 설정이 있는지 확인 후 마이그레이션
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT schedule_id, data_type, label, is_enabled, interval_type, run_time, target_option,
+                       CAST(last_run_at AS CHAR) AS last_run_at,
+                       CAST(updated_at AS CHAR) AS updated_at
+                FROM admin_data_schedules
+                ORDER BY schedule_id ASC
+            """)).mappings().all()
+            if rows:
+                db_schedules = [dict(r) for r in rows]
+                for item in db_schedules:
+                    item["is_enabled"] = bool(item.get("is_enabled"))
+                _save_schedules_to_settings(db_schedules)
+                return db_schedules
+    except Exception:
+        pass
+
+    _save_schedules_to_settings(DEFAULT_SCHEDULES)
+    return [dict(x) for x in DEFAULT_SCHEDULES]
+
+
+def _save_schedules_to_settings(schedules: list[dict]) -> None:
+    """전역 JSON 파일에 스케줄 목록을 원자적으로 저장 (뉴스의 interval_seconds 보존)"""
+    payload = _read_global_settings()
+    if "interval_seconds" not in payload:
+        payload["interval_seconds"] = max(60, min(int(os.getenv("MLB_NEWS_INTERVAL", "3600")), 86400))
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for item in schedules:
+        item["updated_at"] = item.get("updated_at") or now_str
+    payload["baseball_data_schedules"] = schedules
+    _write_global_settings(payload)
+
+
+def _mark_schedule_last_run(data_type: str, run_dt: datetime) -> None:
+    """자동 실행 완료 시각을 전역 설정 파일과 DB 양쪽에 기록"""
+    run_str = run_dt.strftime("%Y-%m-%d %H:%M:%S")
+    schedules = _load_schedules_from_settings()
+    for item in schedules:
+        if item.get("data_type") == data_type:
+            item["last_run_at"] = run_str
+            item["updated_at"] = run_str
+    _save_schedules_to_settings(schedules)
+
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE admin_data_schedules
+                SET last_run_at = :rtime
+                WHERE data_type = :dtype
+            """), {"rtime": run_str, "dtype": data_type})
+    except Exception as exc:
+        print(f"[BaseballScheduler] DB last_run_at 갱신 실패: {exc}")
 
 
 # =========================================================
@@ -80,28 +246,26 @@ def init_admin_baseball_tables():
             )
         """))
 
-        # 파이프라인 순서가 반영된 자동화 스케줄 항목
-        default_schedules = [
-            ("PIPELINE_PLAYERS", "선수 통합 파이프라인 (타자/투수 ➔ 메타 ➔ Savant)", False, "DAILY", "04:00", "2024"),
-            ("PIPELINE_GAMES", "경기 통합 파이프라인 (경기 ➔ 박스스코어 ➔ 시간/구장 보정)", True, "EVERY_6H", "00:00", "RECENT_3DAYS"),
-            ("STEP_SAVANT_REPAIR", "Savant 심화 지표 빠른 갱신 (Extension 제외)", False, "DAILY", "05:00", "2024"),
-            ("STEP_SAVANT_EXTENSION", "투수 Extension 단독 갱신 (장시간 소요)", False, "WEEKLY", "06:00", "2024"),
-            ("STEP_SEED_TEAMS", "30개 구단 기초 정보 동기화 (seed_teams)", False, "WEEKLY", "03:00", "ALL"),
-        ]
-        for dtype, label, enabled, iv_type, rtime, topt in default_schedules:
+        for item in DEFAULT_SCHEDULES:
             conn.execute(text("""
                 INSERT IGNORE INTO admin_data_schedules 
                 (data_type, label, is_enabled, interval_type, run_time, target_option)
                 VALUES (:dtype, :label, :enabled, :iv_type, :rtime, :topt)
             """), {
-                "dtype": dtype, "label": label, "enabled": enabled,
-                "iv_type": iv_type, "rtime": rtime, "topt": topt
+                "dtype": item["data_type"],
+                "label": item["label"],
+                "enabled": item["is_enabled"],
+                "iv_type": item["interval_type"],
+                "rtime": item["run_time"],
+                "topt": item["target_option"],
             })
-            if dtype in ("STEP_SAVANT_REPAIR", "STEP_SAVANT_EXTENSION"):
-                # Rename existing entries without changing the user's schedule.
+            if item["data_type"] in ("STEP_SAVANT_REPAIR", "STEP_SAVANT_EXTENSION"):
                 conn.execute(text(
                     "UPDATE admin_data_schedules SET label = :label WHERE data_type = :dtype AND label <> :label"
-                ), {"label": label, "dtype": dtype})
+                ), {"label": item["label"], "dtype": item["data_type"]})
+
+    # 전역 설정 JSON 파일 초기 동기화 보장
+    _load_schedules_from_settings()
 
 
 init_admin_baseball_tables()
@@ -315,7 +479,7 @@ def get_baseball_data_items(
 
 
 # =========================================================
-# 3. 스크립트 파이프라인 실행기 (순서 엄격 보장)
+# 3. 스크립트 파이프라인 실행기 (순서 엄격 보장 + 중복 실행 방지 락)
 # =========================================================
 class ManualFetchRequest(BaseModel):
     data_type: str
@@ -344,7 +508,6 @@ def _sync_season_team_ids(season: int):
             WHERE s.season = :season AND s.team_id IS NULL
         """), {"season": season})
 
-        # players 테이블의 현재 소속팀을 DB 내 가장 최신 시즌(MAX(season))의 소속팀으로 항상 유지
         conn.execute(text("""
             UPDATE players p
             JOIN (
@@ -450,7 +613,43 @@ def _run_seed_teams() -> int:
     return 30
 
 
+def _create_sync_log(req: ManualFetchRequest) -> int:
+    is_game_job = req.data_type in ("PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES")
+    if is_game_job:
+        target_desc = f"{req.start_date} ~ {req.end_date}"
+    elif req.data_type in ("STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS"):
+        target_desc = "전체 DB 대상"
+    else:
+        target_desc = f"{req.season} 시즌"
+
+    if req.data_type in ("PIPELINE_PLAYERS", "STEP_SAVANT_REPAIR"):
+        target_desc += " / 투수 상세 갱신" if req.refresh_pitcher_details else " / 빠른 갱신"
+
+    with engine.begin() as conn:
+        res = conn.execute(text("""
+            INSERT INTO admin_data_sync_logs (data_type, trigger_type, target_param, status, message)
+            VALUES (:dtype, :ttype, :tparam, 'RUNNING', '파이프라인 스크립트 실행 준비 중...')
+        """), {
+            "dtype": req.data_type,
+            "ttype": req.trigger_type,
+            "tparam": target_desc
+        })
+        return res.lastrowid
+
+
 def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
+    if not baseball_sync_lock.acquire(blocking=False):
+        with engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE admin_data_sync_logs
+                SET status = 'FAILED',
+                    duration_sec = 0,
+                    message = '다른 야구 데이터 수집 작업이 이미 진행 중이어서 건너뛰었습니다.',
+                    finished_at = CURRENT_TIMESTAMP
+                WHERE log_id = :lid
+            """), {"lid": log_id})
+        return
+
     start_ts = time.time()
     records_cnt = 0
     msg = ""
@@ -460,7 +659,7 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
     savant_mode = "투수 상세 갱신 · 장시간 소요" if req.refresh_pitcher_details else "빠른 갱신 · 저장된 투수 상세 유지"
     s_date = req.start_date or f"{season}-04-01"
     e_date = req.end_date or f"{season}-04-30"
-    if s_date and len(s_date) >= 4:
+    if s_date and len(s_date) >= 4 and s_date[:4].isdigit():
         season_from_date = int(s_date[:4])
     else:
         season_from_date = season
@@ -468,7 +667,6 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
     try:
         dtype = req.data_type
 
-        # [A] 선수 통합 3단계 파이프라인 (순서: 타자/투수 -> 메타데이터 -> Savant Value Repair)
         if dtype == "PIPELINE_PLAYERS":
             _update_log_progress(log_id, f"[1/3] {season} 시즌 타자·투수 통합 데이터 수집 중 (collector_batters/pitchers)...")
             b_cnt = _run_batters(season)
@@ -483,7 +681,6 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             records_cnt = b_cnt + p_cnt
             msg = f"[선수 파이프라인 완주] 1단계(타자 {b_cnt}·투수 {p_cnt}명) ➔ 2단계(메타 {m_cnt}명) ➔ 3단계(Savant: {savant_mode}) 완료"
 
-        # [B] 경기 통합 3단계 파이프라인 (순서: 경기 정보 -> 박스스코어 -> 시간/경기장/승리팀 보정)
         elif dtype == "PIPELINE_GAMES":
             _update_log_progress(log_id, f"[1/3] {s_date}~{e_date} 경기 일정·결과 수집 중 (collector_games)...")
             g_cnt = _run_games(season_from_date, s_date, e_date)
@@ -497,7 +694,6 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             records_cnt = g_cnt
             msg = f"[경기 파이프라인 완주] 1단계(경기 {g_cnt}건) ➔ 2단계(박스스코어 {bx_cnt}건) ➔ 3단계(시간/구장/승리팀 보정) 완료"
 
-        # [C] 개별 스크립트 단독 실행 지원
         elif dtype == "STEP_BATTERS":
             _update_log_progress(log_id, f"{season} 시즌 타자 데이터 수집 중 (collector_batters_integrated)...")
             records_cnt = _run_batters(season)
@@ -511,7 +707,7 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
         elif dtype == "STEP_PLAYERS_META":
             _update_log_progress(log_id, "선수 메타데이터 전수 갱신 중 (collector_players_meta)...")
             records_cnt = _run_players_meta()
-            msg = f"선수 프로필 메타데이터(등번호·포지션·투타·ID매핑) {records_cnt}명 갱신 완료"
+            msg = f"선수 프로필 메타데이터(등번호·포지션·투타·신체조건·ID매핑) {records_cnt}명 갱신 완료"
 
         elif dtype == "STEP_SAVANT_REPAIR":
             _update_log_progress(log_id, f"{season} 시즌 Savant OAA·RunValue·구속 보강 중 ({savant_mode})...")
@@ -551,53 +747,39 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
         msg = f"실행 실패: {str(e)}"
         traceback.print_exc()
 
-    duration = round(time.time() - start_ts, 2)
-    with engine.begin() as conn:
-        conn.execute(text("""
-            UPDATE admin_data_sync_logs
-            SET status = :status,
-                records_affected = :rcnt,
-                duration_sec = :dur,
-                message = :msg,
-                finished_at = CURRENT_TIMESTAMP
-            WHERE log_id = :lid
-        """), {
-            "status": status,
-            "rcnt": records_cnt,
-            "dur": duration,
-            "msg": msg,
-            "lid": log_id
-        })
+    finally:
+        duration = round(time.time() - start_ts, 2)
+        with engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE admin_data_sync_logs
+                SET status = :status,
+                    records_affected = :rcnt,
+                    duration_sec = :dur,
+                    message = :msg,
+                    finished_at = CURRENT_TIMESTAMP
+                WHERE log_id = :lid
+            """), {
+                "status": status,
+                "rcnt": records_cnt,
+                "dur": duration,
+                "msg": msg,
+                "lid": log_id
+            })
+        baseball_sync_lock.release()
 
 
 @router.post("/fetch")
 def trigger_manual_fetch(
     req: ManualFetchRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
 ):
-    is_game_Job = req.data_type in ("PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES")
-    if is_game_Job:
-        target_desc = f"{req.start_date} ~ {req.end_date}"
-    elif req.data_type in ("STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS"):
-        target_desc = "전체 DB 대상"
-    else:
-        target_desc = f"{req.season} 시즌"
+    if baseball_sync_lock.locked():
+        raise HTTPException(
+            status_code=409,
+            detail="이미 야구 데이터 수집 작업이 진행 중입니다. 완료 후 다시 시도해 주세요."
+        )
 
-    if req.data_type in ("PIPELINE_PLAYERS", "STEP_SAVANT_REPAIR"):
-        target_desc += " / 투수 상세 갱신" if req.refresh_pitcher_details else " / 빠른 갱신"
-
-    res = db.execute(text("""
-        INSERT INTO admin_data_sync_logs (data_type, trigger_type, target_param, status, message)
-        VALUES (:dtype, :ttype, :tparam, 'RUNNING', '파이프라인 스크립트 실행 준비 중...')
-    """), {
-        "dtype": req.data_type,
-        "ttype": req.trigger_type,
-        "tparam": target_desc
-    })
-    db.commit()
-    log_id = res.lastrowid
-
+    log_id = _create_sync_log(req)
     background_tasks.add_task(_execute_pipeline_job, log_id, req)
     return {
         "status": "started",
@@ -607,19 +789,15 @@ def trigger_manual_fetch(
 
 
 # =========================================================
-# 4. 자동화 스케줄 조회 및 저장 + 백그라운드 워커
+# 4. 자동화 스케줄 조회 및 저장 (mlb_news_settings.json + DB 통합)
 # =========================================================
 @router.get("/schedules")
-def get_schedules(db: Session = Depends(get_db)):
-    rows = db.execute(text("""
-        SELECT 
-            schedule_id, data_type, label, is_enabled, interval_type, run_time, target_option,
-            CAST(last_run_at AS CHAR) AS last_run_at,
-            CAST(updated_at AS CHAR) AS updated_at
-        FROM admin_data_schedules
-        ORDER BY schedule_id ASC
-    """)).mappings().all()
-    return {"schedules": [dict(r) for r in rows]}
+def get_schedules():
+    schedules = _load_schedules_from_settings()
+    return {
+        "schedules": schedules,
+        "settings_file": str(SETTINGS_FILE.name)
+    }
 
 
 class ScheduleItemUpdate(BaseModel):
@@ -636,7 +814,18 @@ class ScheduleBulkSaveRequest(BaseModel):
 
 @router.post("/schedules")
 def save_schedules(req: ScheduleBulkSaveRequest, db: Session = Depends(get_db)):
+    current_schedules = _load_schedules_from_settings()
+    cur_map = {item["data_type"]: item for item in current_schedules}
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     for item in req.schedules:
+        if item.data_type in cur_map:
+            cur_map[item.data_type]["is_enabled"] = bool(item.is_enabled)
+            cur_map[item.data_type]["interval_type"] = item.interval_type
+            cur_map[item.data_type]["run_time"] = item.run_time
+            cur_map[item.data_type]["target_option"] = item.target_option
+            cur_map[item.data_type]["updated_at"] = now_str
+
         db.execute(text("""
             UPDATE admin_data_schedules
             SET is_enabled = :enabled,
@@ -652,11 +841,143 @@ def save_schedules(req: ScheduleBulkSaveRequest, db: Session = Depends(get_db)):
             "dtype": item.data_type
         })
     db.commit()
-    return {"status": "success", "message": "자동화 스케줄 설정이 저장되었습니다."}
+
+    # 전역 JSON 파일(mlb_news_settings.json)에 즉시 반영 후 백그라운드 워커 깨우기
+    _save_schedules_to_settings(list(cur_map.values()))
+    _scheduler_wake_event.set()
+
+    return {
+        "status": "success",
+        "message": f"자동화 스케줄 설정이 전역 설정 파일({SETTINGS_FILE.name}) 및 DB에 저장되었습니다."
+    }
 
 
 # =========================================================
-# 5. 데이터 수집 기록(로그) 목록 조회
+# 5. 백그라운드 자동화 실행 워커 (news.py 패턴과 동일)
+# =========================================================
+def _parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
+    if not dt_str:
+        return None
+    try:
+        return datetime.fromisoformat(str(dt_str)[:19])
+    except ValueError:
+        return None
+
+
+def _parse_run_time_today(now: datetime, run_time_str: str) -> datetime:
+    try:
+        parts = str(run_time_str or "04:00").strip().split(":")
+        hour = max(0, min(23, int(parts[0])))
+        minute = max(0, min(59, int(parts[1]))) if len(parts) > 1 else 0
+        return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    except (ValueError, IndexError):
+        return now.replace(hour=4, minute=0, second=0, microsecond=0)
+
+
+def _is_schedule_due(item: dict, now: datetime) -> bool:
+    """활성화된 스케줄 항목이 현재 실행 시점(Due)에 도달했는지 판별"""
+    if not item.get("is_enabled"):
+        return False
+
+    iv_type = str(item.get("interval_type") or "DAILY").upper()
+    last_run = _parse_datetime(item.get("last_run_at"))
+
+    if iv_type == "EVERY_6H":
+        return last_run is None or (now - last_run) >= timedelta(hours=6)
+
+    if iv_type == "EVERY_12H":
+        return last_run is None or (now - last_run) >= timedelta(hours=12)
+
+    target_today = _parse_run_time_today(now, item.get("run_time", "04:00"))
+
+    if iv_type == "DAILY":
+        if now < target_today:
+            return False
+        return last_run is None or last_run.date() < now.date()
+
+    if iv_type == "WEEKLY":
+        if now < target_today:
+            return False
+        return last_run is None or (now - last_run) >= timedelta(days=7)
+
+    return False
+
+
+def _build_auto_fetch_request(item: dict, now: datetime) -> ManualFetchRequest:
+    dtype = item.get("data_type", "PIPELINE_GAMES")
+    t_opt = str(item.get("target_option") or "").strip()
+
+    season = now.year
+    start_date = (now - timedelta(days=2)).strftime("%Y-%m-%d")
+    end_date = now.strftime("%Y-%m-%d")
+
+    if t_opt.isdigit() and len(t_opt) == 4:
+        season = int(t_opt)
+        start_date = f"{season}-04-01"
+        end_date = f"{season}-04-30"
+    elif "~" in t_opt:
+        parts = [p.strip() for p in t_opt.split("~", 1)]
+        if len(parts) == 2 and parts[0] and parts[1]:
+            start_date, end_date = parts[0], parts[1]
+            if start_date[:4].isdigit():
+                season = int(start_date[:4])
+    elif t_opt.upper() == "RECENT_3DAYS":
+        start_date = (now - timedelta(days=2)).strftime("%Y-%m-%d")
+        end_date = now.strftime("%Y-%m-%d")
+        season = int(start_date[:4])
+
+    return ManualFetchRequest(
+        data_type=dtype,
+        season=season,
+        start_date=start_date,
+        end_date=end_date,
+        trigger_type="AUTO",
+        refresh_pitcher_details=False,
+    )
+
+
+def baseball_scheduler_loop():
+    """백그라운드에서 주기적으로 전역 설정 파일을 확인하여 예약된 야구 데이터 파이프라인 실행"""
+    # 서버 부팅 직후 초기화 안정화를 위해 10초 대기 후 루프 진입
+    _scheduler_wake_event.wait(10)
+
+    while True:
+        _scheduler_wake_event.clear()
+        try:
+            if not baseball_sync_lock.locked():
+                now = datetime.now()
+                schedules = _load_schedules_from_settings()
+                for item in schedules:
+                    if _is_schedule_due(item, now):
+                        dtype = item["data_type"]
+                        req = _build_auto_fetch_request(item, now)
+                        print(f"[BaseballScheduler] 자동 실행 시작: {dtype} (옵션: {item.get('target_option')})")
+                        _mark_schedule_last_run(dtype, now)
+                        log_id = _create_sync_log(req)
+                        _execute_pipeline_job(log_id, req)
+                        break  # 한 틱에 하나씩 순차 처리
+        except Exception as exc:
+            print(f"[BaseballScheduler] 자동화 루프 예외: {exc}")
+
+        # 30초마다 체크하되, 관리자가 설정을 새로 저장하면(_scheduler_wake_event.set) 즉시 깨어남
+        _scheduler_wake_event.wait(30)
+
+
+def start_background_baseball_scheduler():
+    global _scheduler_started
+    if _scheduler_started:
+        return
+
+    _scheduler_started = True
+    threading.Thread(
+        target=baseball_scheduler_loop,
+        name="mlb-baseball-data-scheduler",
+        daemon=True,
+    ).start()
+
+
+# =========================================================
+# 6. 데이터 수집 기록(로그) 목록 조회
 # =========================================================
 @router.get("/logs")
 def get_sync_logs(limit: int = Query(50, ge=1, le=200), db: Session = Depends(get_db)):
@@ -685,3 +1006,7 @@ def get_sync_logs(limit: int = Query(50, ge=1, le=200), db: Session = Depends(ge
         logs.append(item)
 
     return {"logs": logs}
+
+
+# 모듈 로드 시 백그라운드 스케줄러 시작 (news.py와 동일한 패턴)
+start_background_baseball_scheduler()
