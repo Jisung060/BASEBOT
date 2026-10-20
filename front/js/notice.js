@@ -77,6 +77,11 @@ function renderNotices() {
     document.getElementById("noticeTotalCount").textContent = notices.length;
     emptyMessage.hidden = notices.length !== 0;
 
+    // 검색어나 분류를 고른 상태에서 결과가 없을 때만 '목록으로' 버튼 보이기
+    const isFiltered = document.getElementById("searchInput").value.trim() !== ""
+        || document.getElementById("noticeCategorySelect").value !== "";
+    document.getElementById("noticeBackButton").hidden = !isFiltered;
+
     const start = (currentNoticePage - 1) * NOTICES_PER_PAGE;
     const pageNotices = notices.slice(start, start + NOTICES_PER_PAGE);
 
@@ -171,6 +176,13 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             loadNotices();
         }
+    });
+
+    // 목록으로: 검색어와 분류를 지우고 전체 목록 다시 불러오기
+    document.getElementById("noticeBackButton").addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("noticeCategorySelect").value = "";
+        loadNotices();
     });
 
     loadNotices();

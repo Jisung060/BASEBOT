@@ -9,6 +9,11 @@
     grid-template-columns: 60px 80px minmax(250px, 1fr) 115px 90px 65px;
 }
 
+/* 공지 목록 표 위의 검은 줄 없애기 (커뮤니티 게시판은 그대로) */
+.notice-board {
+    border-top: none;
+}
+
 /* 분류 선택창 너비 */
 .board-toolbar-right #noticeCategorySelect {
     width: 120px;

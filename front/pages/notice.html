@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공지사항 | BASEBOT</title>
     <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/common-page.css">
     <link rel="stylesheet" href="../css/community.css">
     <link rel="stylesheet" href="../css/notice.css">
 </head>
@@ -54,6 +55,14 @@
                     </div>
                     <div id="noticeEmptyMessage" class="filter-empty-message" hidden>
                         등록된 공지사항이 없습니다.
+
+                        <!-- 검색/분류 결과가 없을 때만 보임: 누르면 전체 목록으로 -->
+                        <div style="margin-top: 16px;">
+                            <button type="button"
+                                    id="noticeBackButton"
+                                    class="community-btn"
+                                    hidden>목록으로</button>
+                        </div>
                     </div>
                 </div>
 
