@@ -613,11 +613,36 @@ def _run_seed_teams() -> int:
     return 30
 
 
+def _run_model_training(data_type: str) -> str:
+    jobs = {
+        "TRAIN_ML_MODEL": ("ml/train_prediction_model.py", "services.prediction_service", "predictor", "_load_model"),
+        "TRAIN_DL_MODEL": ("services/player_dl_predictor.py", "services.player_dl_predictor", "dl_predictor", "_ensure_loaded"),
+    }
+    script, module_name, instance_name, reload_method = jobs[data_type]
+    try:
+        result = subprocess.run(
+            [sys.executable, "-u", str(BACK_DIR / script)],
+            cwd=str(BACK_DIR), timeout=3600, check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"모델 학습 실패: {(exc.stdout or str(exc))[-1500:]}") from exc
+    # Refresh the already-loaded service without importing a second instance.
+    module = sys.modules.get(module_name)
+    if module is not None:
+        instance = getattr(module, instance_name, None)
+        if instance is not None:
+            getattr(instance, reload_method)()
+    return (result.stdout or "")[-2000:]
+
+
 def _create_sync_log(req: ManualFetchRequest) -> int:
     is_game_job = req.data_type in ("PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES")
     if is_game_job:
         target_desc = f"{req.start_date} ~ {req.end_date}"
-    elif req.data_type in ("STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS"):
+    elif req.data_type in ("STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS", "TRAIN_ML_MODEL", "TRAIN_DL_MODEL"):
         target_desc = "전체 DB 대상"
     else:
         target_desc = f"{req.season} 시즌"
@@ -718,6 +743,13 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             _update_log_progress(log_id, f"{season} 시즌 투수 Extension 개별 조회 중 (수 분 이상 소요 가능)...")
             records_cnt = _run_savant_extension(season)
             msg = f"{season} 시즌 Extension 단독 갱신 완료 (Extension 보유 {records_cnt}건)"
+
+        elif dtype in ("TRAIN_ML_MODEL", "TRAIN_DL_MODEL"):
+            model_name = "경기 승부예측 ML" if dtype == "TRAIN_ML_MODEL" else "선수 성적예측 DL"
+            _update_log_progress(log_id, f"{model_name} 모델 학습 중 (DB 전체 데이터, 최대 60분)...")
+            output = _run_model_training(dtype)
+            records_cnt = 1
+            msg = f"{model_name} 학습 및 모델 파일 저장 완료 (모델 파일 1개)\n{output}"
 
         elif dtype == "STEP_GAMES":
             _update_log_progress(log_id, f"{s_date}~{e_date} 경기 일정 수집 중 (collector_games)...")

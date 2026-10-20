@@ -242,8 +242,15 @@
                                                 <option value="STEP_REPAIR_GAMES">3. 경기 시간·구장·승리팀 보정 (repair_games_data.py)</option>
                                                 <option value="STEP_SEED_TEAMS">MLB 30개 구단 초기 적재 (seed_teams.py)</option>
                                             </optgroup>
+                                            <optgroup label="머신러닝/딥러닝 모델 학습 스크립트 실행">
+                                                <option value="TRAIN_ML_MODEL">경기 승부예측 ML 학습 (train_prediction_model.py)</option>
+                                                <option value="TRAIN_DL_MODEL">선수 성적예측 DL 학습 (player_dl_predictor.py)</option>
+                                            </optgroup>
                                         </select>
                                     </label>
+                                    <p id="manualTrainingNotice" class="full-width" style="display: none;">
+                                        DB 전체 저장 데이터로 학습하고 기존 모델 파일을 갱신합니다. 완료까지 시간이 걸릴 수 있으며 결과는 하단 작업 기록에서 확인할 수 있습니다.
+                                    </p>
 
                                     <!-- 시즌 선택 (타자/투수 스탯 선택 시 표시) -->
                                     <label class="full-width" id="manualSeasonBox">

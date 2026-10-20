@@ -18,7 +18,9 @@ const DATA_TYPE_LABELS = {
     "STEP_GAMES": "경기 수집 (collector_games)",
     "STEP_BOXSCORES": "박스스코어 수집 (collector_boxscores)",
     "STEP_REPAIR_GAMES": "경기 보정 (repair_games_data)",
-    "STEP_SEED_TEAMS": "30개 구단 시드 (seed_teams)"
+    "STEP_SEED_TEAMS": "30개 구단 시드 (seed_teams)",
+    "TRAIN_ML_MODEL": "경기 승부예측 ML 모델 학습",
+    "TRAIN_DL_MODEL": "선수 성적예측 DL 모델 학습"
 };
 
 // 카테고리별 테이블 컬럼 정의
@@ -331,7 +333,9 @@ function initManualSyncControls() {
     const updateOptionVisibility = () => {
         const val = syncTypeSelect.value;
         const isDateRangeType = ["PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES"].includes(val);
-        const isNoParamType = ["STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS"].includes(val);
+        const isTraining = ["TRAIN_ML_MODEL", "TRAIN_DL_MODEL"].includes(val);
+        document.getElementById("manualTrainingNotice").style.display = isTraining ? "block" : "none";
+        const isNoParamType = isTraining || ["STEP_PLAYERS_META", "STEP_REPAIR_GAMES", "STEP_SEED_TEAMS"].includes(val);
 
         if (isDateRangeType) {
             seasonBox.style.display = "none";

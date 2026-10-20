@@ -655,7 +655,8 @@ class PlayerDLPredictor:
         }
 
 
-dl_predictor = PlayerDLPredictor()
+# CLI training must not trigger an extra initial training through service initialization.
+dl_predictor = PlayerDLPredictor() if __name__ != "__main__" else None
 
 
 # ---------------------------------------------------------
