@@ -81,10 +81,9 @@ function setupEvents() {
 
 /* ---------- 오늘 / 초기화 버튼 ---------- */
 
-async function goToToday() {           // 오늘 날짜의 경기만 보여 줌
+function goToToday() {                 // 오늘 날짜의 경기만 보여 줌 (없으면 기본 '경기 없음' 문구)
     calendar.hidden = true;
-    const count = await setSelectedDate(formatKey(new Date()));
-    if (count === 0) emptyMessage.textContent = "오늘은 경기가 없습니다."; // 최근 경기로 이동하지 않음
+    setSelectedDate(formatKey(new Date()));
 }
 
 async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 경기 날짜의 경기만 보여 줌

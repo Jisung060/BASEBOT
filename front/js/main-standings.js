@@ -1,192 +1,105 @@
-/* ==================================================
-   BASEBOT 메인 페이지 구단 순위
-   파일 위치: front/js/main-standings.js
+// ==================================================
+// 메인 - 팀 순위 (동부 | 중부 | 서부 3칸)
+// 팀 순위 페이지와 같은 API(/api/standings)를 사용 → 가장 최근 시즌
+// 다른 메인 스크립트와 이름이 겹치지 않게 함수 안에 넣음
+// ==================================================
+(() => {
+    const DIVISION_LABELS = { East: "동부", Central: "중부", West: "서부" };
+    const grid = document.getElementById("main-standings-grid");
+    const leagueButtons = document.querySelectorAll(".main-standings-league");
+    let standings = null;                              // API에서 받은 순위 데이터
+    let selectedLeague = "AL";                         // 선택한 리그
 
-   - /api/standings API 연동
-   - AL/NL 전체 구단 데이터 통합
-   - 승률 기준 상위 4개 구단 표시
-   - 팀 로고 이미지 표시
-   - 로고 이미지 로드 실패 시 기본 아이콘 표시
-   - 기존 메인 페이지 HTML/CSS 구조 유지
-================================================== */
+    if (!grid) return;
 
-document.addEventListener("DOMContentLoaded", loadMainStandings);
-
-/**&#xA; * 메인 페이지 구단 순위 조회&#xA; */
-async function loadMainStandings() {
-    const standingsList = document.getElementById("main-standings-list");
-
-    if (!standingsList) {
-        return;
+    function el(tag, className, text) {                // 요소를 만드는 짧은 함수
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
     }
 
-    try {
-        const response = await fetch("/api/standings", {
-            method: "GET",
-            cache: "no-store"
-        });
+    function showMessage(text) {
+        grid.replaceChildren(el("p", "main-standings-message", text));
+    }
 
-        if (!response.ok) {
-            throw new Error(
-                `구단 순위 조회 실패: HTTP ${response.status}`
-            );
+    async function loadStandings() {
+        try {
+            const response = await fetch("/api/standings", { cache: "no-store" });
+            if (!response.ok) throw new Error(`팀 순위 API 오류 (${response.status})`);
+            standings = await response.json();
+            render();
+        } catch (error) {
+            console.error("메인 팀 순위 조회 오류:", error);
+            showMessage("팀 순위를 불러오지 못했습니다.");
         }
+    }
 
-        const result = await response.json();
-
-        if (
-            !Array.isArray(result.divisions) ||
-            !Array.isArray(result.wildcards)
-        ) {
-            throw new Error(
-                "구단 순위 API 응답 형식이 올바르지 않습니다."
-            );
-        }
-
-        // 지구별 순위 데이터를 하나의 배열로 통합
-        const allTeams = result.divisions.flatMap(division =>
-            Array.isArray(division.teams)
-                ? division.teams
-                : []
-        );
-
-        // 표시할 구단이 없는 경우
-        if (allTeams.length === 0) {
-            standingsList.innerHTML = `
-                <div class="ranking-row">
-                    <span>-</span>
-                    <span>표시할 구단 순위가 없습니다.</span>
-                    <span>-</span>
-                    <span>-</span>
-                    <span>-</span>
-                    <span>-</span>
-                </div>
-            `;
+    function render() {                                // 선택한 리그의 지구 3개를 나란히 그리기
+        const divisions = standings.divisions.filter(d => d.league === selectedLeague);
+        if (!standings.season || divisions.every(d => d.teams.every(t => t.games === 0))) {
+            showMessage("순위를 계산할 경기 결과가 없습니다.");
             return;
         }
-
-        // 승률 내림차순 → 승리 수 내림차순 → 팀 이름순
-        allTeams.sort((a, b) => {
-            const pctA = Number(a.pct) || 0;
-            const pctB = Number(b.pct) || 0;
-
-            if (pctB !== pctA) {
-                return pctB - pctA;
-            }
-
-            const winsA = Number(a.wins) || 0;
-            const winsB = Number(b.wins) || 0;
-
-            if (winsB !== winsA) {
-                return winsB - winsA;
-            }
-
-            return String(a.team_name || "").localeCompare(
-                String(b.team_name || "")
-            );
-        });
-
-        // 메인 페이지에는 상위 4개 구단 표시
-        const topTeams = allTeams.slice(0, 4);
-
-        standingsList.innerHTML = topTeams.map((team, index) => {
-            const teamName = escapeStandingsHtml(
-                team.team_name || "-"
-            );
-
-            const logoUrl = getValidLogoUrl(team.logo_url);
-
-            const games = Number(team.games) || 0;
-            const wins = Number(team.wins) || 0;
-            const losses = Number(team.losses) || 0;
-            const pct = Number(team.pct) || 0;
-
-            // 로고 주소가 있는 경우 이미지 표시
-            // 주소가 없거나 이미지 로드에 실패하면 기본 아이콘 표시
-            const logoHtml = logoUrl
-                ? `
-                    <img
-                        src="${escapeStandingsHtml(logoUrl)}"
-                        alt="${teamName} 로고"
-                        class="ranking-team-logo"
-                        loading="lazy"
-                        onerror="
-                            this.onerror = null;
-                            this.style.display = 'none';
-                            this.nextElementSibling.style.display = 'inline-flex';
-                        "
-                    >
-                    <span
-                        class="ranking-team-logo-fallback"
-                        style="display: none;"
-                        aria-label="${teamName} 로고 없음"
-                    >⚾</span>
-                `
-                : `
-                    <span
-                        class="ranking-team-logo-fallback"
-                        aria-label="${teamName} 로고 없음"
-                    >⚾</span>
-                `;
-
-            return `
-                <div class="ranking-row">
-                    <span>${index + 1}</span>
-
-                    <span class="ranking-team">
-                        ${logoHtml}
-                        <span class="ranking-team-name">${teamName}</span>
-                    </span>
-
-                    <span>${games}</span>
-                    <span>${wins}</span>
-                    <span>${losses}</span>
-                    <span>${pct.toFixed(3)}</span>
-                </div>
-            `;
-        }).join("");
-
-    } catch (error) {
-        console.error("메인 구단 순위 로드 오류:", error);
-
-        standingsList.innerHTML = `
-            <div class="ranking-row">
-                <span>-</span>
-                <span>구단 순위를 불러오지 못했습니다.</span>
-                <span>-</span>
-                <span>-</span>
-                <span>-</span>
-                <span>-</span>
-            </div>
-        `;
-    }
-}
-
-/**&#xA; * 팀 로고 URL 검증&#xA; * HTTP 또는 HTTPS 주소만 허용&#xA; */
-function getValidLogoUrl(value) {
-    if (typeof value !== "string" || !value.trim()) {
-        return "";
+        grid.replaceChildren(...divisions.map(createDivision));
     }
 
-    try {
-        const url = new URL(value.trim(), window.location.origin);
+    function createDivision(division) {
+        const box = el("div", "main-standings-division");
+        box.append(el("h3", "main-standings-division-title", DIVISION_LABELS[division.division]));
 
-        if (url.protocol !== "http:" && url.protocol !== "https:") {
-            return "";
+        const header = el("div", "ranking-header main-standings-row");
+        ["순위", "팀", "경기", "승", "패", "승률"].forEach(name => header.append(el("span", "", name)));
+        box.append(header);
+
+        division.teams.forEach(team => box.append(createTeamRow(team)));
+        return box;
+    }
+
+    function createTeamRow(team) {
+        // 지구 1위(플레이오프 진출권)는 왼쪽 파란 선
+        const row = el("div", `ranking-row main-standings-row${team.rank === 1 ? " is-leader" : ""}`);
+
+        const link = el("a", "main-standings-team");   // 팀 클릭 → 팀 정보(로스터)
+        link.href = `/team-detail.html?id=${encodeURIComponent(team.team_id)}`;
+        link.title = team.team_name;
+        if (team.logo_url) {                           // 로고 (불러오지 못하면 숨김)
+            const logo = el("img", "main-standings-logo");
+            logo.src = team.logo_url;
+            logo.alt = "";
+            logo.loading = "lazy";
+            logo.onerror = () => logo.remove();
+            link.append(logo);
         }
+        link.append(el("span", "main-standings-team-name", team.team_name));
 
-        return url.href;
-    } catch (error) {
-        return "";
+        row.append(
+            el("span", "main-standings-rank", team.rank),
+            link,
+            el("span", "", team.games),
+            el("span", "", team.wins),
+            el("span", "", team.losses),
+            el("span", "", formatPct(team.pct))
+        );
+        return row;
     }
-}
 
-/**&#xA; * HTML 이스케이프&#xA; * DB에서 가져온 팀 이름과 이미지 URL을 HTML에 삽입할 때 사용&#xA; */
-function escapeStandingsHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
+    function formatPct(pct) {                          // 0.589 → ".589", 1 → "1.000"
+        const text = Number(pct).toFixed(3);
+        return text.startsWith("0") ? text.slice(1) : text;
+    }
+
+    leagueButtons.forEach(button => {                  // 리그 변경 버튼
+        button.addEventListener("click", () => {
+            selectedLeague = button.dataset.league;
+            leagueButtons.forEach(b => {
+                const isSelected = b === button;
+                b.classList.toggle("selected", isSelected);
+                b.setAttribute("aria-selected", String(isSelected));
+            });
+            if (standings) render();
+        });
+    });
+
+    loadStandings();
+})();

@@ -15,6 +15,28 @@ const NOTICE_CATEGORY = {
 let notices = [];          // 서버에서 받은 공지 목록
 let currentNoticePage = 1;
 
+const NOTICE_STATE_KEY = "noticeListState";   // 글 보러 갈 때 목록 상태를 저장할 이름
+
+
+/* =========================================
+   목록 상태 저장 / 복원
+   (글을 보고 '목록'이나 뒤로 가기로 돌아오면 보던 페이지 그대로)
+========================================= */
+function saveNoticeState() {
+    sessionStorage.setItem(NOTICE_STATE_KEY, JSON.stringify({
+        page: currentNoticePage,
+        category: document.getElementById("noticeCategorySelect").value,
+        keyword: document.getElementById("searchInput").value,
+        searchType: document.getElementById("searchType").value
+    }));
+}
+
+function takeNoticeState() {                   // 저장한 상태를 꺼내고 지움 (한 번만 사용)
+    const text = sessionStorage.getItem(NOTICE_STATE_KEY);
+    sessionStorage.removeItem(NOTICE_STATE_KEY);
+    try { return text ? JSON.parse(text) : null; } catch { return null; }
+}
+
 
 // HTML 특수문자 변환 (제목이 코드로 실행되지 않게)
 function escapeNoticeHtml(value) {
@@ -91,10 +113,9 @@ function renderNotices() {
         const row = document.createElement("a");
         row.className = notice.is_pinned ? "board-row pinned" : "board-row";
         row.href = `notice-view.html?id=${encodeURIComponent(notice.notice_id)}`;
+        row.addEventListener("click", saveNoticeState);   // 글 보러 가기 전에 지금 페이지 저장
 
         row.innerHTML = `
-            <div>${notice.is_pinned ? "공지" : notice.notice_id}</div>
-
             <div>
                 <span class="category-label ${category.className}">${category.name}</span>
             </div>
@@ -129,27 +150,32 @@ function renderNoticePagination(totalPages) {
         return;
     }
 
-    function addPageButton(text, page, isActive = false) {
+    function addPageButton(text, page, isActive = false, isDisabled = false) {
         const button = document.createElement("a");
         button.href = "#";
         button.textContent = text;
         if (isActive) button.classList.add("active");
+        if (isDisabled) {                         // 첫/마지막 페이지의 ‹ › : 자리는 지키고 누를 수 없게
+            button.classList.add("disabled");
+            button.setAttribute("aria-disabled", "true");
+        }
 
         button.addEventListener("click", event => {
             event.preventDefault();
+            if (isDisabled) return;
             currentNoticePage = page;
-            renderNotices();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            renderNotices();                      // 스크롤 위치는 그대로 둠
         });
 
         pagination.appendChild(button);
     }
 
-    if (currentNoticePage > 1) addPageButton("‹", currentNoticePage - 1);
+    // ‹ › 는 항상 표시 (버튼 위치가 흔들리지 않게)
+    addPageButton("‹", currentNoticePage - 1, false, currentNoticePage <= 1);
     for (let page = 1; page <= totalPages; page++) {
         addPageButton(page, page, page === currentNoticePage);
     }
-    if (currentNoticePage < totalPages) addPageButton("›", currentNoticePage + 1);
+    addPageButton("›", currentNoticePage + 1, false, currentNoticePage >= totalPages);
 }
 
 
@@ -185,5 +211,18 @@ document.addEventListener("DOMContentLoaded", () => {
         loadNotices();
     });
 
-    loadNotices();
+    // 글에서 돌아온 경우: 분류·검색어를 먼저 되돌린 뒤 불러오고, 보던 페이지로 이동
+    const saved = takeNoticeState();
+    if (saved) {
+        document.getElementById("noticeCategorySelect").value = saved.category || "";
+        document.getElementById("searchInput").value = saved.keyword || "";
+        document.getElementById("searchType").value = saved.searchType || "title_content";
+        loadNotices().then(() => {
+            const totalPages = Math.max(1, Math.ceil(notices.length / NOTICES_PER_PAGE));
+            currentNoticePage = Math.min(Number(saved.page) || 1, totalPages); // 글이 지워져 페이지가 줄면 마지막 페이지
+            renderNotices();
+        });
+    } else {
+        loadNotices();
+    }
 });
