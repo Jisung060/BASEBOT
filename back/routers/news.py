@@ -749,12 +749,11 @@ def get_article(news_id: int):
 # Gemini 3줄 요약
 # ============================================================
 def ai_summary(title, content):
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
 
     if not api_key:
-        raise HTTPException(
-            503,
-            "GEMINI_API_KEY가 설정되지 않았습니다. 환경변수를 먼저 설정하세요.",
+        raise RuntimeError(
+            "GOOGLE_API_KEY 또는 GEMINI_API_KEY 환경변수를 설정해 주세요."
         )
 
     model = os.getenv(

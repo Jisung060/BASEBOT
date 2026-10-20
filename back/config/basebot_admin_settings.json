@@ -5,12 +5,12 @@
       "schedule_id": 9,
       "data_type": "PIPELINE_PLAYERS",
       "label": "선수 통합 파이프라인 (타자/투수 ➔ 메타 ➔ Savant)",
-      "is_enabled": false,
+      "is_enabled": true,
       "interval_type": "DAILY",
       "run_time": "04:00",
-      "target_option": "2024",
-      "last_run_at": null,
-      "updated_at": "2026-10-20 09:37:32"
+      "target_option": "2026",
+      "last_run_at": "2026-10-20 11:58:52",
+      "updated_at": "2026-10-20 11:58:52"
     },
     {
       "schedule_id": 10,
@@ -21,7 +21,7 @@
       "run_time": "00:00",
       "target_option": "RECENT_3DAYS",
       "last_run_at": "2026-10-20 09:34:59",
-      "updated_at": "2026-10-20 09:37:32"
+      "updated_at": "2026-10-20 11:58:52"
     },
     {
       "schedule_id": 11,
@@ -32,7 +32,7 @@
       "run_time": "05:00",
       "target_option": "2024",
       "last_run_at": null,
-      "updated_at": "2026-10-20 09:37:32"
+      "updated_at": "2026-10-20 11:58:52"
     },
     {
       "schedule_id": 236,
@@ -43,7 +43,7 @@
       "run_time": "06:00",
       "target_option": "2024",
       "last_run_at": null,
-      "updated_at": "2026-10-20 09:37:32"
+      "updated_at": "2026-10-20 11:58:52"
     },
     {
       "schedule_id": 12,
@@ -54,7 +54,7 @@
       "run_time": "03:00",
       "target_option": "ALL",
       "last_run_at": null,
-      "updated_at": "2026-10-20 09:37:32"
+      "updated_at": "2026-10-20 11:58:52"
     }
   ],
   "updated_at": "2026-10-20 10:02:21"
