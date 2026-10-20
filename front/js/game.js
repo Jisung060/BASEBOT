@@ -390,6 +390,7 @@ function createGameCard(game) {
 
     const card = el("article", "game-card");
     if (hasFavorite && teamSelect.value !== favoriteId) card.classList.add("favorite-game-card");
+    if (game.status === "CANCELLED") card.classList.add("is-cancelled"); // 취소 경기: 흐리게 (클릭 안 됨)
 
     const time = el("div", "game-time");               // 왼쪽: 시간과 구장 (구장은 DB 값)
     time.append(
@@ -464,6 +465,9 @@ function createScoreNode(game, showScore) {
         }
         block.append(el("div", "score-line"), el("span", "score-caption", ""));
         block.querySelector(".score-line").append(away, el("span", "", ":"), home);
+    } else if (game.status === "CANCELLED") {          // 취소 경기: 점수 자리에 '취소'만 크게
+        block.append(el("span", "scheduled-vs cancelled-mark", "취소"));
+        return block;
     } else {
         block.append(el("span", "scheduled-vs", "VS"));
     }
