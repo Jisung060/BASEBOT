@@ -14,7 +14,11 @@ BASEBOT AI 챗봇의 MySQL 조회 전용 서비스.
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
+
+import json
+from urllib.request import Request, urlopen
 
 from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
@@ -651,6 +655,244 @@ def _leader_context(
     ).mappings().all()
 
     return _format_rows(title, [dict(row) for row in rows])
+
+
+# =========================================================
+# MLB 현재 팀 순위 (MLB Stats API)
+# =========================================================
+
+def _standings_context(question: str) -> str:
+    """MLB Stats API에서 현재 시즌 팀 순위를 조회합니다."""
+    q = question.casefold()
+    season = date.today().year
+
+    url = (
+        "https://statsapi.mlb.com/api/v1/standings"
+        f"?leagueId=103,104&season={season}"
+        "&standingsTypes=regularSeason"
+        "&hydrate=team,division,league"
+    )
+    request = Request(
+        url,
+        headers={"User-Agent": "BASEBOT/1.0"},
+    )
+
+    try:
+        with urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        print(
+            "[MLB 순위 API 조회 오류] "
+            f"{type(exc).__name__}: {exc}"
+        )
+        return (
+            "[MLB 팀 순위]\n"
+            "현재 팀 순위를 외부 API에서 가져오지 못했습니다. "
+            "잠시 후 다시 시도해 주세요."
+        )
+
+    division_names = {
+        200: "아메리칸리그 서부지구",
+        201: "아메리칸리그 동부지구",
+        202: "아메리칸리그 중부지구",
+        203: "내셔널리그 서부지구",
+        204: "내셔널리그 동부지구",
+        205: "내셔널리그 중부지구",
+    }
+    divisions: dict[int, list[dict[str, Any]]] = {}
+    all_teams: list[dict[str, Any]] = []
+
+    for record in payload.get("records", []):
+        division = record.get("division") or {}
+        try:
+            division_id = int(division.get("id"))
+        except (TypeError, ValueError):
+            continue
+
+        division_name = division_names.get(
+            division_id,
+            division.get("name", "알 수 없는 지구"),
+        )
+        division_teams: list[dict[str, Any]] = []
+
+        for team_record in record.get("teamRecords", []):
+            team = team_record.get("team") or {}
+            win_pct = team_record.get("winningPercentage", ".000")
+            try:
+                win_pct_value = float(win_pct)
+            except (TypeError, ValueError):
+                win_pct_value = 0.0
+
+            item = {
+                "team_name": team.get("name", "알 수 없는 팀"),
+                "division_name": division_name,
+                "wins": team_record.get("wins", 0),
+                "losses": team_record.get("losses", 0),
+                "winning_percentage": win_pct,
+                "games_back": team_record.get("gamesBack", "-"),
+                "division_rank": team_record.get("divisionRank", "-"),
+                "_win_pct_value": win_pct_value,
+            }
+            division_teams.append(item)
+            all_teams.append(item)
+
+        division_teams.sort(
+            key=lambda item: (
+                int(item["division_rank"])
+                if str(item["division_rank"]).isdigit()
+                else 999,
+                -item["_win_pct_value"],
+            )
+        )
+        divisions[division_id] = division_teams
+
+    if not all_teams:
+        return (
+            "[MLB 팀 순위]\n"
+            "API 응답에 순위 데이터가 없습니다."
+        )
+
+    is_al = any(
+        word in q
+        for word in (
+            "아메리칸리그", "아메리칸 리그", "american league",
+            "al east", "al central", "al west",
+        )
+    )
+    is_nl = any(
+        word in q
+        for word in (
+            "내셔널리그", "내셔널 리그", "national league",
+            "nl east", "nl central", "nl west",
+        )
+    )
+
+    if any(word in q for word in ("동부지구", "동부 지구", "east")):
+        target_division = "east"
+    elif any(word in q for word in ("중부지구", "중부 지구", "central")):
+        target_division = "central"
+    elif any(word in q for word in ("서부지구", "서부 지구", "west")):
+        target_division = "west"
+    else:
+        target_division = None
+
+    division_ids = {
+        ("al", "east"): 201,
+        ("al", "central"): 202,
+        ("al", "west"): 200,
+        ("nl", "east"): 204,
+        ("nl", "central"): 205,
+        ("nl", "west"): 203,
+    }
+    asks_first = any(
+        word in q
+        for word in ("1위", "1 위", "1등", "1 등", "선두", "리더", "leader")
+    )
+
+    # 특정 리그와 지구를 함께 지정한 경우
+    if target_division and (is_al or is_nl):
+        league_key = "al" if is_al else "nl"
+        selected = divisions.get(
+            division_ids[(league_key, target_division)],
+            [],
+        )
+        title = (
+            selected[0]["division_name"]
+            if selected else f"{league_key.upper()} {target_division}"
+        )
+        if asks_first:
+            selected = selected[:1]
+        return _format_rows(
+            f"{title} {'1위' if asks_first else '순위'}",
+            [
+                {
+                    "순위": item["division_rank"],
+                    "팀": item["team_name"],
+                    "승": item["wins"],
+                    "패": item["losses"],
+                    "승률": item["winning_percentage"],
+                    "게임차": item["games_back"],
+                }
+                for item in selected
+            ],
+        )
+
+    # 리그만 지정한 경우: 해당 리그의 지구별 선두 팀
+    if is_al or is_nl:
+        ids = [200, 201, 202] if is_al else [203, 204, 205]
+        leaders = []
+        for division_id in ids:
+            teams = divisions.get(division_id, [])
+            if teams:
+                team = teams[0]
+                leaders.append({
+                    "지구": team["division_name"],
+                    "1위 팀": team["team_name"],
+                    "승": team["wins"],
+                    "패": team["losses"],
+                    "승률": team["winning_percentage"],
+                    "게임차": team["games_back"],
+                })
+        return _format_rows(
+            "아메리칸리그 지구별 선두" if is_al else "내셔널리그 지구별 선두",
+            leaders,
+        )
+
+    # 리그를 지정하지 않고 지구만 물어본 경우
+    if target_division:
+        ids = {
+            "east": [201, 204],
+            "central": [202, 205],
+            "west": [200, 203],
+        }[target_division]
+        if asks_first:
+            rows = []
+            for division_id in ids:
+                teams = divisions.get(division_id, [])
+                if teams:
+                    item = teams[0]
+                    rows.append({
+                        "지구": item["division_name"],
+                        "1위 팀": item["team_name"],
+                        "승": item["wins"],
+                        "패": item["losses"],
+                        "승률": item["winning_percentage"],
+                        "게임차": item["games_back"],
+                    })
+            return _format_rows(f"MLB {target_division} 지구별 1위", rows)
+
+        rows = []
+        for division_id in ids:
+            for item in divisions.get(division_id, []):
+                rows.append({
+                    "지구": item["division_name"],
+                    "순위": item["division_rank"],
+                    "팀": item["team_name"],
+                    "승": item["wins"],
+                    "패": item["losses"],
+                    "승률": item["winning_percentage"],
+                    "게임차": item["games_back"],
+                })
+        return _format_rows(f"MLB {target_division} 지구 순위", rows)
+
+    # 지구를 특정하지 않으면 전체 팀 승률 상위 10팀
+    all_teams.sort(
+        key=lambda item: (-item["_win_pct_value"], -int(item["wins"]))
+    )
+    return _format_rows(
+        f"MLB 전체 팀 승률 순위 ({season} 시즌)",
+        [
+            {
+                "순위": rank,
+                "팀": item["team_name"],
+                "리그/지구": item["division_name"],
+                "승": item["wins"],
+                "패": item["losses"],
+                "승률": item["winning_percentage"],
+            }
+            for rank, item in enumerate(all_teams[:10], start=1)
+        ],
+    )
 
 
 # =========================================================
@@ -1404,7 +1646,61 @@ def get_database_context(
             return _prediction_vote_context(db, question)
 
         # -------------------------------------------------
-        # 3. 현재 최장 연승
+        # 3. MLB 현재 팀 순위 (외부 MLB Stats API)
+        # -------------------------------------------------
+        is_standings_question = any(
+            word in q
+            for word in (
+                # 지구별 순위
+                "동부지구", "동부 지구", "중부지구",
+                "중부 지구", "서부지구", "서부 지구",
+
+                # 영문 지구명
+                "al east", "al central", "al west",
+                "nl east", "nl central", "nl west",
+
+                # 리그 / 팀 / 구단 순위
+                "팀 순위", "팀순위", "구단 순위", "구단순위", "팀 순위 알려", "구단 순위 알려",
+                "지구 순위", "mlb 순위", "리그 순위", "순위 알려줘", "순위 알려", "순위 보여줘",
+                "순위 보여", "순위가 어떻게", "순위는 어떻게", "standings",
+
+                # 현재 선두 / 1위
+                "현재 1위", "현재1위",
+                "현재 1순위", "현재1순위",
+                "현재 1위가", "현재 1위는",
+                "현재 1위 팀",
+                "현재 1등",
+                "전체 1위", "전체 1등",
+
+                # 현재 선두 / 2위
+                "현재 2위", "현재2위",
+                "현재 2순위", "현재2순위",
+                "현재 2위가", "현재 2위는",
+                "현재 2위 팀",
+                "현재 2등",
+                "전체 2위", "전체 2등",
+
+                # 현재 선두 / 1위
+                "현재 3위", "현재3위",
+                "현재 3순위", "현재3순위",
+                "현재 3위가", "현재 3위는",
+                "현재 3위 팀",
+                "현재 3등",
+                "전체 3위", "전체 3등",
+
+                # 나열하기
+                "순위 나열", "나열해줘",
+            )
+        )
+        is_player_leader_question = any(
+            word in q
+            for word in ("홈런", "타율", "탈삼진", "삼진", "타점", "방어율", "whip")
+        )
+        if is_standings_question and not is_player_leader_question:
+            return _standings_context(question)
+
+        # -------------------------------------------------
+        # 4. 현재 최장 연승
         # -------------------------------------------------
         if any(
             word in q
@@ -1420,7 +1716,7 @@ def get_database_context(
             return _winning_streak_context(db)
 
         # -------------------------------------------------
-        # 4. 개인 기록 순위
+        # 5. 개인 기록 순위
         # -------------------------------------------------
         is_leader_question = any(
             word in q
@@ -1432,6 +1728,9 @@ def get_database_context(
                 "가장 많은",
                 "가장 높은",
                 "최고",
+                "구단 순위",
+                "구단",
+                ""
             )
         )
 
@@ -1447,7 +1746,7 @@ def get_database_context(
             return _leader_context(db, question)
 
         # -------------------------------------------------
-        # 5. 뉴스 / 공지 / 커뮤니티
+        # 6. 뉴스 / 공지 / 커뮤니티
         # -------------------------------------------------
         if any(word in q for word in ("뉴스", "기사", "소식")):
             return _news_context(db, question)
@@ -1470,7 +1769,7 @@ def get_database_context(
             return _community_context(db, question)
 
         # -------------------------------------------------
-        # 6. 경기별 기록 / 박스스코어
+        # 7. 경기별 기록 / 박스스코어
         # -------------------------------------------------
         if any(
             word in q
@@ -1485,7 +1784,7 @@ def get_database_context(
             return _boxscore_context(db, question)
 
         # -------------------------------------------------
-        # 7. 특정 구단의 최근 경기 성적
+        # 8. 특정 구단의 최근 경기 성적
         # -------------------------------------------------
         teams = _find_team_names(db, question)
 
@@ -1505,7 +1804,7 @@ def get_database_context(
             return _recent_form_context(db, question)
 
         # -------------------------------------------------
-        # 8. 경기 일정 / 결과
+        # 9. 경기 일정 / 결과
         # -------------------------------------------------
         is_game_question = any(
             word in q
@@ -1554,7 +1853,7 @@ def get_database_context(
             return _game_context(db, question)
 
         # -------------------------------------------------
-        # 9. 선수 정보 / 구단별 선수 명단
+        # 10. 선수 정보 / 구단별 선수 명단
         # -------------------------------------------------
         if any(
             word in q
@@ -1572,7 +1871,7 @@ def get_database_context(
             return _player_context(db, question)
 
         # -------------------------------------------------
-        # 10. 구단별 선수 기록
+        # 11. 구단별 선수 기록
         # 구단 기본정보보다 먼저 처리해야 합니다.
         # -------------------------------------------------
         is_team_player_stats_question = (
@@ -1594,7 +1893,7 @@ def get_database_context(
             return _team_stats_context(db, question)
 
         # -------------------------------------------------
-        # 11. 구단 정보
+        # 12. 구단 정보
         # -------------------------------------------------
         is_team_info_question = any(
             word in q
@@ -1638,7 +1937,7 @@ def get_database_context(
             return _team_context(db, question)
 
         # -------------------------------------------------
-        # 12. 선수 시즌 기록
+        # 13. 선수 시즌 기록
         # -------------------------------------------------
         if any(
             word in q
