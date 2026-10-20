@@ -482,3 +482,39 @@ window.koreanTeamNames = {
     SD: "샌디에이고 파드리스",
     SF: "샌프란시스코 자이언츠"
 };
+
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".clickable-section").forEach(box => {
+            const navigate = () => {
+                const url = box.dataset.navigationUrl;
+
+                if (url) {
+                    window.location.href = url;
+                }
+            };
+
+            box.addEventListener("click", event => {
+                // 기존 링크와 버튼의 동작은 그대로 유지
+                if (event.target.closest("a, button")) {
+                    return;
+                }
+
+                navigate();
+            });
+
+            // 키보드 Enter 또는 Space로도 이동 가능
+            box.addEventListener("keydown", event => {
+                if (event.target !== box) {
+                    return;
+                }
+
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate();
+                }
+            });
+        });
+    });
