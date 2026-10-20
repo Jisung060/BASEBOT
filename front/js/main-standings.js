@@ -4,7 +4,7 @@
 // 다른 메인 스크립트와 이름이 겹치지 않게 함수 안에 넣음
 // ==================================================
 (() => {
-    const DIVISION_LABELS = { East: "동부지구", Central: "중부", West: "서부" };
+    const DIVISION_LABELS = { East: "동부지구 (East Division)", Central: "중부지구 (Central Division)", West: "서부지구 (West Division)" };
     const grid = document.getElementById("main-standings-grid");
     const leagueButtons = document.querySelectorAll(".main-standings-league");
     let standings = null;                              // API에서 받은 순위 데이터
@@ -30,8 +30,8 @@
             standings = await response.json();
             render();
         } catch (error) {
-            console.error("메인 팀 순위 조회 오류:", error);
-            showMessage("팀 순위를 불러오지 못했습니다.");
+            console.error("메인 구단 순위 조회 오류:", error);
+            showMessage("구단 순위를 불러오지 못했습니다.");
         }
     }
 
@@ -49,7 +49,7 @@
         box.append(el("h3", "main-standings-division-title", DIVISION_LABELS[division.division]));
 
         const header = el("div", "ranking-header main-standings-row");
-        ["순위", "팀", "경기", "승", "패", "승률"].forEach(name => header.append(el("span", "", name)));
+        ["순위", "구단", "경기", "승", "패", "승률"].forEach(name => header.append(el("span", "", name)));
         box.append(header);
 
         division.teams.forEach(team => box.append(createTeamRow(team)));
@@ -60,7 +60,7 @@
         // 지구 1위(플레이오프 진출권)는 왼쪽 파란 선
         const row = el("div", `ranking-row main-standings-row${team.rank === 1 ? " is-leader" : ""}`);
 
-        const link = el("a", "main-standings-team");   // 팀 클릭 → 팀 정보(로스터)
+        const link = el("a", "main-standings-team");   // 구단 클릭 → 구단 정보(로스터)
         link.href = `/team-detail.html?id=${encodeURIComponent(team.team_id)}`;
         link.title = team.team_name;
         if (team.logo_url) {                           // 로고 (불러오지 못하면 숨김)
