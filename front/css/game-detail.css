@@ -11,9 +11,10 @@
 
 /* Match the spacing, type scale, and simple cards used by the BASEBOT team pages. */
 .game-detail-page{padding-top:18px;color:#222}
-.detail-heading{margin:4px 0 12px}
+.game-detail-page .breadcrumb{margin-bottom:8px}
+.detail-heading{margin:0 0 12px}
 .detail-heading .eyebrow,.section-heading .eyebrow{display:none}
-.detail-heading h1{margin:0;color:#102d63;font-size:25px;letter-spacing:-.7px}
+.detail-heading h1{margin:0;color:#152b52;font-size:30px;letter-spacing:-1px}
 .sample-notice{margin:0 0 18px;color:#727d8e;font-size:14px}
 .back-link{border-radius:6px;color:#102d63;font-weight:700}
 .scoreboard-card{padding:18px 24px;border:1px solid #e1e7f0;border-radius:6px;background:#fff;color:#222;box-shadow:none}

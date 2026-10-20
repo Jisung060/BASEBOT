@@ -18,13 +18,30 @@
             line-height: 1.8;
             resize: vertical;
         }
+
+        /* 제목·너비·여백: 일정·결과, 순위, 경기 상세와 같게 (이 페이지에만 적용) */
+        .notice-page {
+            padding-top: 18px;
+        }
+
+        .notice-page .community-layout.no-sidebar {
+            width: min(1100px, calc(100% - 40px));
+        }
+
+        .notice-page .community-title h1 {
+            color: #152b52;
+        }
+
+        .notice-page .community-title p {
+            color: #727d8e;
+        }
     </style>
 </head>
 <body>
 <div id="header"></div>
 
 <!-- 커뮤니티 글쓰기(community-write.html)와 같은 구조 -->
-<main class="community-main">
+<main class="community-main notice-page">
     <div class="community-layout no-sidebar">
 
         <section class="community-content">

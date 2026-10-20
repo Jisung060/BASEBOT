@@ -13,6 +13,7 @@ const monthCache = new Map();                          // 한 번 받은 달 데
 const scheduleCache = new Map();                       // MLB 선발 투수 데이터 저장
 let myFavoriteTeamId = null;                           // 응원 구단 번호 (없으면 null)
 let selectedDay = null;                                // 선택한 '일' 숫자 (전체 보기면 null)
+let showWholeMonth = false;                            // 달력의 '전체' 체크 (true면 그 달 경기 모두)
 
 /* ---------- 공통 도우미 ---------- */
 
@@ -80,9 +81,10 @@ function setupEvents() {
 
 /* ---------- 오늘 / 초기화 버튼 ---------- */
 
-function goToToday() {                 // 오늘 날짜의 경기만 보여 줌
+async function goToToday() {           // 오늘 날짜의 경기만 보여 줌
     calendar.hidden = true;
-    setSelectedDate(formatKey(new Date()));
+    const count = await setSelectedDate(formatKey(new Date()));
+    if (count === 0) emptyMessage.textContent = "오늘은 경기가 없습니다."; // 최근 경기로 이동하지 않음
 }
 
 async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 경기 날짜의 경기만 보여 줌
@@ -129,20 +131,37 @@ async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 
 
 /* ---------- 날짜 선택 ---------- */
 
-function setSelectedDate(value) {
+function setSelectedDate(value) {                      // 하루를 고르면 '전체' 체크는 풀림
     if (!value) return;
     dateInput.value = value;
     selectedDay = Number(value.slice(-2));             // "2024-04-02" → 2 (일만 저장)
+    showWholeMonth = false;
     renderMonthStrip();
-    loadGames();
+    return loadGames();                                // 경기 수를 돌려줌 (오늘 경기 없음 확인용)
 }
 
-function moveYear(delta) {                             // 연도만 바꾸고 1일로
-    const [y, m] = dateInput.value.split("-").map(Number);
-    dateInput.value = `${y + delta}-${pad(m)}-01`;
-    selectedDay = null;
+function changeMonth(year, month) {                    // 연도·월을 바꿔도 같은 '일' 숫자 유지
+    const lastDay = new Date(year, month, 0).getDate();
+    const day = Math.min(selectedDay ?? Number(dateInput.value.slice(-2)), lastDay); // 31일 → 그 달에 없으면 마지막 날
+    dateInput.value = `${year}-${pad(month)}-${pad(day)}`;
+    selectedDay = showWholeMonth ? null : day;         // '전체' 체크면 그 달 전체, 아니면 그날만
     renderMonthStrip();
     loadGames();
+    if (!calendar.hidden) {                            // 달력이 열려 있으면 달력도 그 달로 다시 그리기
+        calendar.dataset.month = dateInput.value.slice(0, 7);
+        renderCalendar();
+    }
+}
+
+function moveYear(delta) {                             // 연도만 바꾸기 (월·일은 그대로)
+    const [y, m] = dateInput.value.split("-").map(Number);
+    changeMonth(y + delta, m);
+}
+
+function setWholeMonth(checked) {                      // 달력의 '전체' 체크 → 달력에 보이는 달 기준
+    showWholeMonth = checked;
+    const [y, m] = calendar.dataset.month.split("-").map(Number);
+    changeMonth(y, m);
 }
 
 function renderMonthStrip() {                          // 1월~12월 버튼 그리기
@@ -154,12 +173,7 @@ function renderMonthStrip() {                          // 1월~12월 버튼 그�
         const selected = month === selectedMonth;
         button.classList.toggle("selected", selected);
         button.setAttribute("aria-pressed", String(selected));
-        button.addEventListener("click", () => {       // 누르면 그 달 1일로 이동
-            dateInput.value = `${year}-${pad(month)}-01`;
-            selectedDay = null;
-            renderMonthStrip();
-            loadGames();
-        });
+        button.addEventListener("click", () => changeMonth(year, month)); // 누르면 그 달의 같은 '일'로 이동
         return button;
     }));
 }
@@ -184,6 +198,13 @@ async function renderCalendar() {
     const heading = el("div", "game-calendar-heading");
     heading.append(navButton("‹", -1), el("strong", "", `${year}년 ${month}월`), navButton("›", 1));
 
+    const wholeLabel = el("label", "game-calendar-all");        // '전체' 체크: 그 달 경기 모두 보기
+    const wholeCheck = el("input");
+    wholeCheck.type = "checkbox";
+    wholeCheck.checked = showWholeMonth;
+    wholeCheck.addEventListener("change", () => setWholeMonth(wholeCheck.checked));
+    wholeLabel.append(wholeCheck, el("span", "", "전체"));
+
     const grid = el("div", "game-calendar-grid");
     ["일", "월", "화", "수", "목", "금", "토"].forEach(d => grid.append(el("span", "game-calendar-weekday", d)));
     for (let i = 0; i < new Date(year, month - 1, 1).getDay(); i += 1) grid.append(el("span")); // 1일 앞 빈칸
@@ -194,20 +215,24 @@ async function renderCalendar() {
         const button = el("button", "game-calendar-day", String(day));
         button.type = "button";
         if (gameDays.has(date)) button.classList.add("has-games");
-        if (date === dateInput.value) button.classList.add("selected");
+        if (!showWholeMonth && date === dateInput.value) button.classList.add("selected");
         button.addEventListener("click", () => {       // 날짜 선택하면 달력 닫기
             calendar.hidden = true;
             setSelectedDate(date);
         });
         grid.append(button);
     }
-    calendar.replaceChildren(heading, grid);
+    calendar.replaceChildren(heading, wholeLabel, grid);
 
     function navButton(label, delta) {                 // 이전/다음 달 버튼
         const button = el("button", "", label);
         button.type = "button";
         button.addEventListener("click", () => {
             const target = new Date(year, month - 1 + delta, 1);
+            if (showWholeMonth) {                      // '전체' 체크 상태면 목록도 그 달 전체 경기로
+                changeMonth(target.getFullYear(), target.getMonth() + 1);
+                return;
+            }
             calendar.dataset.month = formatKey(target).slice(0, 7);
             renderCalendar();
         });
@@ -320,15 +345,17 @@ async function loadGames() {
         if (games.length === 0) {
             emptyMessage.textContent = "선택한 조건에 맞는 MLB 경기 데이터가 없습니다.";
             emptyMessage.hidden = false;
-            return;
+            return 0;
         }
 
         gameList.classList.toggle("team-view", isTeamView);               // 구단 선택 시에만 2열 CSS 적용
         gameList.replaceChildren(...createDayGroups(games));
+        return games.length;                                              // 보여 준 경기 수
     } catch (error) {
         console.error(error);
         emptyMessage.textContent = "MLB 경기 데이터를 불러오지 못했습니다. FastAPI 서버를 확인해 주세요.";
         emptyMessage.hidden = false;
+        return null;                                                      // 불러오기 실패 (경기 없음과 구분)
     }
 }
 
@@ -544,12 +571,14 @@ async function init() {
     } else if (saved) {
         dateInput.value = saved.date;                  // 달·날짜 복원
         selectedDay = saved.day;                       // 선택한 일 복원
+        showWholeMonth = saved.day === null;           // 일이 없으면 '전체' 보기였음
         teamSelect.value = saved.team;                 // 구단 복원
         updateTeamRail();                              // 구단 버튼 표시 갱신
         renderMonthStrip();                            // 월 버튼 표시 갱신
     }
     if (openToday || saved) {
-        await loadGames();                             // 오늘 보기 / 뒤로 가기 복원 → 그 날짜 경기 그리기
+        const count = await loadGames();               // 오늘 보기 / 뒤로 가기 복원 → 그 날짜 경기 그리기
+        if (openToday && count === 0) await goToRecentGame(); // 오늘 경기가 없으면 최근 경기 날짜로
     } else {
         emptyMessage.textContent = "최근 경기를 불러오는 중입니다...";
         emptyMessage.hidden = false;

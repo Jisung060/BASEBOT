@@ -14,6 +14,23 @@
     border-top: none;
 }
 
+/* 제목·너비·여백: 일정·결과, 순위, 경기 상세와 같게 (공지 목록에만 적용) */
+.notice-page {
+    padding-top: 18px;
+}
+
+.notice-page .community-layout.no-sidebar {
+    width: min(1100px, calc(100% - 40px));
+}
+
+.notice-page .community-title h1 {
+    color: #152b52;
+}
+
+.notice-page .community-title p {
+    color: #727d8e;
+}
+
 /* 분류 선택창 너비 */
 .board-toolbar-right #noticeCategorySelect {
     width: 120px;

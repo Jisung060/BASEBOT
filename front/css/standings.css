@@ -3,13 +3,13 @@
    - 상단 경로·제목(breadcrumb, page-heading, eyebrow)은 game.css 공통 스타일 사용
 ================================================== */
 
+/* 본문 너비·위 여백: 일정·결과, 경기 상세와 같게 (1100px, 18px) */
 .standings-page {
-    width: min(100% - 24px, 1080px);
-    padding-top: 18px;
+    width: min(1100px, calc(100% - 40px));
+    padding: 18px 0 70px;
 }
 
-/* 상단 경로의 "팀 순위", "MLB STANDINGS" → 짙은 파란색 (이 페이지에만 적용) */
-.standings-page .breadcrumb strong,
+/* "MLB STANDINGS" → 짙은 파란색 (경로의 현재 위치는 다른 페이지와 같은 회색) */
 .standings-page .eyebrow {
     color: #174b8a;
 }
