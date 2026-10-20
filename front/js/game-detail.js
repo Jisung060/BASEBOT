@@ -62,6 +62,11 @@ function renderGameSummary(game) {
         const loser = Number(game.away_score) < Number(game.home_score) ? "away" : "home";
         document.getElementById(`${loser}-score`).classList.add("score-loser");
     }
+    if (game.status === "FINAL") {                                            // 끝난 경기: 점수 밑 하이라이트 링크 (일정·결과와 같은 MLB 주소)
+        const highlight = document.getElementById("highlight-link");
+        highlight.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
+        highlight.hidden = false;
+    }
     document.getElementById("away-pitcher").textContent = "상세 기록 불러오는 중";
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";
     setTeamLogo("away", game.away_logo_url, game.away_team_code);

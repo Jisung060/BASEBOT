@@ -83,6 +83,21 @@ function renderMainGameResults(games) {
             game.away_score ?? 0
         );
 
+        // 이긴 점수 / 진 점수 색 (일정·결과 페이지와 같음, 동점이면 기본색)
+        const homeWin = Number(game.home_score) > Number(game.away_score);
+        const awayWin = Number(game.away_score) > Number(game.home_score);
+        const homeScoreClass = homeWin ? "winner" : awayWin ? "loser" : "";
+        const awayScoreClass = awayWin ? "winner" : homeWin ? "loser" : "";
+
+        // 점수 밑 경기 상태 (일정·결과 페이지와 같은 문구, 값이 없으면 '경기 종료')
+        const STATUS_LABELS = { FINAL: "경기 종료", IN_PROGRESS: "경기 중", SCHEDULED: "경기 예정", CANCELLED: "취소" };
+        const statusLabel = escapeGameHtml(STATUS_LABELS[game.status] || "경기 종료");
+
+        // 오른쪽 날짜 칸: "2026-09-27" → "09.27" (뉴스·공지 목록처럼 맨 오른쪽)
+        const gameDate = escapeGameHtml(
+            String(game.game_date || "").slice(5, 10).replace("-", ".")
+        );
+
         // 박스스코어(경기 상세) 페이지 주소 - 경기 일정 페이지와 같은 형식
         const detailUrl = `/game-detail.html?${new URLSearchParams({
             id: game.game_id,
@@ -100,9 +115,12 @@ function renderMainGameResults(games) {
                     </span>
                 </div>
 
-                <strong class="result-score">
-                    ${homeScore} : ${awayScore}
-                </strong>
+                <div class="result-score-box">
+                    <strong class="result-score">
+                        <span class="${homeScoreClass}">${homeScore}</span> : <span class="${awayScoreClass}">${awayScore}</span>
+                    </strong>
+                    <small class="result-status">${statusLabel}</small>
+                </div>
 
                 <div class="result-team">
                     ${renderTeamLogo(awayLogo, awayName)}
@@ -112,6 +130,8 @@ function renderMainGameResults(games) {
                     </span>
                 </div>
 
+                <span class="result-date">${gameDate}</span>
+
             </a>
         `;
     }).join("");
@@ -119,7 +139,7 @@ function renderMainGameResults(games) {
 
 
 // ==================================================
-// 팀 로고 URL 반환
+// 구단 로고 URL 반환
 // ==================================================
 function getTeamLogo(logoUrl, teamId) {
     // API에서 정상적인 로고 URL을 제공하면 우선 사용
@@ -131,20 +151,20 @@ function getTeamLogo(logoUrl, teamId) {
         return logoUrl.trim();
     }
 
-    // 로고 URL이 없으면 MLB 팀 ID로 생성
+    // 로고 URL이 없으면 MLB 구단 ID로 생성
     const id = Number(teamId);
 
     if (Number.isInteger(id) && id > 0) {
         return `https://www.mlbstatic.com/team-logos/${id}.svg`;
     }
 
-    // 팀 ID도 없으면 로고 없이 팀 이름 표시
+    // 구단 ID도 없으면 로고 없이 구단 이름 표시
     return "";
 }
 
 
 // ==================================================
-// 팀 로고 HTML 생성
+// 구단 로고 HTML 생성
 // ==================================================
 function renderTeamLogo(logoUrl, teamName) {
     if (!logoUrl) {

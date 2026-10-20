@@ -722,7 +722,7 @@ input {
     height: auto;
 
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr) 48px;   /* 홈팀 | 점수 | 원정팀 | 날짜 */
 
     align-items: center;
     gap: 8px;
@@ -782,6 +782,36 @@ input {
     font-variant-numeric: tabular-nums;
 }
 
+/* 점수 + 그 밑 경기 상태 (경기 종료) */
+.result-score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.result-status {
+    color: #818b9a;
+    font-size: 11px;
+}
+
+/* 오른쪽 경기 날짜 (09.27) - 뉴스·공지 목록의 날짜처럼 오른쪽 정렬 */
+.result-date {
+    text-align: right;
+    color: #818b9a;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 이긴 점수 파랑 / 진 점수 연회색 (일정·결과 페이지 game.css와 같은 색) */
+.result-item .result-score .winner {
+    color: #124e9b;
+}
+
+.result-item .result-score .loser {
+    color: #a3b1c6;
+}
+
 .game-results-message {
     padding: 25px 10px;
     color: #777;
@@ -792,7 +822,7 @@ input {
 /* 작은 화면 */
 @media (max-width: 500px) {
     .result-item {
-        grid-template-columns: minmax(0, 1fr) 75px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) 75px minmax(0, 1fr) 38px;
         gap: 4px;
         padding: 10px 2px;
     }
@@ -875,12 +905,36 @@ input {
    메인 팀 순위: 리그 버튼 + 동부 | 중부 | 서부 3칸 (main-standings.js)
 -------------------------------------------------- */
 
-/* '더보기 +' 아래 리그 변경 버튼 (팀 순위 페이지 탭과 같은 스타일) */
+/* '더보기 +' 아래 줄: 왼쪽 플레이오프 안내 + 오른쪽 리그 버튼 */
+.main-standings-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -8px 0 8px;
+}
+
+/* 플레이오프 진출권 안내 (순위 페이지 하단 .standings-legend와 같은 양식) */
+.main-standings-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #727d8e;
+    font-size: 12px;
+}
+
+.main-standings-legend-mark {
+    width: 4px;
+    height: 14px;
+    background: #347cff;
+}
+
+/* 리그 변경 버튼 (팀 순위 페이지 탭과 같은 스타일) */
 .main-standings-leagues {
     display: flex;
     justify-content: flex-end;
     gap: 4px;
-    margin: -8px 0 8px;
 }
 
 .main-standings-league {

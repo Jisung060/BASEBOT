@@ -26,6 +26,8 @@
 .detail-team .player-name-link{color:#174b8a}
 .detail-team .player-name-link:hover{color:#102d63}
 .final-score{color:#102d63;font-size:38px}
+.final-score-box{display:flex;flex-direction:column;align-items:center;gap:8px}   /* 점수 밑에 하이라이트 링크 */
+.final-score-box .score-highlight-link{font-size:14px !important}   /* 경기 상세에서만 하이라이트 글자 크게 (game.css의 10px !important를 덮어씀, 일정·결과 목록은 그대로) */
 .final-score small{color:#777}
 .boxscore-section{margin-top:24px}
 .section-heading h2{color:#102d63;font-size:20px}

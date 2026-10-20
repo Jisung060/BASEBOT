@@ -21,7 +21,10 @@
             <div class="game-status-row"><span id="game-status" class="status-pill"></span></div><!-- 경기 상태: 장소 아래 줄 -->
             <div class="matchup">
                 <div class="detail-team"><a id="away-team-link" class="team-logo-link" href="#"><span class="team-mark" id="away-mark"><img id="away-logo" alt=""></span></a><h2 id="away-team-name">불러오는 중</h2><p>선발 <a id="away-pitcher" class="player-name-link" href="#">-</a></p></div>
-                <div class="final-score"><span id="away-score"></span><span class="score-separator">:</span><span id="home-score"></span></div>
+                <div class="final-score-box"><!-- 점수 + 그 밑 하이라이트 링크 (끝난 경기만 보임) -->
+                    <div class="final-score"><span id="away-score"></span><span class="score-separator">:</span><span id="home-score"></span></div>
+                    <a id="highlight-link" class="highlight-button score-highlight-link" target="_blank" rel="noopener noreferrer" hidden>하이라이트</a>
+                </div>
                 <div class="detail-team"><a id="home-team-link" class="team-logo-link" href="#"><span class="team-mark" id="home-mark"><img id="home-logo" alt=""></span></a><h2 id="home-team-name">불러오는 중</h2><p>선발 <a id="home-pitcher" class="player-name-link" href="#">-</a></p></div>
             </div>
             <!-- 이닝별 점수: 점수 카드 안에 함께 표시 -->
