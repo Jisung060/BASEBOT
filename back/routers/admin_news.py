@@ -14,7 +14,7 @@ from auth.jwt import decode_access_token
 from database.db_connection import SessionFactory, get_session
 from models.user import User
 from routers import news as news_module
-from datetime import datetime
+from datetime import date, datetime
 
 router = APIRouter(prefix="/admin/news", tags=["Admin - News"])
 bearer_scheme = HTTPBearer()
@@ -178,15 +178,31 @@ def list_news(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     keyword: str = Query(default="", max_length=200),
+    start_date: date | None = Query(default=None, description="검색 시작일 (YYYY-MM-DD)"),
+    end_date: date | None = Query(default=None, description="검색 종료일 (YYYY-MM-DD)"),
     _: User = Depends(get_admin_user),
 ):
     db = SessionFactory()
     try:
+        if start_date and end_date and start_date > end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="시작일은 종료일보다 늦을 수 없습니다.",
+            )
+
         where = "WHERE status = 'ACTIVE'"
         params = {"limit": limit, "offset": (page - 1) * limit}
         if keyword.strip():
             where += " AND (title LIKE :keyword OR source_name LIKE :keyword)"
             params["keyword"] = f"%{keyword.strip()}%"
+
+        # 게시일이 없으면 수집일을 기준으로 날짜를 검색합니다.
+        if start_date:
+            where += " AND DATE(COALESCE(published_at, crawled_at)) >= :start_date"
+            params["start_date"] = start_date
+        if end_date:
+            where += " AND DATE(COALESCE(published_at, crawled_at)) <= :end_date"
+            params["end_date"] = end_date
 
         total = db.execute(
             text(f"SELECT COUNT(*) FROM mlb_news {where}"), params

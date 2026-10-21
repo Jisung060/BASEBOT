@@ -104,9 +104,36 @@
         setBusy(true);
         try {
             const keyword = $("keyword").value.trim();
-            const data = await request(`?page=${page}&limit=${PAGE_SIZE}&keyword=${encodeURIComponent(keyword)}`);
+            const startDate = $("startDate")?.value || "";
+            const endDate = $("endDate")?.value || "";
+
+            if (startDate && endDate && startDate > endDate) {
+                message("listMessage", "시작일은 종료일보다 늦을 수 없습니다.", "error");
+                return;
+            }
+
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: String(PAGE_SIZE),
+                keyword
+            });
+            if (startDate) params.set("start_date", startDate);
+            if (endDate) params.set("end_date", endDate);
+
+            const data = await request(`?${params.toString()}`);
             total = Number(data.total || 0);
             $("totalCount").textContent = `총 ${total.toLocaleString()}건`;
+            const activeFilters = [];
+            if (keyword) activeFilters.push(`검색어: \"${keyword}\"`);
+            if (startDate) activeFilters.push(`시작일: ${startDate}`);
+            if (endDate) activeFilters.push(`종료일: ${endDate}`);
+            message(
+                "listMessage",
+                activeFilters.length
+                    ? `${activeFilters.join(" · ")} 검색 결과 ${total.toLocaleString()}건`
+                    : `전체 기사 ${total.toLocaleString()}건`,
+                "success"
+            );
             const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
             $("pageLabel").textContent = `${page} / ${pageCount} 페이지`;
             $("prevBtn").disabled = page <= 1;
@@ -259,7 +286,14 @@
         loadNews();
     });
 
-    $("reloadBtn").addEventListener("click", () => loadNews());
+    $("reloadBtn").addEventListener("click", () => {
+        $("keyword").value = "";
+        if ($("startDate")) $("startDate").value = "";
+        if ($("endDate")) $("endDate").value = "";
+        page = 1;
+        message("listMessage", "");
+        loadNews();
+    });
     $("prevBtn").addEventListener("click", () => {
         if (page > 1) { page -= 1; loadNews(); }
     });

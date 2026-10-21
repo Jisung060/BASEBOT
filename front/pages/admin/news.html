@@ -48,11 +48,53 @@
                     </div>
 
                     <form class="news-filter-form" id="searchForm">
-                        <label for="keyword">제목 또는 출처 검색</label>
-                        <input id="keyword" type="search" maxlength="200" placeholder="검색어 입력">
-                        <button type="submit" class="button button-primary">검색</button>
-                        <button type="button" class="button button-secondary" id="reloadBtn">새로고침</button>
+                        <div class="news-filter-keyword-row">
+                            <label for="keyword">제목 또는 출처 검색</label>
+                            <input id="keyword" type="search" maxlength="200" placeholder="검색어 입력">
+                            <button type="submit" id="searchBtn" class="button button-primary">검색</button>
+                            <button type="button" class="button button-secondary" id="reloadBtn">초기화 / 새로고침</button>
+                        </div>
+                        <div class="news-filter-date-row">
+                            <span class="news-filter-date-title">게시일 검색</span>
+                            <label for="startDate">시작일</label>
+                            <input id="startDate" name="start_date" type="date" aria-label="검색 시작일">
+                            <span class="news-filter-date-separator">~</span>
+                            <label for="endDate">종료일</label>
+                            <input id="endDate" name="end_date" type="date" aria-label="검색 종료일">
+                            <span class="news-filter-help">날짜를 지정하지 않으면 전체 기간에서 검색합니다.</span>
+                        </div>
                     </form>
+                    <style>
+
+                        .news-filter-form { display: flex; flex-direction: column; gap: 12px; }
+                        .news-filter-keyword-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; }
+                        .news-filter-keyword-row input[type="search"] { flex: 1 1 240px; min-width: 180px; }
+                        .news-filter-date-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; background: var(--panel-muted, #f5f7fa); }
+                        .news-filter-date-title { font-weight: 700; margin-right: 6px; }
+                        .news-filter-date-row input[type="date"] { min-width: 145px; }
+                        .news-filter-date-separator { color: #6b7280; }
+                        .news-filter-help { font-size: 0.85rem; color: #6b7280; }
+                        @media (max-width: 640px) {
+                            .news-filter-keyword-row { align-items: stretch; }
+                            .news-filter-keyword-row label { width: 100%; }
+                            .news-filter-keyword-row input[type="search"] { flex-basis: 100%; }
+                            .news-filter-date-row { align-items: flex-start; }
+                            .news-filter-date-title { width: 100%; }
+                            .news-filter-date-row label { align-self: center; }
+                            .news-filter-date-row input[type="date"] { flex: 1 1 145px; min-width: 0; }
+                            .news-filter-help { width: 100%; }
+                        }
+
+                        /* 기사 제목만 한 줄로 표시하고 나머지는 생략 */
+                        .news-title-link {
+                            display: inline-block;
+                            max-width: 500px;
+                            overflow: hidden;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                            vertical-align: middle;
+                        }
+                    </style>
 
                     <div class="news-toolbar">
                         <label class="news-check-label"><input id="selectAll" type="checkbox"> 현재 페이지 전체 선택</label>
@@ -94,6 +136,6 @@
     </div>
 
     <script src="/js/admin/admin-common.js"></script>
-    <script src="/js/admin/admin-news.js"></script>
+    <script src="/js/admin/admin-news.js?v=20261021-search-fix3"></script>
 </body>
 </html>
