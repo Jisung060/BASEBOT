@@ -13,6 +13,9 @@ import pandas as pd
 import requests
 from sqlalchemy import text
 from database.db_connection import engine
+from scripts.collector_stat_sources import fetch_bref_war, overlay_official_percentiles, fetch_fangraphs_with_fallback, read_lahman_basics, request_csv
+from scripts.collector_savant_value_repair import fetch_official_percentiles
+from scripts.stat_provenance import ensure_provenance_table, protect_derived_stats, save_provenance
 
 HEADERS = {
     "User-Agent": (
@@ -73,7 +76,7 @@ def fetch_mlb_pitchers(season: int = 2024) -> pd.DataFrame:
 # ----------------------------------------------------
 # 2. FanGraphs: 투수 fWAR 및 FIP 수집
 # ----------------------------------------------------
-def fetch_fangraphs_pitchers(season: int = 2024) -> pd.DataFrame:
+def _fetch_fangraphs_pitchers_http(season: int = 2024) -> pd.DataFrame:
     print(f"\n[2/4] FanGraphs에서 {season} 투수 fWAR 및 FIP 수집 중...")
     url = (
         f"https://www.fangraphs.com/api/leaders/major-league/data"
@@ -90,17 +93,20 @@ def fetch_fangraphs_pitchers(season: int = 2024) -> pd.DataFrame:
                 if mlb_id and str(mlb_id).isdigit():
                     records.append({
                         "player_id": int(mlb_id),
-                        "fip": round(float(row.get("FIP", 0.0)), 2),
-                        "fwar": round(float(row.get("WAR", 0.0)), 1)
+                        "fip": pd.to_numeric(row.get("FIP"), errors="coerce"),
+                        "fwar": pd.to_numeric(row.get("WAR"), errors="coerce")
                     })
             print(f" -> FanGraphs 투수 데이터 {len(records)}명 확보 완료")
-            return pd.DataFrame(records).drop_duplicates(subset=["player_id"])
+            return pd.DataFrame(records, columns=["player_id", "fip", "fwar"]).replace([np.inf, -np.inf], np.nan).drop_duplicates(subset=["player_id"])
         else:
             print(f"※ FanGraphs 투수 응답 코드: {resp.status_code} (Fallback 수식 계산 전환)")
     except Exception as e:
         print(f"※ FanGraphs 투수 API 수집 건너뜀 ({e})")
         
     return pd.DataFrame(columns=['player_id', 'fip', 'fwar'])
+
+def fetch_fangraphs_pitchers(season: int = 2024) -> pd.DataFrame:
+    return fetch_fangraphs_with_fallback(season, True, _fetch_fangraphs_pitchers_http)
 
 # ----------------------------------------------------
 # 3. Baseball Savant: 투수 Statcast 기대치(xERA) 및 피타구질
@@ -114,7 +120,7 @@ def fetch_savant_pitcher_statcast(season: int = 2024) -> pd.DataFrame:
     )
 
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=25)
+        resp = request_csv(url, headers=HEADERS, timeout=25)
         resp.raise_for_status()
         raw_df = pd.read_csv(io.StringIO(resp.text))
 
@@ -161,7 +167,7 @@ def fetch_savant_pitcher_discipline(season: int = 2024) -> pd.DataFrame:
         f"player_id,whiff_percent,oz_swing_percent,chase_percent&csv=true"
     )
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=25)
+        resp = request_csv(url, headers=HEADERS, timeout=25)
         resp.raise_for_status()
         df = pd.read_csv(io.StringIO(resp.text))
         df.columns = [c.lower().strip().replace(" ", "_").replace("%", "").replace("-", "_") for c in df.columns]
@@ -195,23 +201,33 @@ def collect_pitchers_comprehensive(season: int = 2024):
     print(f"[{season} 시즌] 투수 종합 세이버메트릭스 파이프라인 가동")
     print("========================================================")
 
-    mlb_df = fetch_mlb_pitchers(season)
+    try:
+        mlb_df = fetch_mlb_pitchers(season)
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        print(f"[FALLBACK] MLB basics unavailable: {exc}")
+        mlb_df = pd.DataFrame()
+    if mlb_df.empty:
+        mlb_df = read_lahman_basics(season, True)
     if mlb_df.empty:
         print("기본 성적 수집 실패")
         return
 
     fg_df = fetch_fangraphs_pitchers(season)
+    bref_df = fetch_bref_war(season, True, HEADERS)
+    official_pct = fetch_official_percentiles(season, "pitcher")
     savant_df = fetch_savant_pitcher_statcast(season)
     disc_df = fetch_savant_pitcher_discipline(season)
 
-    print("\n데이터 병합 및 투수 세이버메트릭스(FIP, WAR) 정밀 계산 중...")
+    print("\n투수 원본 데이터 우선 병합 및 누락 FIP·WAR 추정 중...")
     
     df = mlb_df.copy()
-    for extra_df in [savant_df, disc_df, fg_df]:
+    for extra_df in [savant_df, disc_df, fg_df, bref_df]:
         if not extra_df.empty:
             add_cols = ['player_id'] + [c for c in extra_df.columns if c != 'player_id' and c not in df.columns]
             df = pd.merge(df, extra_df[add_cols], on='player_id', how='left')
 
+    if 'bwar' not in df.columns:
+        df['bwar'] = np.nan
     if 'fip' not in df.columns:
         df['fip'] = np.nan
     if 'fwar' not in df.columns:
@@ -219,11 +235,17 @@ def collect_pitchers_comprehensive(season: int = 2024):
 
     df = df.loc[:, ~df.columns.duplicated()].copy()
 
+    print(f"[SOURCE] bwar: published={df['bwar'].notna().sum()}, fallback estimates={df['bwar'].isna().sum()}")
+    print(f"[SOURCE] fwar: published={df['fwar'].notna().sum()}, fallback estimates={df['fwar'].isna().sum()}")
+    print(f"[SOURCE] fip: published={df['fip'].notna().sum()}, fallback estimates={df['fip'].isna().sum()}")
+
     league_fip_constant = 3.10
     league_avg_era = 4.15
 
     for idx, row in df.iterrows():
-        ip = max(row['innings_pitched'], 1.0)
+        # MLB innings use .1/.2 for outs, not decimal tenths.
+        whole, outs = str(row['innings_pitched']).split('.')
+        ip = max(int(whole) + int(outs[:1]) / 3.0, 1.0)
         if pd.isna(row.get('fip')):
             hr = row['home_runs_allowed']
             bb = row['walks']
@@ -234,7 +256,8 @@ def collect_pitchers_comprehensive(season: int = 2024):
 
         era = row['era']
         bwar_val = round(((league_avg_era - era) / 9.0 * ip / 10.0) + (ip / 200.0), 1)
-        df.at[idx, 'bwar'] = max(-2.0, min(12.0, bwar_val))
+        if pd.isna(row.get('bwar')):
+            df.at[idx, 'bwar'] = max(-2.0, min(12.0, bwar_val))
 
         if pd.isna(row.get('fwar')):
             fip = df.at[idx, 'fip']
@@ -258,10 +281,18 @@ def collect_pitchers_comprehensive(season: int = 2024):
         else:
             df[target_pct] = np.nan
 
+    for metric in [c for c in df if c.endswith("percentile") or c in ("bwar", "fwar", "fip", "wrc_plus", "k_percentage", "bb_percentage")]:
+        source_col = f"{metric}__source"
+        if source_col not in df:
+            df[source_col] = None
+        df.loc[df[metric].notna() & df[source_col].isna(), source_col] = "estimated"
+    df = overlay_official_percentiles(df, official_pct)
     df = df.replace({np.nan: None})
 
     print(f"\n총 {len(df)}명 투수 데이터 DB 적재 시작...")
+    ensure_provenance_table(engine)
     with engine.begin() as conn:
+        df, provenance = protect_derived_stats(conn, df, season, True, ['bwar', 'fwar', 'fip', 'exit_velo_percentile', 'barrel_percentile', 'hard_hit_percentile', 'xwoba_percentile'])
         existing_teams = set(conn.execute(text("SELECT team_id FROM teams")).scalars().all())
 
         # 기존에 잘못 생성된 경기수 0짜리 껍데기 투수 행 정리
@@ -360,6 +391,8 @@ def collect_pitchers_comprehensive(season: int = 2024):
                 'hard_hit_percentile': int(row['hard_hit_percentile']) if row.get('hard_hit_percentile') is not None else None,
                 'xwoba_percentile': int(row['xwoba_percentile']) if row.get('xwoba_percentile') is not None else None,
             })
+
+        save_provenance(conn, provenance)
 
     print(f"\n>>> [{season} 시즌] 투수 {len(df)}명 데이터 영구 적재 완료!")
 

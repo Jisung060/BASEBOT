@@ -41,3 +41,6 @@ __pycache__/
 /front/.cgrep
 /back/.cgrep
 /back/config
+
+# Local original-stat CSVs and temporary pybaseball results
+/back/data/stat_sources/

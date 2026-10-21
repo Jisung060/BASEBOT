@@ -219,74 +219,62 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
         seasons_set.add(season_yr)
         is_pit = bool(item.get("is_pitcher"))
 
-        # 해당 시즌 주전급(Qualified) 선수 분포를 기준으로 모든 지표 백분위를 일관성 있게 산출
+        # 저장된 백분위를 우선 사용하고, 누락된 항목만 시즌 분포로 계산
         dist = get_season_distribution(db, season_yr, is_pit)
 
         if not is_pit:
             # 1) Value 지표
-            item["batting_run_value_percentile"] = item.get("batting_run_value_percentile") or calc_empirical_percentile(dist, "batting_run_value", item.get("batting_run_value"), True)
-            if item.get("baserunning_run_value") is not None:
-                bsr_val = float(item["baserunning_run_value"])
-                if bsr_val == 0 and item.get("sprint_speed") is not None and float(item["sprint_speed"]) < 26.5:
-                    item["baserunning_run_value_percentile"] = max(15, min(45, calc_empirical_percentile(dist, "baserunning_run_value", -0.5, True) or 35))
-                else:
-                    item["baserunning_run_value_percentile"] = item.get("baserunning_run_value_percentile") or calc_empirical_percentile(dist, "baserunning_run_value", bsr_val, True)
-            item["oaa_percentile"] = item.get("oaa_percentile") or calc_empirical_percentile(dist, "outs_above_average", item.get("outs_above_average"), True)
-            # 1) Value & Fielding 지표
-            item["fielding_run_value_percentile"] = (
-                item.get("fielding_run_value_percentile")
-                or calc_empirical_percentile(dist, "fielding_run_value", item.get("fielding_run_value"), True)
-            )
-            item["arm_value_percentile"] = (
-                item.get("arm_value_percentile")
-                or calc_empirical_percentile(dist, "arm_value", item.get("arm_value"), True)
-            )
+            item["batting_run_value_percentile"] = item.get("batting_run_value_percentile") if item.get("batting_run_value_percentile") is not None else calc_empirical_percentile(dist, "batting_run_value", item.get("batting_run_value"), True)
+            item["baserunning_run_value_percentile"] = item.get("baserunning_run_value_percentile") if item.get("baserunning_run_value_percentile") is not None else calc_empirical_percentile(dist, "baserunning_run_value", item.get("baserunning_run_value"), True)
+            item["oaa_percentile"] = item.get("oaa_percentile") if item.get("oaa_percentile") is not None else calc_empirical_percentile(dist, "outs_above_average", item.get("outs_above_average"), True)
+            item["fielding_run_value_percentile"] = item.get("fielding_run_value_percentile") if item.get("fielding_run_value_percentile") is not None else calc_empirical_percentile(dist, "fielding_run_value", item.get("fielding_run_value"), True)
+            item["arm_value_percentile"] = item.get("arm_value_percentile") if item.get("arm_value_percentile") is not None else calc_empirical_percentile(dist, "arm_value", item.get("arm_value"), True)
 
             # 2) Batting 지표 (Bat Speed & Squared-Up% 포함)
-            item["xwoba_percentile"] = calc_empirical_percentile(dist, "xwoba", item.get("xwoba"), True)
-            item["xba_percentile"] = calc_empirical_percentile(dist, "xba", item.get("xba"), True)
-            item["xslg_percentile"] = calc_empirical_percentile(dist, "xslg", item.get("xslg"), True)
-            item["exit_velo_percentile"] = calc_empirical_percentile(dist, "avg_exit_velocity", item.get("avg_exit_velocity"), True)
-            item["barrel_percentile"] = calc_empirical_percentile(dist, "barrel_percentage", item.get("barrel_percentage"), True)
-            item["hard_hit_percentile"] = calc_empirical_percentile(dist, "hard_hit_percentage", item.get("hard_hit_percentage"), True)
-            item["sweet_spot_percentile"] = calc_empirical_percentile(dist, "sweet_spot_percentage", item.get("sweet_spot_percentage"), True)
-            item["bat_speed_percentile"] = item.get("bat_speed_percentile") or calc_empirical_percentile(dist, "bat_speed", item.get("bat_speed"), True)
-            item["squared_up_percentile"] = item.get("squared_up_percentile") or calc_empirical_percentile(dist, "squared_up_percentage", item.get("squared_up_percentage"), True)
-            item["chase_percentile"] = calc_empirical_percentile(dist, "chase_percentage", item.get("chase_percentage"), False)
-            item["whiff_percentile"] = calc_empirical_percentile(dist, "whiff_percentage", item.get("whiff_percentage"), False)
-            item["k_percentile"] = calc_empirical_percentile(dist, "k_percentage", item.get("k_percentage"), False)
-            item["bb_percentile"] = calc_empirical_percentile(dist, "bb_percentage", item.get("bb_percentage"), True)
+            item["xwoba_percentile"] = item.get("xwoba_percentile") if item.get("xwoba_percentile") is not None else calc_empirical_percentile(dist, "xwoba", item.get("xwoba"), True)
+            item["xba_percentile"] = item.get("xba_percentile") if item.get("xba_percentile") is not None else calc_empirical_percentile(dist, "xba", item.get("xba"), True)
+            item["xslg_percentile"] = item.get("xslg_percentile") if item.get("xslg_percentile") is not None else calc_empirical_percentile(dist, "xslg", item.get("xslg"), True)
+            item["exit_velo_percentile"] = item.get("exit_velo_percentile") if item.get("exit_velo_percentile") is not None else calc_empirical_percentile(dist, "avg_exit_velocity", item.get("avg_exit_velocity"), True)
+            item["barrel_percentile"] = item.get("barrel_percentile") if item.get("barrel_percentile") is not None else calc_empirical_percentile(dist, "barrel_percentage", item.get("barrel_percentage"), True)
+            item["hard_hit_percentile"] = item.get("hard_hit_percentile") if item.get("hard_hit_percentile") is not None else calc_empirical_percentile(dist, "hard_hit_percentage", item.get("hard_hit_percentage"), True)
+            item["sweet_spot_percentile"] = item.get("sweet_spot_percentile") if item.get("sweet_spot_percentile") is not None else calc_empirical_percentile(dist, "sweet_spot_percentage", item.get("sweet_spot_percentage"), True)
+            item["bat_speed_percentile"] = item.get("bat_speed_percentile") if item.get("bat_speed_percentile") is not None else calc_empirical_percentile(dist, "bat_speed", item.get("bat_speed"), True)
+            item["squared_up_percentile"] = item.get("squared_up_percentile") if item.get("squared_up_percentile") is not None else calc_empirical_percentile(dist, "squared_up_percentage", item.get("squared_up_percentage"), True)
+            item["chase_percentile"] = item.get("chase_percentile") if item.get("chase_percentile") is not None else calc_empirical_percentile(dist, "chase_percentage", item.get("chase_percentage"), False)
+            item["whiff_percentile"] = item.get("whiff_percentile") if item.get("whiff_percentile") is not None else calc_empirical_percentile(dist, "whiff_percentage", item.get("whiff_percentage"), False)
+            item["k_percentile"] = item.get("k_percentile") if item.get("k_percentile") is not None else calc_empirical_percentile(dist, "k_percentage", item.get("k_percentage"), False)
+            item["bb_percentile"] = item.get("bb_percentile") if item.get("bb_percentile") is not None else calc_empirical_percentile(dist, "bb_percentage", item.get("bb_percentage"), True)
 
             # 3) Fielding & Running & Catching 지표
-            item["arm_strength_percentile"] = item.get("arm_strength_percentile") or calc_empirical_percentile(dist, "arm_strength", item.get("arm_strength"), True)
-            item["sprint_speed_percentile"] = item.get("sprint_speed_percentile") or calc_empirical_percentile(dist, "sprint_speed", item.get("sprint_speed"), True)
+            item["arm_strength_percentile"] = item.get("arm_strength_percentile") if item.get("arm_strength_percentile") is not None else calc_empirical_percentile(dist, "arm_strength", item.get("arm_strength"), True)
+            item["sprint_speed_percentile"] = item.get("sprint_speed_percentile") if item.get("sprint_speed_percentile") is not None else calc_empirical_percentile(dist, "sprint_speed", item.get("sprint_speed"), True)
 
-            item["blocks_above_average_percentile"] = item.get("blocks_above_average_percentile") or calc_empirical_percentile(dist, "blocks_above_average", item.get("blocks_above_average"), True)
-            item["cs_above_average_percentile"] = item.get("cs_above_average_percentile") or calc_empirical_percentile(dist, "cs_above_average", item.get("cs_above_average"), True)
-            item["framing_runs_percentile"] = item.get("framing_runs_percentile") or calc_empirical_percentile(dist, "framing_runs", item.get("framing_runs"), True)
+            item["blocks_above_average_percentile"] = item.get("blocks_above_average_percentile") if item.get("blocks_above_average_percentile") is not None else calc_empirical_percentile(dist, "blocks_above_average", item.get("blocks_above_average"), True)
+            item["cs_above_average_percentile"] = item.get("cs_above_average_percentile") if item.get("cs_above_average_percentile") is not None else calc_empirical_percentile(dist, "cs_above_average", item.get("cs_above_average"), True)
+            item["framing_runs_percentile"] = item.get("framing_runs_percentile") if item.get("framing_runs_percentile") is not None else calc_empirical_percentile(dist, "framing_runs", item.get("framing_runs"), True)
             # 팝타임(pop_time)은 초 단위이므로 낮을수록 상위 백분위(higher_is_better=False)
-            item["pop_time_percentile"] = item.get("pop_time_percentile") or calc_empirical_percentile(dist, "pop_time", item.get("pop_time"), False)
+            item["pop_time_percentile"] = item.get("pop_time_percentile") if item.get("pop_time_percentile") is not None else calc_empirical_percentile(dist, "pop_time", item.get("pop_time"), False)
 
             batting_stats.append(item)
         else:
             # 투수 Value & Pitching 전체 지표 (구종별 Run Value, 피xBA, GB%, Extension 포함)
-            item["pitching_run_value_percentile"] = item.get("pitching_run_value_percentile") or calc_empirical_percentile(dist, "pitching_run_value", item.get("pitching_run_value"), True)
-            item["fastball_run_value_percentile"] = item.get("fastball_run_value_percentile") or calc_empirical_percentile(dist, "fastball_run_value", item.get("fastball_run_value"), True)
-            item["breaking_run_value_percentile"] = item.get("breaking_run_value_percentile") or calc_empirical_percentile(dist, "breaking_run_value", item.get("breaking_run_value"), True)
-            item["offspeed_run_value_percentile"] = item.get("offspeed_run_value_percentile") or calc_empirical_percentile(dist, "offspeed_run_value", item.get("offspeed_run_value"), True)
+            item["pitching_run_value_percentile"] = item.get("pitching_run_value_percentile") if item.get("pitching_run_value_percentile") is not None else calc_empirical_percentile(dist, "pitching_run_value", item.get("pitching_run_value"), True)
+            item["fastball_run_value_percentile"] = item.get("fastball_run_value_percentile") if item.get("fastball_run_value_percentile") is not None else calc_empirical_percentile(dist, "fastball_run_value", item.get("fastball_run_value"), True)
+            item["breaking_run_value_percentile"] = item.get("breaking_run_value_percentile") if item.get("breaking_run_value_percentile") is not None else calc_empirical_percentile(dist, "breaking_run_value", item.get("breaking_run_value"), True)
+            item["offspeed_run_value_percentile"] = item.get("offspeed_run_value_percentile") if item.get("offspeed_run_value_percentile") is not None else calc_empirical_percentile(dist, "offspeed_run_value", item.get("offspeed_run_value"), True)
 
-            item["xwoba_percentile"] = calc_empirical_percentile(dist, "xera", item.get("xera"), False)
-            item["xba_percentile"] = calc_empirical_percentile(dist, "xba", item.get("xba"), False)  # 투수 피xBA는 낮을수록 우수!
-            item["fastball_velo_percentile"] = item.get("fastball_velo_percentile") or calc_empirical_percentile(dist, "fastball_velocity", item.get("fastball_velocity"), True)
-            item["exit_velo_percentile"] = calc_empirical_percentile(dist, "avg_exit_velocity", item.get("avg_exit_velocity"), False)
-            item["chase_percentile"] = calc_empirical_percentile(dist, "chase_percentage", item.get("chase_percentage"), True)
-            item["whiff_percentile"] = calc_empirical_percentile(dist, "whiff_percentage", item.get("whiff_percentage"), True)
-            item["k_percentile"] = calc_empirical_percentile(dist, "k_percentage", item.get("k_percentage"), True)
-            item["bb_percentile"] = calc_empirical_percentile(dist, "bb_percentage", item.get("bb_percentage"), False)
-            item["barrel_percentile"] = calc_empirical_percentile(dist, "barrel_percentage", item.get("barrel_percentage"), False)
-            item["hard_hit_percentile"] = calc_empirical_percentile(dist, "hard_hit_percentage", item.get("hard_hit_percentage"), False)
-            item["gb_percentile"] = item.get("gb_percentile") or calc_empirical_percentile(dist, "gb_percentage", item.get("gb_percentage"), True)
-            item["extension_percentile"] = item.get("extension_percentile") or calc_empirical_percentile(dist, "pitch_extension", item.get("pitch_extension"), True)
+            item["xwoba_percentile"] = item.get("xwoba_percentile") if item.get("xwoba_percentile") is not None else calc_empirical_percentile(dist, "xera", item.get("xera"), False)
+            item["xba_percentile"] = item.get("xba_percentile") if item.get("xba_percentile") is not None else calc_empirical_percentile(dist, "xba", item.get("xba"), False)  # 투수 피xBA는 낮을수록 우수!
+            item["fastball_velo_percentile"] = item.get("fastball_velo_percentile") if item.get("fastball_velo_percentile") is not None else calc_empirical_percentile(dist, "fastball_velocity", item.get("fastball_velocity"), True)
+            item["exit_velo_percentile"] = item.get("exit_velo_percentile") if item.get("exit_velo_percentile") is not None else calc_empirical_percentile(dist, "avg_exit_velocity", item.get("avg_exit_velocity"), False)
+            item["chase_percentile"] = item.get("chase_percentile") if item.get("chase_percentile") is not None else calc_empirical_percentile(dist, "chase_percentage", item.get("chase_percentage"), True)
+            item["whiff_percentile"] = item.get("whiff_percentile") if item.get("whiff_percentile") is not None else calc_empirical_percentile(dist, "whiff_percentage", item.get("whiff_percentage"), True)
+            item["k_percentile"] = item.get("k_percentile") if item.get("k_percentile") is not None else calc_empirical_percentile(dist, "k_percentage", item.get("k_percentage"), True)
+            item["bb_percentile"] = item.get("bb_percentile") if item.get("bb_percentile") is not None else calc_empirical_percentile(dist, "bb_percentage", item.get("bb_percentage"), False)
+            item["barrel_percentile"] = item.get("barrel_percentile") if item.get("barrel_percentile") is not None else calc_empirical_percentile(dist, "barrel_percentage", item.get("barrel_percentage"), False)
+            item["hard_hit_percentile"] = item.get("hard_hit_percentile") if item.get("hard_hit_percentile") is not None else calc_empirical_percentile(dist, "hard_hit_percentage", item.get("hard_hit_percentage"), False)
+            item["gb_percentile"] = item.get("gb_percentile") if item.get("gb_percentile") is not None else calc_empirical_percentile(dist, "gb_percentage", item.get("gb_percentage"), True)
+            item["extension_percentile"] = item.get("extension_percentile") if item.get("extension_percentile") is not None else calc_empirical_percentile(dist, "pitch_extension", item.get("pitch_extension"), True)
 
             pitching_stats.append(item)
 

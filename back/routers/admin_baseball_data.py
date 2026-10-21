@@ -488,6 +488,7 @@ class ManualFetchRequest(BaseModel):
     end_date: Optional[str] = None
     trigger_type: str = "MANUAL"
     refresh_pitcher_details: bool = False
+    force_csv_download: bool = False
 
 
 def _update_log_progress(log_id: int, message: str):
@@ -638,6 +639,11 @@ def _run_model_training(data_type: str) -> str:
     return (result.stdout or "")[-2000:]
 
 
+def _run_prepare_source_csvs(season: int, force: bool = False):
+    module, _ = load_script_module("prepare_source_csvs.py")
+    return module.prepare_source_csvs(season=season, force=force)
+
+
 def _create_sync_log(req: ManualFetchRequest) -> int:
     is_game_job = req.data_type in ("PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES")
     if is_game_job:
@@ -743,6 +749,14 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             _update_log_progress(log_id, f"{season} 시즌 투수 Extension 개별 조회 중 (수 분 이상 소요 가능)...")
             records_cnt = _run_savant_extension(season)
             msg = f"{season} 시즌 Extension 단독 갱신 완료 (Extension 보유 {records_cnt}건)"
+
+        elif dtype == "PREPARE_SOURCE_CSVS":
+            _update_log_progress(log_id, f"{season} 시즌 원본 CSV 준비·검증 중 (DB 적재 없음)...")
+            result = _run_prepare_source_csvs(season, req.force_csv_download)
+            records_cnt = result["downloaded"] + result["cached"]
+            status = "PARTIAL" if result["failed"] and records_cnt else ("FAILED" if result["failed"] else "SUCCESS")
+            failures = "; ".join(f"{r['source']}: {r['error']}" for r in result["results"] if r["status"] == "failed")
+            msg = f"{season} 원본 CSV: 다운로드 {result['downloaded']}개, 기존 파일 {result['cached']}개, 실패 {result['failed']}개 (DB 적재 없음)\n{failures}"
 
         elif dtype in ("TRAIN_ML_MODEL", "TRAIN_DL_MODEL"):
             model_name = "경기 승부예측 ML" if dtype == "TRAIN_ML_MODEL" else "선수 성적예측 DL"

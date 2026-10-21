@@ -55,7 +55,7 @@ class PitcherRepairTests(unittest.TestCase):
         with patch.object(repair.requests, "get", return_value=response):
             result = repair.fetch_pitcher_extension(607074, 2024)
         self.assertEqual(result, {"player_id": 607074, "pitch_extension": 6.1,
-                                  "extension_percentile": 21, "fastball_run_value_percentile": 0})
+                                  "extension_percentile": 21, "extension_percentile__source": "savant_player", "fastball_run_value_percentile": 0})
 
     def test_extension_supplements_only_existing_pitchers(self):
         frame = pd.DataFrame({"player_id": [607074, 1], "release_extension": [None, None]})

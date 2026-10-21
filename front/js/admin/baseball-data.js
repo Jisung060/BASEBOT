@@ -19,6 +19,7 @@ const DATA_TYPE_LABELS = {
     "STEP_BOXSCORES": "박스스코어 수집 (collector_boxscores)",
     "STEP_REPAIR_GAMES": "경기 보정 (repair_games_data)",
     "STEP_SEED_TEAMS": "30개 구단 시드 (seed_teams)",
+    "PREPARE_SOURCE_CSVS": "원본 CSV 다운로드·검증",
     "TRAIN_ML_MODEL": "경기 승부예측 ML 모델 학습",
     "TRAIN_DL_MODEL": "선수 성적예측 DL 모델 학습"
 };
@@ -332,6 +333,7 @@ function initManualSyncControls() {
 
     const updateOptionVisibility = () => {
         const val = syncTypeSelect.value;
+        document.getElementById("manualCsvOptions").style.display = val === "PREPARE_SOURCE_CSVS" ? "flex" : "none";
         const isDateRangeType = ["PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES"].includes(val);
         const isTraining = ["TRAIN_ML_MODEL", "TRAIN_DL_MODEL"].includes(val);
         document.getElementById("manualTrainingNotice").style.display = isTraining ? "block" : "none";
@@ -371,6 +373,7 @@ function initManualSyncControls() {
                 season: season,
                 start_date: sDate,
                 end_date: eDate,
+                force_csv_download: dtype === "PREPARE_SOURCE_CSVS" && document.getElementById("manualCsvForce").checked,
                 trigger_type: "MANUAL"
             });
         });
@@ -569,6 +572,7 @@ function renderSyncLogsTable() {
 
         let statusTag = `<span class="tag tag-warning">진행중</span>`;
         if (log.status === "SUCCESS") statusTag = `<span class="tag tag-success">성공 (SUCCESS)</span>`;
+        else if (log.status === "PARTIAL") statusTag = `<span class="tag tag-warning">일부 성공 (PARTIAL)</span>`;
         else if (log.status === "FAILED") statusTag = `<span class="tag tag-danger">실패 (FAILED)</span>`;
 
         const triggerBadge = log.trigger_type === "AUTO"

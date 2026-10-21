@@ -242,11 +242,18 @@
                                                 <option value="STEP_REPAIR_GAMES">3. 경기 시간·구장·승리팀 보정 (repair_games_data.py)</option>
                                                 <option value="STEP_SEED_TEAMS">MLB 30개 구단 초기 적재 (seed_teams.py)</option>
                                             </optgroup>
+                                            <optgroup label="원본 데이터 파일 준비">
+                                                <option value="PREPARE_SOURCE_CSVS">시즌별 원본 CSV 다운로드·검증 (DB 적재 없음)</option>
+                                            </optgroup>
                                             <optgroup label="머신러닝/딥러닝 모델 학습 스크립트 실행">
                                                 <option value="TRAIN_ML_MODEL">경기 승부예측 ML 학습 (train_prediction_model.py)</option>
                                                 <option value="TRAIN_DL_MODEL">선수 성적예측 DL 학습 (player_dl_predictor.py)</option>
                                             </optgroup>
                                         </select>
+                                    </label>
+                                    <label id="manualCsvOptions" class="full-width" style="display: none;">
+                                        <span><input type="checkbox" id="manualCsvForce"> 기존 원본 CSV도 다시 다운로드</span>
+                                        <small>기본은 검증된 파일을 재사용합니다. 실패한 출처는 작업 기록에 표시되며 계산값으로 파일을 만들지 않습니다.</small>
                                     </label>
                                     <p id="manualTrainingNotice" class="full-width" style="display: none;">
                                         DB 전체 저장 데이터로 학습하고 기존 모델 파일을 갱신합니다. 완료까지 시간이 걸릴 수 있으며 결과는 하단 작업 기록에서 확인할 수 있습니다.

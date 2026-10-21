@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'../../..');
+const source=fs.readFileSync(path.join(root,'front/js/admin/baseball-data.js'),'utf8');
+const body=source.slice(source.indexOf('function initManualSyncControls()'),source.indexOf('let logPollTimer'));
+const elements={};
+const get=id=>elements[id]||=( {value:'',checked:false,style:{},handlers:{},addEventListener(e,f){this.handlers[e]=f;}} );
+let payload;
+const ctx={document:{getElementById:get},executeManualSync:p=>payload=p,saveSchedulesConfig(){},loadSyncLogs(){},loadDashboardSummary(){}};
+vm.createContext(ctx);vm.runInContext(body+'\ninitManualSyncControls();',ctx);
+get('manualSyncType').value='PREPARE_SOURCE_CSVS';get('manualSeasonSelect').value='2015';get('manualCsvForce').checked=true;
+get('manualSyncType').handlers.change();get('btnRunManualSync').handlers.click();
+assert.equal(get('manualCsvOptions').style.display,'flex');assert.equal(get('manualSeasonBox').style.display,'flex');
+assert.equal(payload.data_type,'PREPARE_SOURCE_CSVS');assert.equal(payload.season,2015);assert.equal(payload.force_csv_download,true);
+get('manualSyncType').value='STEP_SAVANT_REPAIR';get('manualSyncType').handlers.change();get('btnRunManualSync').handlers.click();
+assert.equal(payload.force_csv_download,false);assert.equal(get('manualCsvOptions').style.display,'none');
+console.log('CSV preparation UI checks passed');

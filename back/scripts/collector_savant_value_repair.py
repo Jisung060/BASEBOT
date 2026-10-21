@@ -18,6 +18,12 @@ import requests
 from sqlalchemy import text
 
 
+BACK_DIR = Path(__file__).resolve().parents[1]
+if str(BACK_DIR) not in sys.path:
+    sys.path.insert(0, str(BACK_DIR))
+from scripts.stat_provenance import ensure_provenance_table, protect_derived_stats, save_provenance, is_derived
+from scripts.collector_stat_sources import SOURCE_DIR, request_csv
+
 BASE = "https://baseballsavant.mlb.com"
 MLB_STATS_API = "https://statsapi.mlb.com/api/v1/stats"
 HEADERS = {
@@ -50,7 +56,7 @@ def norm_columns(df: pd.DataFrame) -> pd.DataFrame:
 def safe_csv_get(path: str, params: dict) -> pd.DataFrame:
     """개별 요청에 짧은 타임아웃(연결 5초, 읽기 12초)을 적용하여 무한 대기 원천 차단"""
     try:
-        resp = requests.get(
+        resp = request_csv(
             BASE + path,
             params={**params, "csv": "true"},
             headers=HEADERS,
@@ -63,6 +69,7 @@ def safe_csv_get(path: str, params: dict) -> pd.DataFrame:
             print(f"[SKIP] {path}: expected CSV, received HTML; check query parameters")
             return pd.DataFrame()
         df = norm_columns(pd.read_csv(io.StringIO(resp.text)))
+        df.attrs["source"] = getattr(resp, "stat_source", "savant_csv")
         if len(df.columns) == 0 or len(df) == 0:
             return pd.DataFrame()
         print(f"[OK] {path} ({params.get('type') or params.get('group') or ''}): {len(df)} rows")
@@ -205,6 +212,7 @@ def fetch_pitcher_extension(player_id: int, season: int) -> dict:
         if value is None:
             return {}
         result = {"player_id": player_id, "pitch_extension": round(value, 1),
+                  "extension_percentile__source": "savant_player",
                   "extension_percentile": clean(pd.to_numeric(
                       row.get("percent_rank_fastball_extension"), errors="coerce"), integer=True)}
         for group in ("fastball", "breaking", "offspeed"):
@@ -330,7 +338,7 @@ def fetch_pitcher_extra(season: int, existing_pitcher_ids: set[int] | None = Non
                         refresh_pitcher_details: bool = False) -> pd.DataFrame:
     df = safe_csv_get("/leaderboard/custom", {
         "year": season, "type": "pitcher", "min": 10,
-        "selections": "player_id,xba,groundballs_percent,release_extension,ff_avg_speed"
+        "selections": "player_id,xba,groundballs_percent,release_extension,ff_avg_speed,k_percent,bb_percent"
     })
     if df.empty:
         return pd.DataFrame()
@@ -352,6 +360,11 @@ def fetch_pitcher_extra(season: int, existing_pitcher_ids: set[int] | None = Non
     if fv_col:
         out["fastball_velocity"] = pd.to_numeric(df[fv_col], errors="coerce").round(1)
         out["fastball_velo_percentile"] = percentile(out["fastball_velocity"], True)
+
+    for source, target in (("k_percent", "k_percentage"), ("bb_percent", "bb_percentage")):
+        if source in df:
+            out[target] = pd.to_numeric(df[source], errors="coerce")
+            out[f"{target}__source"] = pd.Series(df.attrs.get("source", "savant_csv"), index=out.index).where(out[target].notna())
 
     out = out.dropna(subset=["player_id"]).copy()
     out["player_id"] = out["player_id"].astype(int)
@@ -407,8 +420,18 @@ def fetch_official_percentiles(season: int, player_type: str) -> pd.DataFrame:
     df = safe_csv_get("/leaderboard/percentile-rankings", {
         "type": player_type, "year": season, "position": "", "team": ""
     })
+    source_label = df.attrs.get("source", "savant_csv")
     if df.empty:
-        return pd.DataFrame()
+        path = SOURCE_DIR / f"savant_percentiles_{player_type}_{season}.csv"
+        try:
+            if path.with_suffix(".meta.json").is_file():
+                return pd.DataFrame()  # Managed snapshots were already verified by request_csv.
+            df = norm_columns(pd.read_csv(path, encoding="utf-8-sig"))
+            if "year" in df:
+                df = df[pd.to_numeric(df["year"], errors="coerce").eq(season)]
+            source_label = f"local_csv:{path.name}"
+        except (OSError, ValueError, pd.errors.ParserError):
+            return pd.DataFrame()
 
     ids = player_ids(df)
     out = pd.DataFrame({"player_id": ids})
@@ -419,7 +442,15 @@ def fetch_official_percentiles(season: int, player_type: str) -> pd.DataFrame:
         "exit_velo_percentile": ("exit_velocity", "exit_velo_percentile", "ev"),
         "barrel_percentile": ("brl_percent", "barrel_percentile", "brl", "barrel"),
         "hard_hit_percentile": ("hard_hit_percent", "hard_hit_percentile", "hard_hit"),
-        "xwoba_percentile": ("xwoba", "xwoba_percentile"),
+        "xwoba_percentile": (("xera", "xwoba", "xwoba_percentile") if player_type == "pitcher" else ("xwoba", "xwoba_percentile")),
+        "xba_percentile": ("xba",),
+        "xslg_percentile": ("xslg",),
+        "sweet_spot_percentile": ("sweet_spot_percent",),
+        "chase_percentile": ("chase_percent",),
+        "whiff_percentile": ("whiff_percent",),
+        "k_percentile": ("k_percent",),
+        "bb_percentile": ("bb_percent",),
+        "gb_percentile": ("groundballs_percent",),
         "sprint_speed_percentile": ("sprint_speed", "sprint_speed_percentile"),
         "oaa_percentile": ("oaa", "oaa_percentile", "outs_above_average"),
         "fielding_run_value_percentile": ("fielding_run_value", "frv", "runs_prevented"),
@@ -438,7 +469,9 @@ def fetch_official_percentiles(season: int, player_type: str) -> pd.DataFrame:
         source = next((c for c in candidates if c in df.columns), None)
         if source is None:
             continue
-        out[target] = pd.to_numeric(df.loc[out.index, source], errors="coerce").to_numpy()
+        values = pd.to_numeric(df.loc[out.index, source], errors="coerce")
+        out[target] = values.where(values.between(0, 100)).round().to_numpy()
+        out[f"{target}__source"] = pd.Series(source_label, index=out.index).where(out[target].notna())
     return out.drop_duplicates("player_id")
 
 
@@ -466,6 +499,7 @@ def merge_frames(frames: list[pd.DataFrame]) -> pd.DataFrame:
             if overlap:
                 merged = merged.set_index("player_id")
                 f_idx = f_clean.set_index("player_id")
+                merged = merged.reindex(merged.index.union(f_idx.index))
                 for col in overlap:
                     merged[col] = f_idx[col].combine_first(merged[col])
                 new_cols = [c for c in f_clean.columns if c not in overlap and c != "player_id"]
@@ -503,20 +537,23 @@ def bulk_update_role(engine, merged_df: pd.DataFrame, season: int, is_pitcher: b
         f"WHERE player_id = :player_id AND season = :season AND is_pitcher = :is_pitcher"
     )
 
-    params = []
-    for _, row in df_valid.iterrows():
-        item = {
-            "player_id": int(row["player_id"]),
-            "season": int(season),
-            "is_pitcher": bool(is_pitcher)
-        }
-        for col in target_cols:
-            is_int = col.endswith("percentile") or (col in INTEGER_COLUMNS)
-            item[col] = clean(row[col], integer=is_int)
-        params.append(item)
-
+    ensure_provenance_table(engine)
     with engine.begin() as conn:
+        protected, provenance = protect_derived_stats(conn, df_valid, season, is_pitcher, target_cols)
+        params = []
+        for _, row in protected.iterrows():
+            item = {
+                "player_id": int(row["player_id"]),
+                "season": int(season),
+                "is_pitcher": bool(is_pitcher)
+            }
+            for col in target_cols:
+                is_int = col.endswith("percentile") or (col in INTEGER_COLUMNS)
+                item[col] = clean(row[col], integer=is_int)
+            params.append(item)
+
         res = conn.execute(sql, params)
+        save_provenance(conn, provenance)
     print(f"[DB BULK UPDATE] pitcher={is_pitcher}: {res.rowcount} rows updated across {len(target_cols)} columns.")
 
 
@@ -559,7 +596,7 @@ def run_savant_repair(season: int = 2024, dry_run: bool = False,
                                      sorted(existing_pitcher_ids)))
         extension = pd.DataFrame([row for row in rows if row])
         if not extension.empty:
-            extension = extension[["player_id", "pitch_extension", "extension_percentile"]]
+            extension = extension[[c for c in ("player_id", "pitch_extension", "extension_percentile", "extension_percentile__source") if c in extension]]
         if not dry_run:
             bulk_update_role(engine, extension, season, True, valid_db_cols)
         print(f"[EXTENSION] collected {len(extension)} pitchers in {time.time() - t0:.2f}s")
@@ -615,8 +652,8 @@ def run_savant_repair(season: int = 2024, dry_run: bool = False,
     pitcher_merged = merge_frames([
         results.get("pit_rv"),
         results.get("pitch_rv"),
-        results.get("pit_extra"),
         results.get("pit_k_bb"),
+        results.get("pit_extra"),
         results.get("pit_pct"),
     ])
     if not dry_run:
