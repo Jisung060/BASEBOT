@@ -54,6 +54,16 @@ def source_specs(season):
     add('savant_fielding','/leaderboard/fielding-run-value',{'type':'fielder','seasonStart':season,'seasonEnd':season},'total_runs')
     for role in ('Batter','Pitcher'):
         add(f'savant_{role.lower()}_run_value','/leaderboard/swing-take',{'year':season,'team':'','leverage':'Neutral','group':role,'type':'All','sub_type':'null','min':'q'},'runs_all')
+    add('savant_oaa','/leaderboard/outs_above_average',{'type':'Fielder','startYear':season,'endYear':season,'split':'no','team':'','range':'year','min':1,'pos':'','roles':'','viz':'hide'},['oaa','outs_above_average','n_outs_above_average'])
+    # OAA CSV has an empty year column even for an explicitly bounded season.
+    result[-1]['allow_blank_year']=True
+    add('savant_baserunning','/leaderboard/baserunning-run-value',{'game_type':'Regular','n':1,'season_start':season,'season_end':season,'sortColumn':'runner_runs_tot','sortDirection':'desc','split':'no','team':'','type':'Run','with_team_only':1},['runner_runs_tot','baserunning_run_value','baserunning_runs','runs'])
+    add('savant_arm_strength','/leaderboard/arm-strength',{'type':'player','year':season,'pos':'','team':'','minThrows':5},['arm_overall','arm_strength','arm'])
+    add('savant_catcher_blocking','/leaderboard/catcher-blocking',{'year':season,'min':1},['blocks_above_average','n_blocks_above_average','diff_runner_pb_wp'])
+    add('savant_catcher_throwing','/leaderboard/catcher-throwing',{'year':season,'min':1},['cs_above_average','n_cs_above_average','caught_stealing_above_average'])
+    add('savant_catcher_poptime','/leaderboard/poptime',{'year':season,'team':'','min2b':1,'min3b':0},['pop_2b_sba','pop_2b','pop_time'])
+    for role in ('batting','pitching'):
+        result.append(dict(name=f'mlb_{role}',url='https://statsapi.mlb.com/api/v1/stats',params={'stats':'season','season':season,'group':'pitching' if role=='pitching' else 'hitting','sportId':1,'playerPool':'ALL','limit':2000},filename=f'mlb_{role}_{season}.csv',season=season,metric='gamesplayed'))
     if season >= 2024:
         add('savant_bat_tracking','/leaderboard/bat-tracking',{'seasonStart':season,'seasonEnd':season,'minSwings':0},'avg_bat_speed')
     for role in ('batting','pitching'):
@@ -68,8 +78,10 @@ def validate_csv(data,spec):
         raise ValueError('비어 있거나 HTML 응답/허용 크기 초과입니다.')
     frame=pd.read_csv(io.BytesIO(data),encoding='utf-8-sig')
     frame.columns=frame.columns.str.strip().str.lower()
-    id_column=next((c for c in ('player_id','id','mlb_id') if c in frame),None)
-    if frame.empty or id_column is None or spec['metric'] not in frame:
+    id_column=next((c for c in ('player_id','entity_id','id','mlb_id','catcher_id') if c in frame),None)
+    candidates=spec['metric'] if isinstance(spec['metric'],list) else [spec['metric']]
+    metrics=[c for c in candidates if c in frame]
+    if frame.empty or id_column is None or not metrics:
         raise ValueError('필수 선수 ID/지표 열 또는 데이터가 없습니다.')
     ids=pd.to_numeric(frame[id_column],errors='coerce')
     if not (ids.gt(0) & ids.mod(1).eq(0)).any():
@@ -77,17 +89,17 @@ def validate_csv(data,spec):
     year_column=next((c for c in ('year','year_id','season') if c in frame),None)
     if year_column:
         years=pd.to_numeric(frame[year_column],errors='coerce').dropna()
-        if not years.eq(spec['season']).any():
+        if not years.eq(spec['season']).any() and not (years.empty and spec.get('allow_blank_year')):
             raise ValueError('요청 시즌 데이터가 없습니다.')
         if not spec['name'].startswith('bref_') and not years.eq(spec['season']).all():
             raise ValueError('응답 시즌이 요청과 다릅니다.')
-    if not pd.to_numeric(frame[spec['metric']],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).notna().any():
+    if not any(pd.to_numeric(frame[c],errors='coerce').replace([float('inf'),-float('inf')],float('nan')).notna().any() for c in metrics):
         raise ValueError('원본 지표가 전부 비어 있습니다.')
     return frame
 
 
-def read_prepared(spec):
-    path=SOURCE_DIR/spec['filename']
+def read_prepared(spec,directory=None):
+    path=(SOURCE_DIR if directory is None else directory)/spec['filename']
     data=path.read_bytes()
     metadata=json.loads(path.with_suffix('.meta.json').read_text(encoding='utf-8'))
     if metadata['sha256']!=hashlib.sha256(data).hexdigest() or metadata['request_key']!=request_key(spec['url'],spec['params']):
@@ -101,7 +113,7 @@ def read_prepared(spec):
 def read_prepared_for_request(url,params=None):
     key=request_key(url,params)
     query=dict(parse_qsl(urlsplit(url).query));query.update(params or {})
-    season=next((int(query[k]) for k in ('year','seasonStart','startYear') if k in query),None)
+    season=next((int(query[k]) for k in ('year','seasonStart','startYear','season_start','season') if k in query),None)
     if season is None:
         return pd.DataFrame()
     try:
@@ -144,6 +156,14 @@ def download_one(spec,force=False):
                 return {'source':spec['name'],'status':'cached','rows':len(frame)}
             except (OSError,ValueError,KeyError,pd.errors.ParserError):
                 pass
+        if spec['name'].startswith('mlb_'):
+            from scripts.collector_stat_sources import fetch_mlb_season_payload, mlb_payload_frame
+            pitcher=spec['name']=='mlb_pitching'
+            payload=fetch_mlb_season_payload(spec['season'],pitcher,save_snapshot=False,local_fallback=False)
+            frame=mlb_payload_frame(payload,spec['season'])
+            data=frame.to_csv(index=False).encode('utf-8')
+            write_snapshot(data,spec)
+            return {'source':spec['name'],'status':'downloaded','rows':len(frame),'bytes':len(data)}
         if spec['name'].startswith('fangraphs_'):
             from scripts.collector_stat_sources import fetch_fangraphs_with_fallback, fetch_fangraphs_http
             frame=fetch_fangraphs_with_fallback(spec['season'],spec['name']=='fangraphs_pitching',fetch_fangraphs_http,save_snapshot=False,local_fallback=False)

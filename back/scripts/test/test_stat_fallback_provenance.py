@@ -113,8 +113,8 @@ class SourceFallbackTests(unittest.TestCase):
         self.assertIn('local_csv:',result.iloc[0]['k_percentile__source'])
 
 class ProvenanceTests(unittest.TestCase):
-    def test_original_and_unknown_values_survive_estimates(self):
-        for old,source in [(0,'savant_csv'),(4.2,'local_csv:a.csv'),(3,None)]:
+    def test_verified_original_values_survive_estimates(self):
+        for old,source in [(0,'savant_csv'),(4.2,'local_csv:a.csv')]:
             value,origin,accepted=provenance.choose_stat(old,source,99,'estimated')
             self.assertEqual(value,old)
             self.assertFalse(accepted)
@@ -123,7 +123,35 @@ class ProvenanceTests(unittest.TestCase):
     def test_new_original_replaces_estimate_and_unknown(self):
         for source in ('estimated',None):
             self.assertEqual(provenance.choose_stat(5,source,0,'fangraphs_pybaseball'),(0,'fangraphs_pybaseball',True))
-        self.assertEqual(provenance.choose_stat(1,'estimated',2,'estimated'),(2,'estimated',True))
+        self.assertEqual(provenance.choose_stat(1,'estimated',2,'estimated'),(1,'estimated',False))
+
+    def test_first_estimate_is_saved_and_later_estimates_keep_value_and_source(self):
+        self.assertEqual(provenance.choose_stat(None,None,2,'estimated'),(2,'estimated',True))
+        self.assertEqual(provenance.choose_stat(2,'estimated',9,'estimated'),(2,'estimated',False))
+        self.assertEqual(provenance.choose_stat(2,None,9,'estimated'),(9,'estimated',True))
+        self.assertEqual(provenance.choose_stat(2,'estimated',3,'fangraphs_http'),(3,'fangraphs_http',True))
+
+    def test_preserved_known_estimate_metadata_is_not_rewritten(self):
+        for source in ('estimated',):
+            conn=Mock()
+            existing=Mock();existing.mappings.return_value.all.return_value=[{'player_id':1,'fwar':2}]
+            metadata=Mock();metadata.mappings.return_value.all.return_value=[{'player_id':1,'metric':'fwar','source':source,'stored_value':2}]
+            conn.execute.side_effect=[existing,metadata]
+            result,records=provenance.protect_derived_stats(conn,pd.DataFrame({'player_id':[1],'fwar':[9],'fwar__source':['estimated']}),2025,False,['fwar'])
+            self.assertEqual(result.iloc[0].fwar,2)
+            self.assertEqual(records,[])
+
+    def test_unknown_values_are_revalidated_even_if_same_as_calculation(self):
+        for old_value in (2,9):
+            for old_source in (None,'legacy_unknown'):
+                conn=Mock()
+                existing=Mock();existing.mappings.return_value.all.return_value=[{'player_id':1,'fwar':old_value}]
+                metadata=Mock();metadata.mappings.return_value.all.return_value=[] if old_source is None else [{'player_id':1,'metric':'fwar','source':old_source,'stored_value':old_value}]
+                conn.execute.side_effect=[existing,metadata]
+                result,records=provenance.protect_derived_stats(conn,pd.DataFrame({'player_id':[1],'fwar':[9],'fwar__source':['estimated']}),2025,False,['fwar'])
+                self.assertEqual(result.iloc[0].fwar,9)
+                self.assertEqual(records[0]['source'],'estimated')
+                self.assertEqual(records[0]['value'],9)
 
     def test_guard_keeps_original_and_records_new_original(self):
         conn=Mock()
@@ -138,14 +166,14 @@ class ProvenanceTests(unittest.TestCase):
         self.assertEqual(records[0]['source'],'local_csv:fg.csv')
         self.assertIn('FOR UPDATE',str(conn.execute.call_args_list[0].args[0]))
 
-    def test_external_modified_value_is_unknown_not_mislabeled(self):
+    def test_external_modified_value_is_replaced_with_verified_calculation(self):
         conn=Mock()
         existing=Mock();existing.mappings.return_value.all.return_value=[{'player_id':1,'bwar':5}]
         metadata=Mock();metadata.mappings.return_value.all.return_value=[{'player_id':1,'metric':'bwar','source':'estimated','stored_value':1}]
         conn.execute.side_effect=[existing,metadata]
         result,records=provenance.protect_derived_stats(conn,pd.DataFrame({'player_id':[1],'bwar':[9]}),2025,False,['bwar'])
-        self.assertEqual(result.iloc[0].bwar,5)
-        self.assertEqual(records[0]['source'],'legacy_unknown')
+        self.assertEqual(result.iloc[0].bwar,9)
+        self.assertEqual(records[0]['source'],'estimated')
 
 if __name__=='__main__':
     unittest.main()

@@ -36,8 +36,10 @@ def finite(value):
 def choose_stat(old_value, old_source, new_value, new_source):
     if not finite(new_value):
         return old_value, old_source or "legacy_unknown", False
-    if finite(old_value) and new_source == "estimated" and old_source != "estimated":
+    if finite(old_value) and new_source == "estimated" and old_source not in (None, "legacy_unknown"):
         return old_value, old_source or "legacy_unknown", False
+    if finite(old_value) and math.isclose(float(old_value), float(new_value), rel_tol=1e-9, abs_tol=1e-6):
+        return old_value, new_source, True
     return new_value, new_source, True
 
 
@@ -76,7 +78,7 @@ def protect_derived_stats(conn, frame, season, is_pitcher, columns):
             if finite(old) and not accepted:
                 preserved += 1
             result.at[index, metric] = float(value) if finite(value) else None
-            if finite(value) and (accepted or metadata_row is None or selected_source == "legacy_unknown"):
+            if finite(value) and (accepted or metadata_row is None or old_source != selected_source):
                 records.append({"player_id": player_id, "season": season,
                                 "is_pitcher": is_pitcher, "metric": metric,
                                 "source": selected_source, "value": float(value)})

@@ -433,6 +433,11 @@ def fetch_official_percentiles(season: int, player_type: str) -> pd.DataFrame:
         except (OSError, ValueError, pd.errors.ParserError):
             return pd.DataFrame()
 
+    return normalize_official_percentiles(df, player_type, source_label)
+
+
+def normalize_official_percentiles(df, player_type, source_label):
+    df = norm_columns(df)
     ids = player_ids(df)
     out = pd.DataFrame({"player_id": ids})
     out = out[(out["player_id"].notna()) & (out["player_id"] != 999999)].copy()

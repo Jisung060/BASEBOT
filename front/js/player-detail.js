@@ -155,6 +155,18 @@ function updateTabButtons() {
     document.getElementById("tabPitching").classList.toggle("active", activeMode === "pitching");
 }
 
+function formatSourcedStat(stat, metric, decimals = null) {
+    const value = stat?.[metric];
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '-';
+    const origin = stat.stat_sources?.[metric];
+    const status = ['published', 'estimated'].includes(origin?.status) ? origin.status : 'unknown';
+    const label = status === 'unknown' ? '원본 미확보 · 기존 값 유지' : origin.label;
+    const safeLabel = String(label).replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
+    const number = decimals === null ? Number(value) : Number(value).toFixed(decimals);
+    return `<span class="sourced-stat">${number}<small class="stat-source-label is-${status}">${safeLabel}</small></span>`;
+}
+
+
 function renderModeView() {
     const isBat = (activeMode === "batting");
     const statsList = isBat ? currentPlayerData.batting_stats : currentPlayerData.pitching_stats;
@@ -187,7 +199,7 @@ function renderModeView() {
         sumGrid.innerHTML = `
             <div class="stat-summary-box">
                 <div class="stat-summary-title">${targetStat.season} wRC+ (득점 창출력)</div>
-                <div class="stat-summary-num">${targetStat.wrc_plus ?? '-'}</div>
+                <div class="stat-summary-num">${formatSourcedStat(targetStat, 'wrc_plus')}</div>
                 <div class="stat-summary-desc">리그 평균 100 기준 득점 생산력</div>
             </div>
             <div class="stat-summary-box">
@@ -202,10 +214,10 @@ function renderModeView() {
             </div>
             <div class="stat-summary-box">
                 <div class="stat-summary-title">${targetStat.season} bWAR / fWAR</div>
-                <div class="stat-summary-num">
-                    ${targetStat.bwar !== null ? Number(targetStat.bwar).toFixed(1) : '-'}
+                <div class="stat-summary-num stat-summary-war">
+                    ${formatSourcedStat(targetStat, 'bwar', 1)}
                     <span class="war-divider">/</span>
-                    <span class="war-sub">${targetStat.fwar !== null ? Number(targetStat.fwar).toFixed(1) : '-'}</span>
+                    <span class="war-sub">${formatSourcedStat(targetStat, 'fwar', 1)}</span>
                 </div>
                 <div class="stat-summary-desc">대체 선수 대비 승리 기여도</div>
             </div>
@@ -237,10 +249,10 @@ function renderModeView() {
             </div>
             <div class="stat-summary-box">
                 <div class="stat-summary-title">${targetStat.season} bWAR / fWAR</div>
-                <div class="stat-summary-num">
-                    ${targetStat.bwar !== null ? Number(targetStat.bwar).toFixed(1) : '-'}
+                <div class="stat-summary-num stat-summary-war">
+                    ${formatSourcedStat(targetStat, 'bwar', 1)}
                     <span class="war-divider">/</span>
-                    <span class="war-sub">${targetStat.fwar !== null ? Number(targetStat.fwar).toFixed(1) : '-'}</span>
+                    <span class="war-sub">${formatSourcedStat(targetStat, 'fwar', 1)}</span>
                 </div>
                 <div class="stat-summary-desc">투수 승리 기여도 지표</div>
             </div>
@@ -447,7 +459,7 @@ function renderModeView() {
                 <td>${fmtSlash(st.obp)}</td>
                 <td>${fmtSlash(st.slg)}</td>
                 <td><strong>${fmtSlash(st.ops)}</strong></td>
-                <td><strong>${st.wrc_plus !== null ? st.wrc_plus : '-'}</strong></td>
+                <td><strong>${formatSourcedStat(st, 'wrc_plus')}</strong></td>
                 <td>${fmtSlash(st.xba)}</td>
                 <td>${fmtSlash(st.xslg)}</td>
                 <td>${fmtSlash(st.xwoba)}</td>
@@ -457,8 +469,8 @@ function renderModeView() {
                 <td>${st.barrel_percentage ? Number(st.barrel_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.sprint_speed ? Number(st.sprint_speed).toFixed(1) : '-'}</td>
                 <td>${st.outs_above_average !== null ? st.outs_above_average : '-'}</td>
-                <td>${st.bwar !== null ? Number(st.bwar).toFixed(1) : '-'}</td>
-                <td>${st.fwar !== null ? Number(st.fwar).toFixed(1) : '-'}</td>
+                <td>${formatSourcedStat(st, 'bwar', 1)}</td>
+                <td>${formatSourcedStat(st, 'fwar', 1)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -515,8 +527,8 @@ function renderModeView() {
                 <td>${st.whiff_percentage ? Number(st.whiff_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.gb_percentage ? Number(st.gb_percentage).toFixed(1) + '%' : '-'}</td>
                 <td>${st.pitch_extension ? Number(st.pitch_extension).toFixed(1) + ' ft' : '-'}</td>
-                <td>${st.bwar !== null ? Number(st.bwar).toFixed(1) : '-'}</td>
-                <td>${st.fwar !== null ? Number(st.fwar).toFixed(1) : '-'}</td>
+                <td>${formatSourcedStat(st, 'bwar', 1)}</td>
+                <td>${formatSourcedStat(st, 'fwar', 1)}</td>
             `;
             tbody.appendChild(tr);
             syncDlSeasonSelector();
@@ -603,6 +615,16 @@ async function loadDlPrediction() {
         const p = data.predicted || {};
         const d = data.deltas || {};
         const act = data.actual;
+        const storedStats = data.mode === 'batting' ? currentPlayerData.batting_stats : currentPlayerData.pitching_stats;
+        const storedSeason = storedStats?.find(st => Number(st.season) === Number(data.target_season));
+        const actualStat = act ? {...act, stat_sources: {}} : null;
+        if (actualStat && storedSeason) {
+            for (const metric of ['bwar', 'fwar', 'wrc_plus']) {
+                if (act[metric] != null && storedSeason[metric] != null && Number(act[metric]) === Number(storedSeason[metric])) {
+                    actualStat.stat_sources[metric] = storedSeason.stat_sources?.[metric];
+                }
+            }
+        }
         const isBat = data.mode === "batting";
 
         const fmtDelta = (val, inverse = false, decimals = 0) => {
@@ -643,13 +665,13 @@ async function loadDlPrediction() {
                     title: "예상 wRC+ (득점창출력)",
                     val: `${p.wrc_plus}`,
                     delta: fmtDelta(d.wrc_plus, false, 0),
-                    actText: act ? `실제 ${data.target_season} wRC+: ${act.wrc_plus}` : null
+                    actText: act ? `DB 기록 ${data.target_season} wRC+: ${formatSourcedStat(actualStat, 'wrc_plus')}` : null
                 },
                 {
                     title: "예상 bWAR / fWAR",
                     val: `${Number(p.bwar).toFixed(1)} / ${Number(p.fwar).toFixed(1)}`,
                     delta: fmtDelta(d.fwar, false, 1),
-                    actText: act ? `실제 ${data.target_season} WAR: ${act.bwar} / ${act.fwar}` : null
+                    actText: act ? `DB 기록 ${data.target_season} bWAR / fWAR: ${formatSourcedStat(actualStat, 'bwar', 1)} / ${formatSourcedStat(actualStat, 'fwar', 1)}` : null
                 },
                 {
                     title: "예상 출전 / 도루",
@@ -688,7 +710,7 @@ async function loadDlPrediction() {
                     title: "예상 bWAR / fWAR",
                     val: `${Number(p.bwar).toFixed(1)} / ${Number(p.fwar).toFixed(1)}`,
                     delta: fmtDelta(d.fwar, false, 1),
-                    actText: act ? `실제 ${data.target_season} WAR: ${act.bwar} / ${act.fwar}` : null
+                    actText: act ? `DB 기록 ${data.target_season} bWAR / fWAR: ${formatSourcedStat(actualStat, 'bwar', 1)} / ${formatSourcedStat(actualStat, 'fwar', 1)}` : null
                 },
                 {
                     title: "예상 등판 경기",

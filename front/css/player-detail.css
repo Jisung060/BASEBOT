@@ -208,6 +208,56 @@
     color: #888;
 }
 
+.sourced-stat {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    vertical-align: middle;
+}
+
+.stat-summary-war {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+}
+
+.stat-summary-war > .sourced-stat,
+.stat-summary-war > .war-sub {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-summary-war .stat-source-label {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+}
+
+.stat-source-label {
+    display: inline-block;
+    max-width: 150px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.4;
+    font-weight: 600;
+    white-space: normal;
+    color: #475569;
+    background: #e2e8f0;
+}
+
+.stat-source-label.is-estimated {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.stat-source-label.is-published {
+    color: #1e40af;
+    background: #dbeafe;
+}
+
 /* ==================================================
    시즌별 스탯 테이블
 ================================================== */

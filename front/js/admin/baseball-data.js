@@ -19,6 +19,7 @@ const DATA_TYPE_LABELS = {
     "STEP_BOXSCORES": "박스스코어 수집 (collector_boxscores)",
     "STEP_REPAIR_GAMES": "경기 보정 (repair_games_data)",
     "STEP_SEED_TEAMS": "30개 구단 시드 (seed_teams)",
+    "IMPORT_SOURCE_CSVS": "로컬 원본 CSV로 값·출처 보정",
     "PREPARE_SOURCE_CSVS": "원본 CSV 다운로드·검증",
     "TRAIN_ML_MODEL": "경기 승부예측 ML 모델 학습",
     "TRAIN_DL_MODEL": "선수 성적예측 DL 모델 학습"

@@ -110,7 +110,7 @@ class FanGraphsSnapshotTests(unittest.TestCase):
             self.assertEqual(result.iloc[0].wrc_plus,104)
             self.assertNotIn('__source',original.decode())
             with patch.object(sources,'SOURCE_DIR',directory), patch.object(sources,'fetch_pybaseball_stats',return_value=pd.DataFrame()):
-                result=sources.fetch_fangraphs_with_fallback(2025,False,Mock(return_value=pd.DataFrame()))
+                result=sources.fetch_fangraphs_with_fallback(2025,False,Mock(side_effect=requests.ConnectionError('offline test')))
             self.assertEqual(result.iloc[0].fwar,1.0)
             self.assertTrue(result.iloc[0]['fwar__source'].startswith('local_csv:'))
             self.assertEqual(path.read_bytes(),original)

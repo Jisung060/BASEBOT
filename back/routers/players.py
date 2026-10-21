@@ -1,9 +1,10 @@
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from database.db_connection import get_session
 import re
+import math
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
@@ -175,6 +176,43 @@ def search_players_and_teams(q: str = "", limit: int = 12, db: Session = Depends
     return {"results": results}
 
 
+def get_player_provenance(db, player_id):
+    # Older databases may not have provenance yet; reading a player never creates tables.
+    if not inspect(db.get_bind()).has_table("player_stat_provenance"):
+        return {}
+    rows = db.execute(text("""
+        SELECT season, is_pitcher, metric, source, stored_value
+        FROM player_stat_provenance
+        WHERE player_id = :player_id AND metric IN ('bwar', 'fwar', 'wrc_plus')
+    """), {"player_id": player_id}).mappings().all()
+    return {(int(r["season"]), bool(r["is_pitcher"]), r["metric"]): r for r in rows}
+
+
+def player_stat_sources(item, provenance):
+    result = {}
+    role = "pitching" if item.get("is_pitcher") else "batting"
+    for metric in ("bwar", "fwar", "wrc_plus"):
+        value = item.get(metric)
+        info = {"status": "unknown", "label": "원본 미확보 · 기존 값 유지"}
+        origin = provenance.get((int(item["season"]), bool(item.get("is_pitcher")), metric))
+        if value is None or not math.isfinite(float(value)):
+            info = {"status": "missing", "label": "데이터 없음"}
+        elif origin and origin["stored_value"] is not None and math.isclose(float(value), float(origin["stored_value"]), rel_tol=1e-9, abs_tol=1e-6):
+            source = origin["source"]
+            if source == "estimated":
+                info = {"status": "estimated", "label": "추정값 · 자체 계산"}
+            else:
+                provider = "Baseball-Reference" if metric == "bwar" else "FanGraphs"
+                online = ("baseball_reference_http", "baseball_reference_pybaseball") if metric == "bwar" else ("fangraphs_http", "fangraphs_pybaseball")
+                prefix = "bref" if metric == "bwar" else "fangraphs"
+                if source in online:
+                    info = {"status": "published", "label": f"{provider} · 온라인 원본"}
+                elif source == f"local_csv:{prefix}_{role}_{item['season']}.csv":
+                    info = {"status": "published", "label": f"{provider} · 원본 CSV"}
+        result[metric] = info
+    return result
+
+
 @router.get("/{player_id}")
 def get_player_detail(player_id: int, db: Session = Depends(get_session)):
     p_query = text("""
@@ -205,6 +243,7 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
     """)
     all_stats = db.execute(s_query, {"player_id": player_id}).mappings().all()
 
+    provenance = get_player_provenance(db, player_id)
     batting_stats = []
     pitching_stats = []
     seasons_set = set()
@@ -218,6 +257,7 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
         season_yr = int(item["season"]) if item.get("season") is not None else 2024
         seasons_set.add(season_yr)
         is_pit = bool(item.get("is_pitcher"))
+        item["stat_sources"] = player_stat_sources(item, provenance)
 
         # 저장된 백분위를 우선 사용하고, 누락된 항목만 시즌 분포로 계산
         dist = get_season_distribution(db, season_yr, is_pit)

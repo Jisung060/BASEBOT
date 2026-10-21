@@ -639,6 +639,11 @@ def _run_model_training(data_type: str) -> str:
     return (result.stdout or "")[-2000:]
 
 
+def _run_import_source_csvs(season: int):
+    module, _ = load_script_module("import_source_csvs.py")
+    return module.import_source_csvs(season=season, apply=True)
+
+
 def _run_prepare_source_csvs(season: int, force: bool = False):
     module, _ = load_script_module("prepare_source_csvs.py")
     return module.prepare_source_csvs(season=season, force=force)
@@ -749,6 +754,13 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             _update_log_progress(log_id, f"{season} 시즌 투수 Extension 개별 조회 중 (수 분 이상 소요 가능)...")
             records_cnt = _run_savant_extension(season)
             msg = f"{season} 시즌 Extension 단독 갱신 완료 (Extension 보유 {records_cnt}건)"
+
+        elif dtype == "IMPORT_SOURCE_CSVS":
+            _update_log_progress(log_id, f"{season} 시즌 로컬 원본 CSV로 값·출처 보정 중 (온라인 조회 없음)...")
+            result = _run_import_source_csvs(season)
+            records_cnt = result["updated_rows"]
+            status = "PARTIAL" if result["unavailable_files"] else "SUCCESS"
+            msg = f"{season} CSV 적재: {records_cnt}행, {result['updated_values']}개 값 변경, 출처 {result.get('updated_sources', 0)}개 갱신; 사용 {result['ready_files']}개, 미확보 {result['unavailable_files']}개 파일 (기존 원본 값 보존)"
 
         elif dtype == "PREPARE_SOURCE_CSVS":
             _update_log_progress(log_id, f"{season} 시즌 원본 CSV 준비·검증 중 (DB 적재 없음)...")

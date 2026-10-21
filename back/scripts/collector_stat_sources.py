@@ -237,6 +237,52 @@ def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch, save_snapshot=
     return fill_stat_gaps(result, local)
 
 
+def mlb_payload_frame(payload, season):
+    rows = []
+    for group in payload.get("stats", []):
+        for split in group.get("splits", []):
+            if str(split.get("season", season)) != str(season):
+                raise ValueError("MLB response season mismatch")
+            rows.append({**split.get("stat", {}), "player_id": split["player"]["id"],
+                         "player_name": split["player"].get("fullName"),
+                         "team_id": split.get("team", {}).get("id"), "season": season})
+    if not rows:
+        raise ValueError("MLB returned no season statistics")
+    return pd.DataFrame(rows)
+
+
+def fetch_mlb_season_payload(season, is_pitcher, save_snapshot=True, local_fallback=True):
+    from scripts import prepare_source_csvs as prepare
+    role = "pitching" if is_pitcher else "batting"
+    spec = next(s for s in prepare.source_specs(season) if s["name"] == f"mlb_{role}")
+    try:
+        response = requests.get(spec["url"], params=spec["params"], headers={"User-Agent":"Mozilla/5.0"}, timeout=(5,20))
+        response.raise_for_status()
+        payload = response.json()
+        frame = mlb_payload_frame(payload, season)
+        if save_snapshot:
+            try:
+                prepare.write_snapshot(frame.to_csv(index=False).encode("utf-8"), spec, directory=SOURCE_DIR)
+            except (OSError, ValueError, KeyError) as exc:
+                print(f"[WARN] MLB CSV snapshot not saved: {exc}")
+        return payload
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        if not local_fallback:
+            raise
+        try:
+            frame = prepare.read_prepared(spec, directory=SOURCE_DIR)
+        except (OSError, ValueError, KeyError, pd.errors.ParserError) as local_exc:
+            raise ValueError(f"MLB online and CSV fallback unavailable: {exc}; {local_exc}") from exc
+        splits = []
+        for row in frame.to_dict("records"):
+            stats = {k:v for k,v in row.items() if k not in ("player_id","player_name","team_id","season") and pd.notna(v)}
+            splits.append({"player":{"id":int(row["player_id"]),"fullName":row.get("player_name")},
+                           "team":{"id":int(row["team_id"]) if pd.notna(row.get("team_id")) else 0},
+                           "season":str(season), "stat":stats})
+        print(f"[LOCAL] MLB {role} {season}: {len(splits)} rows after online failure: {exc}")
+        return {"stats":[{"splits":splits}]}
+
+
 def request_csv(url, headers=None, timeout=(5, 20), params=None):
     """Online first; use only a validated prepared snapshot after failure."""
     try:
@@ -248,13 +294,18 @@ def request_csv(url, headers=None, timeout=(5, 20), params=None):
         if frame.empty:
             raise ValueError("Empty CSV")
         # Registered sources have stronger year/column validation.
-        from scripts.prepare_source_csvs import source_specs, request_key, validate_csv
+        from scripts.prepare_source_csvs import source_specs, request_key, validate_csv, write_snapshot
         from urllib.parse import parse_qsl, urlsplit
         query=dict(parse_qsl(urlsplit(url).query)); query.update(params or {})
-        season=next((int(query[k]) for k in ("year", "seasonStart", "startYear") if k in query), None)
+        season=next((int(query[k]) for k in ("year", "seasonStart", "startYear", "season_start") if k in query), None)
         spec=next((s for s in source_specs(season) if request_key(s["url"],s["params"])==request_key(url,params)), None) if season else None
         if spec:
-            validate_csv(response.text.encode("utf-8"),spec)
+            data=response.text.encode("utf-8")
+            validate_csv(data,spec)
+            try:
+                write_snapshot(data,spec,directory=SOURCE_DIR)
+            except (OSError, ValueError, KeyError) as snapshot_exc:
+                print(f"[WARN] Savant CSV snapshot not saved: {snapshot_exc}")
         response.stat_source = "savant_csv"
         return response
     except (requests.RequestException, ValueError, pd.errors.ParserError) as exc:

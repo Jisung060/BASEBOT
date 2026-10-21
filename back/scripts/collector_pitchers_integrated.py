@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 from sqlalchemy import text
 from database.db_connection import engine
-from scripts.collector_stat_sources import fetch_bref_war, overlay_official_percentiles, fetch_fangraphs_with_fallback, read_lahman_basics, request_csv
+from scripts.collector_stat_sources import fetch_bref_war, overlay_official_percentiles, fetch_fangraphs_with_fallback, read_lahman_basics, request_csv, fetch_mlb_season_payload
 from scripts.collector_savant_value_repair import fetch_official_percentiles
 from scripts.stat_provenance import ensure_provenance_table, protect_derived_stats, save_provenance
 
@@ -31,13 +31,8 @@ HEADERS = {
 # ----------------------------------------------------
 def fetch_mlb_pitchers(season: int = 2024) -> pd.DataFrame:
     print(f"\n[1/4] MLB 공식 API에서 {season} 시즌 투수 전체(playerPool=ALL) 기본 성적 수집 중...")
-    url = (
-        f"https://statsapi.mlb.com/api/v1/stats"
-        f"?stats=season&season={season}&group=pitching&sportId=1&playerPool=ALL&limit=2000"
-    )
-    resp = requests.get(url, headers=HEADERS, timeout=20)
-    resp.raise_for_status()
-    splits = resp.json().get("stats", [{}])[0].get("splits", [])
+    payload = fetch_mlb_season_payload(season, True)
+    splits = payload.get("stats", [{}])[0].get("splits", [])
     
     records = []
     for item in splits:
