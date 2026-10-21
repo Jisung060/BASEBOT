@@ -199,13 +199,42 @@ def fetch_bref_war(season, is_pitcher, headers):
     return fill_stat_gaps(result, read_local_stats("bref", season, is_pitcher))
 
 
-def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch):
+def fetch_fangraphs_http(season, is_pitcher=False):
+    response = requests.get(
+        "https://www.fangraphs.com/api/leaders/major-league/data",
+        params={"stats": "pit" if is_pitcher else "bat", "pos": "all", "lg": "all",
+                "qual": 0, "season": season, "season1": season, "month": 0,
+                "team": 0, "pageitems": 10000, "pagenum": 1, "ind": 0,
+                "type": "c,fip,war" if is_pitcher else "c,wrcplus,war"},
+        headers={"User-Agent": "Mozilla/5.0"}, timeout=(5, 15))
+    response.raise_for_status()
+    return pd.DataFrame(response.json().get("data", []))
+
+
+def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch, save_snapshot=True, local_fallback=True):
     result = fetch_pybaseball_stats(season, is_pitcher, "fangraphs")
     metrics = ("fwar", "fip") if is_pitcher else ("fwar", "wrc_plus")
     if result.empty or any(result[c].isna().any() for c in metrics):
-        http = normalize_fangraphs(http_fetch(season), season, is_pitcher, "fangraphs_http")
-        result = fill_stat_gaps(result, http)
-    return fill_stat_gaps(result, read_local_stats("fangraphs", season, is_pitcher))
+        try:
+            raw = http_fetch(season, is_pitcher) if http_fetch is fetch_fangraphs_http else http_fetch(season)
+            if not raw.empty:
+                result = fill_stat_gaps(result, normalize_fangraphs(raw, season, is_pitcher, "fangraphs_http"))
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            print(f"[FALLBACK] FanGraphs HTTP: {exc}")
+    local = read_local_stats("fangraphs", season, is_pitcher) if local_fallback else pd.DataFrame()
+    if save_snapshot and not result.empty:
+        try:
+            from scripts import prepare_source_csvs as prepare
+            role = "pitching" if is_pitcher else "batting"
+            spec = next(s for s in prepare.source_specs(season) if s["name"] == f"fangraphs_{role}")
+            # Keep older published values when an online response omits players or metrics.
+            snapshot = fill_stat_gaps(result, local).copy()
+            snapshot = snapshot.drop(columns=[c for c in snapshot if c.endswith("__source")])
+            snapshot["season"] = season
+            prepare.write_snapshot(snapshot.to_csv(index=False).encode("utf-8"), spec, directory=SOURCE_DIR)
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"[WARN] FanGraphs snapshot not saved: {exc}")
+    return fill_stat_gaps(result, local)
 
 
 def request_csv(url, headers=None, timeout=(5, 20), params=None):

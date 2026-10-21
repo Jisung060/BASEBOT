@@ -23,6 +23,9 @@ Thumbs.db
 # Machine Learning
 *.pkl
 
+# Deep Learning
+*.pt
+
 # Logs
 *.log
 
