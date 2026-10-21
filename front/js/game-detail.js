@@ -82,29 +82,33 @@ function renderGameSummary(game) {
     document.getElementById("game-date").textContent = game.game_date || gameDate;
     document.getElementById("game-venue").textContent = game.venue_name || "MLB 정규시즌";   // 구장 (DB)
 
-    // 구장·한국 시간·현지 시간 상자 (승부 예측 페이지의 경기 정보 상자와 같은 글자·양식·아이콘)
-    // 날짜는 한국/현지 줄에 들어 있어서, 위의 '날짜 · 구장' 줄은 숨김 (같은 내용 두 번 안 보이게)
+    // 구장 줄 / 시간 줄을 나눠서 표시 (상자·아이콘 없이, 같은 글꼴·크기)
+    // 날짜는 시간 줄에 들어 있어서, 위의 '날짜 · 구장' 줄은 숨김 (같은 내용 두 번 안 보이게)
     const times = getGameTimes(game);
     if (times && !document.querySelector(".game-time-row")) {
         const box = document.createElement("div");
         box.className = "game-time-row";
-        box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:5px;width:fit-content;min-width:220px;margin:0 auto 8px;"
-            + "padding:12px 20px;border-radius:12px;background:#f0f3f8;box-shadow:inset 0 1px 2px rgba(0,0,0,.03);"
-            + "color:#334155;font-size:13px;font-weight:600;line-height:1.4;text-align:center";
-        box.innerHTML = `
-            <div>🏟️ ${escapeHtml(game.venue_name || "경기장 미정")}</div>
-            <div>🇰🇷 한국: <strong>${escapeHtml(times.kst)}</strong></div>
-            <div style="font-size:12px;color:#64748b">🇺🇸 현지: ${escapeHtml(times.local)}</div>`;
+        box.style.cssText = "margin:0 auto 4px;color:#727d8e;font-size:13px;font-weight:400;line-height:1.5;text-align:center;white-space:pre";
+        const venue = document.createElement("div");      // 1줄: 구장
+        venue.textContent = game.venue_name || "경기장 미정";
+        const time = document.createElement("div");       // 2줄: 한국 시간  현지 시간
+        time.textContent = `${times.kst}  ${times.local}`;
+        box.append(time, venue); 
         const meta = document.querySelector(".game-meta");
         meta.style.display = "none";                  // CSS의 display:flex 때문에 hidden 대신 직접 숨김
         meta.after(box);
     }
+
+    // '경기 종료' 표시: 점수 바로 위로 옮김 (점수와 가깝게)
+    const statusRow = document.querySelector(".game-status-row");
+    const scoreBox = document.querySelector(".final-score-box");
+    if (statusRow && scoreBox && statusRow.parentElement !== scoreBox) {
+        statusRow.style.margin = "0 0 2px";
+        scoreBox.prepend(statusRow);
+    }
     document.getElementById("game-status").textContent = formatStatus(game.status);
     document.getElementById("away-team-name").textContent = game.away_team_name;
     document.getElementById("home-team-name").textContent = game.home_team_name;
-    document.getElementById("home-team-name").insertAdjacentHTML("afterbegin",                 // 홈 구단: 이름 왼쪽 집 아이콘 (일정·결과와 같은 모양)
-        `<svg viewBox="0 0 16 16" aria-hidden="true" style="width:18px;height:18px;margin-right:6px;vertical-align:-2px;fill:#174b8a"><path d="M8 1.5 1 7.6h2V14h3.6v-4h2.8v4H13V7.6h2z"/></svg>`);
-    document.getElementById("home-team-name").title = `${game.home_team_name} (홈)`;
     document.getElementById("away-score").textContent = game.away_score ?? "-";
     document.getElementById("home-score").textContent = game.home_score ?? "-";
     if (game.status === "FINAL" && game.away_score !== game.home_score) {      // 끝난 경기: 진 팀 점수 연하게

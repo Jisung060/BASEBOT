@@ -111,7 +111,7 @@ function goToToday() {                 // 오늘 날짜의 경기만 보여 줌 
     setSelectedDate(formatKey(new Date()));
 }
 
-async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 경기 날짜의 경기만 보여 줌
+async function goToRecentGame(wholeMonth = false) {   // 가장 최근에 끝난 경기 날짜로 이동 (wholeMonth: 그 달 전체 + 달력 '전체' 체크)
     calendar.hidden = true;
     try {
         // 1) DB에서 가장 최근에 끝난 경기 1개로 '어느 달'인지 찾기
@@ -142,6 +142,14 @@ async function goToRecentGame() {      // 오늘 기준 가장 최근에 끝난 
         if (!lastDate) {
             emptyMessage.textContent = "최근 경기 결과가 없습니다.";
             emptyMessage.hidden = false;
+            return;
+        }
+        if (wholeMonth) {                  // 처음 들어올 때: 최근 경기가 있는 달의 모든 경기
+            dateInput.value = lastDate;
+            selectedDay = null;
+            showWholeMonth = true;         // 달력을 열면 '전체'가 체크된 상태
+            renderMonthStrip();
+            await loadGames();
             return;
         }
         setSelectedDate(lastDate);         // 그 날짜의 경기만 보여 줌
@@ -433,7 +441,6 @@ function createGameCard(game) {
         createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFav(game.home_team_id))
     );
 
-    const actions = el("div", "game-venue game-actions"); // 오른쪽: 끝난 경기만 버튼 표시
     if (isFinal) {
         const gameDate = String(game.game_date || dateInput.value).slice(0, 10);
         const detailUrl = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
@@ -447,10 +454,10 @@ function createGameCard(game) {
         highlight.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
         highlight.target = "_blank";
         highlight.rel = "noopener noreferrer";
-        actions.append(highlight);
+        scoreNode.append(highlight);                           // 하이라이트: 점수 바로 아래 (구단 이름이 덜 잘리게)
     }
 
-    card.append(time, matchup, actions);
+    card.append(time, matchup);                                // 오른쪽 버튼 칸은 쓰지 않음
     return card;
 }
 
@@ -474,11 +481,6 @@ function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavori
     const copy = el("span", "team-copy");              // 팀 이름과 선발 투수
     const label = el("a", "team-name", name || "팀 정보 없음");
     label.href = teamHref;
-    if (side === "home") {                             // 오른쪽 = 홈팀: 구단명 왼쪽에 집 모양 아이콘
-        label.insertAdjacentHTML("afterbegin",
-            `<svg class="home-team-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 1 7.6h2V14h3.6v-4h2.8v4H13V7.6h2z"/></svg>`);
-        label.title = `${name} (홈)`;
-    }
     const pitcher = el("small", "team-pitcher", pitcherName ? `${pitcherName} 선발` : "선발 미정");   // 선수명 뒤에 '선발'
     copy.append(label, pitcher);
 
@@ -496,7 +498,7 @@ function createScoreNode(game, showScore) {
             if (Number(game.away_score) > Number(game.home_score)) { away.className = "winner"; home.className = "loser"; }
             if (Number(game.home_score) > Number(game.away_score)) { home.className = "winner"; away.className = "loser"; }   // 진 쪽은 연하게
         }
-        block.append(el("div", "score-line"), el("span", "score-caption", ""));
+        block.append(el("div", "score-line"));
         block.querySelector(".score-line").append(away, el("span", "", ":"), home);
     } else if (game.status === "CANCELLED") {          // 취소 경기: 점수 자리에 '취소'만 크게
         block.append(el("span", "scheduled-vs cancelled-mark", "취소"));
@@ -504,7 +506,7 @@ function createScoreNode(game, showScore) {
     } else {
         block.append(el("span", "scheduled-vs", "VS"));
     }
-    block.append(el("span", "score-caption", STATUS_LABELS[game.status] || game.status || "상태 미정"));
+    block.prepend(el("span", "score-caption", STATUS_LABELS[game.status] || game.status || "상태 미정"));   // '경기 종료' 등: 점수 위
     return block;
 }
 
@@ -623,7 +625,7 @@ async function init() {
     } else {
         emptyMessage.textContent = "최근 경기를 불러오는 중입니다...";
         emptyMessage.hidden = false;
-        await goToRecentGame();                        // 그냥 들어오면 → 전체 구단의 최근 경기 날짜
+        await goToRecentGame(true);                    // 그냥 들어오면 → 최근 경기가 있는 달 전체 ('전체' 체크)
     }
     if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" }); // 스크롤 위치 복원
 }

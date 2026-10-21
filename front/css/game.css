@@ -189,7 +189,7 @@
 .score-line strong.loser{color:#a3b1c6}
 
 /* 경기 카드 조금 크게 + 글자 키우기 (일정·결과 목록만) */
-#game-list .game-card{height:auto!important;min-height:88px;padding:12px 16px}
+#game-list .game-card{height:auto!important;min-height:0;padding:8px 16px}   /* 세로를 조금 줄임 (위아래 여백 12→8px) */
 #game-list .game-time{align-items:baseline}   /* 한국 시간 · (현지 시간) · 구장 높이 맞추기 */
 #game-list .game-time strong{margin:0;font-size:13px}
 #game-list .game-time small{font-size:12px}
@@ -198,8 +198,16 @@
 #game-list .game-time .game-venue-name{margin-left:auto;padding-left:8px;font-size:13px;white-space:nowrap}   /* 구장: 카드 오른쪽 위, 시간과 같은 크기 */
 #game-list .team-name{font-size:14px}
 #game-list .team-pitcher{font-size:11px}
+#game-list .schedule-team-slot.away .team-pitcher{text-align:left}    /* 왼쪽(원정) 구단: 선발 투수 왼쪽 정렬 */
+#game-list .schedule-team-slot.home .team-pitcher{text-align:right}   /* 오른쪽(홈) 구단: 선발 투수 오른쪽 정렬 */
 #game-list .score-line strong{font-size:22px}
 #game-list .score-caption{font-size:11px}
-#game-list .home-team-icon{display:inline-block;width:13px;height:13px;margin-right:4px;vertical-align:-1px;fill:#174b8a}   /* 홈팀 구단명 왼쪽 집 아이콘 */
 #game-list .game-day-cards .team-mark.team-logo-img,#game-list .game-day-cards .team-mark-fallback{width:34px!important;min-width:34px!important;max-width:34px!important;height:34px!important;min-height:34px!important;max-height:34px!important}   /* 구단 로고 22px → 34px */
-#game-list .game-actions .score-highlight-link{font-size:13px!important}
+#game-list .game-day-cards .game-card{grid-template-columns:minmax(0,1fr)}   /* 오른쪽 하이라이트 칸 없앰 → 구단 이름 자리 넓게 */
+#game-list .score-block .score-caption{margin:0;line-height:1.2}   /* '경기 종료': 점수 바로 위 */
+#game-list .score-line{line-height:1.1}   /* 점수 줄 높이 줄임 */
+#game-list .score-block{display:flex;flex-direction:column;align-items:center}   /* 경기 종료 · 점수 · 하이라이트를 점수 기준 가운데로 (칸보다 넓은 글자도 양쪽으로 똑같이) */
+#game-list .score-block .score-highlight-link{margin:3px 0 0;font-size:12px!important;white-space:nowrap}   /* 하이라이트: 점수 바로 아래 */
+#game-list .score-line strong{min-width:30px}   /* 두 점수 칸 너비를 같게 → ':'가 정확히 가운데 */
+#game-list .score-line strong:first-child{text-align:right}
+#game-list .score-line strong:last-child{text-align:left}
