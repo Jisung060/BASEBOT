@@ -9,13 +9,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (initialSeason) {
         selectedSeason = Number(initialSeason);
     }
-    fetchPlayerDetail(playerId);
+
+    // ★ DL 플레이그라운드 컨트롤 이벤트 바인딩
     const btnDl = document.getElementById("btnRunDlPredict");
     const selSeason = document.getElementById("dlTargetSeasonSelect");
     const selScen = document.getElementById("dlScenarioSelect");
     if (btnDl) btnDl.addEventListener("click", loadDlPrediction);
     if (selSeason) selSeason.addEventListener("change", loadDlPrediction);
     if (selScen) selScen.addEventListener("change", loadDlPrediction);
+
+    fetchPlayerDetail(playerId);
 });
 
 // ★ Baseball Savant 공식 다중 스펙트럼 컬러맵 (재즈 치좀 주니어 그래프 색상 100% 재현)
@@ -531,10 +534,11 @@ function renderModeView() {
                 <td>${formatSourcedStat(st, 'fwar', 1)}</td>
             `;
             tbody.appendChild(tr);
-            syncDlSeasonSelector();
-            loadDlPrediction();
         });
     }
+
+    syncDlSeasonSelector();
+    loadDlPrediction();
 }
 
 // ★ 선수의 DB 보유 시즌을 기반으로 [미래 예측(+1~+3년)] + [과거 백테스트(보유 전 시즌)] 드롭다운 동적 생성
