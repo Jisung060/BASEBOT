@@ -376,6 +376,33 @@
             .filter-group { width: 100%; flex-wrap: wrap; }
             .search-input { flex-grow: 1; }
         }
+
+        /* BASEBOT AI 챗봇 - 뉴스 페이지 전용 */
+        .news-chatbot { position: fixed; right: 24px; bottom: 24px; z-index: 9999; font-family: inherit; }
+        .news-chatbot-toggle { display:flex; align-items:center; gap:10px; border:0; border-radius:999px; padding:12px 18px 12px 12px; background:#0f4c81; color:#fff; box-shadow:0 8px 28px rgba(15,76,129,.28); cursor:pointer; font-weight:800; }
+        .news-chatbot-toggle-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:#fff; color:#0f4c81; font-weight:900; }
+        .news-chatbot-window { display:none; position:absolute; right:0; bottom:64px; width:min(380px, calc(100vw - 24px)); height:min(560px, calc(100dvh - 115px)); min-height:360px; overflow:hidden; flex-direction:column; border:1px solid #dce5ee; border-radius:18px; background:#fff; box-shadow:0 16px 50px rgba(12,38,62,.24); }
+        .news-chatbot-window.open { display:flex; }
+        .news-chatbot-header { display:flex; align-items:center; justify-content:space-between; padding:15px 16px; background:#0f4c81; color:#fff; }
+        .news-chatbot-heading { display:flex; align-items:center; gap:10px; }
+        .news-chatbot-heading-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:11px; background:#fff; color:#0f4c81; font-weight:900; }
+        .news-chatbot-heading strong { display:block; font-size:15px; }
+        .news-chatbot-heading small { display:block; margin-top:3px; color:#d8e9f8; font-size:11px; }
+        .news-chatbot-close { border:0; background:transparent; color:#fff; font-size:26px; cursor:pointer; line-height:1; }
+        .news-chatbot-messages { display:flex; flex:1; flex-direction:column; gap:12px; overflow-y:auto; padding:16px 13px; background:#f6f8fb; }
+        .news-chat-message { max-width:88%; padding:11px 13px; border-radius:14px; font-size:13px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+        .news-chat-message.bot { align-self:flex-start; border:1px solid #e3e9ef; border-top-left-radius:4px; background:#fff; color:#263746; }
+        .news-chat-message.user { align-self:flex-end; border-top-right-radius:4px; background:#0f4c81; color:#fff; }
+        .news-chat-message.pending { color:#718096; font-style:italic; }
+        .news-chatbot-suggestions { display:flex; gap:6px; flex-wrap:wrap; padding:9px 12px 0; background:#fff; }
+        .news-chatbot-suggestions button { border:1px solid #d7e3ef; border-radius:999px; padding:6px 9px; background:#fff; color:#17466f; font-size:11px; cursor:pointer; }
+        .news-chatbot-input-area { display:flex; gap:8px; padding:11px; border-top:1px solid #e6ebf0; background:#fff; }
+        .news-chatbot-input { flex:1; min-width:0; padding:11px 12px; border:1px solid #d6dfe8; border-radius:11px; outline:none; font:inherit; font-size:13px; }
+        .news-chatbot-input:focus { border-color:#0f4c81; box-shadow:0 0 0 3px rgba(15,76,129,.1); }
+        .news-chatbot-send { width:42px; flex-shrink:0; border:0; border-radius:11px; background:#0f4c81; color:#fff; font-size:20px; cursor:pointer; }
+        .news-chatbot-send:disabled { opacity:.55; cursor:wait; }
+        @media(max-width:480px) { .news-chatbot { right:12px; bottom:12px; } .news-chatbot-window { right:-2px; bottom:60px; height:min(560px, calc(100dvh - 90px)); } .news-chatbot-toggle { padding:9px 13px 9px 9px; } }
+
     </style>
 </head>
 <body>
@@ -476,6 +503,35 @@
             <div id="pagination" class="pagination"></div>
         </div>
     </main>
+
+
+    <!-- BASEBOT AI 챗봇: 뉴스 페이지에서도 메인 페이지와 같은 AI 사용 -->
+    <div class="news-chatbot" id="newsChatbot">
+        <section class="news-chatbot-window" id="newsChatbotWindow" aria-label="BASEBOT AI 챗봇" aria-hidden="true">
+            <header class="news-chatbot-header">
+                <div class="news-chatbot-heading">
+                    <div class="news-chatbot-heading-icon">AI</div>
+                    <div><strong>BASEBOT AI</strong><small>MLB 뉴스 · 야구 질문 도우미</small></div>
+                </div>
+                <button class="news-chatbot-close" id="newsChatbotClose" type="button" aria-label="챗봇 닫기">×</button>
+            </header>
+            <div class="news-chatbot-messages" id="newsChatbotMessages" aria-live="polite">
+                <div class="news-chat-message bot">안녕하세요! ⚾ BASEBOT AI입니다. 최근 MLB 뉴스나 선수·구단·경기에 대해 궁금한 내용을 질문해 주세요.</div>
+            </div>
+            <div class="news-chatbot-suggestions">
+                <button type="button" data-question="오늘 MLB 주요 뉴스 알려줘">오늘의 주요 뉴스</button>
+                <button type="button" data-question="최근 다저스 관련 뉴스 요약해줘">다저스 뉴스</button>
+                <button type="button" data-question="최근 뉴스에서 주목할 선수는 누구야?">주목할 선수</button>
+            </div>
+            <form class="news-chatbot-input-area" id="newsChatbotForm">
+                <input class="news-chatbot-input" id="newsChatbotInput" maxlength="1000" autocomplete="off" placeholder="야구 또는 뉴스에 대해 질문하세요." aria-label="질문 입력">
+                <button class="news-chatbot-send" id="newsChatbotSend" type="submit" aria-label="질문 보내기">↑</button>
+            </form>
+        </section>
+        <button class="news-chatbot-toggle" id="newsChatbotToggle" type="button" aria-expanded="false" aria-controls="newsChatbotWindow">
+            <span class="news-chatbot-toggle-icon">AI</span><span>BASEBOT AI</span>
+        </button>
+    </div>
 
     <div id="footer"></div>
 
@@ -1748,6 +1804,129 @@ async function loadArticleContent(id, content) {
                 "&#039;"
             );
     }
+
+
+    // ============================================================
+    // BASEBOT AI 뉴스 챗봇
+    // ============================================================
+    (() => {
+        const windowEl = document.getElementById("newsChatbotWindow");
+        const toggle = document.getElementById("newsChatbotToggle");
+        const close = document.getElementById("newsChatbotClose");
+        const form = document.getElementById("newsChatbotForm");
+        const input = document.getElementById("newsChatbotInput");
+        const send = document.getElementById("newsChatbotSend");
+        const messages = document.getElementById("newsChatbotMessages");
+        if (!windowEl || !toggle || !form || !input || !messages) return;
+
+        function setOpen(open) {
+            windowEl.classList.toggle("open", open);
+            windowEl.setAttribute("aria-hidden", String(!open));
+            toggle.setAttribute("aria-expanded", String(open));
+            if (open) setTimeout(() => input.focus(), 50);
+        }
+        toggle.addEventListener("click", () => setOpen(!windowEl.classList.contains("open")));
+        close?.addEventListener("click", () => setOpen(false));
+
+        function addMessage(text, who = "bot", extraClass = "") {
+            const item = document.createElement("div");
+            item.className = `news-chat-message ${who} ${extraClass}`.trim();
+            item.textContent = text;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+            return item;
+        }
+
+        let newsChatSessionId = null;
+
+        async function ask(question) {
+            const cleanQuestion = String(question || "").trim();
+            if (!cleanQuestion || send.disabled) return;
+            addMessage(cleanQuestion, "user");
+            input.value = "";
+            send.disabled = true;
+            input.disabled = true;
+            const pending = addMessage("답변을 준비하고 있습니다...", "bot", "pending");
+            try {
+                // BASEBOT의 기존 /chat API를 재사용하고 세션 ID를 유지합니다.
+                const tokenKeys = ["access_token", "accessToken", "token", "jwt_token", "jwt"];
+                let accessToken = "";
+                for (const storage of [localStorage, sessionStorage]) {
+                    for (const key of tokenKeys) {
+                        const value = storage.getItem(key);
+                        if (value && value !== "null" && value !== "undefined") {
+                            accessToken = value;
+                            break;
+                        }
+                    }
+                    if (accessToken) break;
+                }
+                const headers = { "Content-Type": "application/json" };
+                if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
+                const chatPayload = JSON.stringify({
+                    message: cleanQuestion,
+                    session_id: newsChatSessionId
+                });
+
+                let response = await fetch("/chat", {
+                    method: "POST",
+                    headers,
+                    body: chatPayload,
+                    cache: "no-store"
+                });
+
+                let result = {};
+                try { result = await response.json(); } catch (_) {}
+
+                // 저장된 토큰이 만료/오래된 경우, chat.py가 허용하는 비로그인 요청으로 한 번 재시도합니다.
+                // 백엔드는 authorization 헤더가 없으면 user_id=None으로 챗봇을 실행합니다.
+                if (response.status === 401 && accessToken) {
+                    const guestResponse = await fetch("/chat", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: chatPayload,
+                        cache: "no-store"
+                    });
+                    let guestResult = {};
+                    try { guestResult = await guestResponse.json(); } catch (_) {}
+                    response = guestResponse;
+                    result = guestResult;
+                }
+
+                if (!response.ok) {
+                    const detail = result.detail || "AI 답변을 가져오지 못했습니다.";
+                    if (response.status === 401) {
+                        throw new Error("인증에 실패했습니다. 로그아웃 후 다시 로그인해 주세요.");
+                    }
+                    throw new Error(detail);
+                }
+                if (result.session_id) newsChatSessionId = result.session_id;
+                pending.textContent = result.answer || "답변을 생성하지 못했습니다. 다시 질문해 주세요.";
+                pending.classList.remove("pending");
+            } catch (error) {
+                pending.textContent = `오류: ${error.message}\\n기존 /chat API와 로그인 토큰 설정을 확인해 주세요.`;
+                pending.classList.remove("pending");
+            } finally {
+                send.disabled = false;
+                input.disabled = false;
+                input.focus();
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            ask(input.value);
+        });
+        document.querySelectorAll(".news-chatbot-suggestions [data-question]").forEach(button => {
+            button.addEventListener("click", () => ask(button.dataset.question));
+        });
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && windowEl.classList.contains("open")) setOpen(false);
+        });
+    })();
+
 
 </script>
 </body>
