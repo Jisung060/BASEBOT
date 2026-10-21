@@ -1,5 +1,5 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from database.db_connection import get_session
@@ -368,6 +368,15 @@ def get_player_detail(player_id: int, db: Session = Depends(get_session)):
         "batting_stats": batting_stats,
         "pitching_stats": pitching_stats
     }
+
+@router.get("/{player_id}/charts")
+def get_player_charts(player_id: int, season: int = Query(..., ge=2015, le=date.today().year), mode: str = "batting"):
+    from services.player_chart_data import load_player_charts
+    try:
+        return load_player_charts(season,player_id,mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
 
 from services.player_dl_predictor import dl_predictor
 

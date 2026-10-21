@@ -8,6 +8,7 @@ let currentLogs = [];
 let logSortConfig = { key: "log_id", dir: "desc" };
 
 const DATA_TYPE_LABELS = {
+    "PREPARE_PLAYER_CHARTS": "선수 차트용 CSV 수집",
     "PIPELINE_PLAYERS": "선수 3단계 통합 파이프라인",
     "PIPELINE_GAMES": "경기 3단계 통합 파이프라인",
     "STEP_BATTERS": "타자 수집 (collector_batters)",
@@ -332,8 +333,35 @@ function initManualSyncControls() {
     const startBox = document.getElementById("manualStartDateBox");
     const endBox = document.getElementById("manualEndDateBox");
 
+    let chartRequest = 0;
+    const loadChartPlayers = async () => {
+        const select = document.getElementById('manualChartPlayer');
+        if (syncTypeSelect.value !== 'PREPARE_PLAYER_CHARTS') return;
+        const request = ++chartRequest;
+        select.disabled = true;
+        select.innerHTML = '<option value="">선수 목록 조회 중...</option>';
+        try {
+            const res = await fetch(`/api/admin/baseball-data/chart-players?season=${Number(document.getElementById('manualSeasonSelect').value)}`);
+            if (!res.ok) throw new Error('선수 목록 조회 실패');
+            const data = await res.json();
+            if (request !== chartRequest) return;
+            select.innerHTML = '<option value="">대상을 선택해 주세요.</option>';
+            if (data.players.length) select.add(new Option(`선택 시즌 전체 선수·유형 (${data.players.length}개)`, 'ALL'));
+            for (const player of data.players) {
+                select.add(new Option(`${player.name} (${player.player_id}) · ${player.mode === 'pitching' ? '투구' : '타격'}`, `${player.player_id}:${player.mode}`));
+            }
+            if (!data.players.length) select.innerHTML = '<option value="">해당 시즌 선수 기록 없음</option>';
+            select.disabled = !data.players.length;
+        } catch (error) {
+            if (request === chartRequest) select.innerHTML = '<option value="">선수 목록 조회 실패 · 다시 선택해 주세요.</option>';
+        }
+    };
+    document.getElementById('manualSeasonSelect').addEventListener('change', loadChartPlayers);
     const updateOptionVisibility = () => {
         const val = syncTypeSelect.value;
+        document.getElementById("manualChartPlayerBox").style.display = val === "PREPARE_PLAYER_CHARTS" ? "flex" : "none";
+        document.getElementById("manualChartRefreshBox").style.display = val === "PREPARE_PLAYER_CHARTS" ? "flex" : "none";
+        loadChartPlayers();
         document.getElementById("manualCsvOptions").style.display = val === "PREPARE_SOURCE_CSVS" ? "flex" : "none";
         const isDateRangeType = ["PIPELINE_GAMES", "STEP_GAMES", "STEP_BOXSCORES"].includes(val);
         const isTraining = ["TRAIN_ML_MODEL", "TRAIN_DL_MODEL"].includes(val);
@@ -369,7 +397,18 @@ function initManualSyncControls() {
             const sDate = document.getElementById("manualStartDate").value;
             const eDate = document.getElementById("manualEndDate").value;
 
+            const chartSelection = document.getElementById('manualChartPlayer');
+            const isAllCharts = chartSelection.value === 'ALL';
+            const [chartId, chartMode] = chartSelection.value.split(':');
+            if (dtype === 'PREPARE_PLAYER_CHARTS' && (chartSelection.disabled || (!isAllCharts && !Number(chartId)))) {
+                alert('차트 대상 선수를 선택해 주세요.');
+                return;
+            }
             executeManualSync({
+                player_id: dtype === 'PREPARE_PLAYER_CHARTS' && !isAllCharts ? Number(chartId) : null,
+                chart_all_players: dtype === 'PREPARE_PLAYER_CHARTS' && isAllCharts,
+                chart_refresh: dtype === 'PREPARE_PLAYER_CHARTS' && document.getElementById('manualChartRefresh').checked,
+                chart_mode: dtype === 'PREPARE_PLAYER_CHARTS' && !isAllCharts ? chartMode : 'batting',
                 data_type: dtype,
                 season: season,
                 start_date: sDate,
@@ -457,7 +496,7 @@ async function loadSchedules() {
                     <strong>${item.label}</strong>
                     <small>최근 실행: ${item.last_run_at || "기록 없음"}</small>
                     ${item.data_type === "STEP_SAVANT_REPAIR" ? '<small>Extension은 유지하고 나머지 지표를 일괄 갱신합니다.</small>' : ''}
-                    ${item.data_type === "STEP_SAVANT_EXTENSION" ? '<small>Extension·공식 백분위만 선수별로 조회합니다. 수 분 이상 걸릴 수 있습니다.</small>' : ''}
+                    ${item.data_type === "STEP_SAVANT_EXTENSION" ? '<small>로컬 CSV의 Extension·공식 백분위를 우선 사용합니다. Extension이 없으면 선수별 온라인 조회로 보충합니다.</small>' : ''}
                 </div>
                 <select class="sched-interval">
                     <option value="EVERY_6H" ${item.interval_type === "EVERY_6H" ? "selected" : ""}>6시간마다</option>

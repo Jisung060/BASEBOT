@@ -22,7 +22,7 @@ BACK_DIR = Path(__file__).resolve().parents[1]
 if str(BACK_DIR) not in sys.path:
     sys.path.insert(0, str(BACK_DIR))
 from scripts.stat_provenance import ensure_provenance_table, protect_derived_stats, save_provenance, is_derived
-from scripts.collector_stat_sources import SOURCE_DIR, request_csv
+from scripts.collector_stat_sources import SOURCE_DIR, request_csv, fetch_mlb_season_payload
 
 BASE = "https://baseballsavant.mlb.com"
 MLB_STATS_API = "https://statsapi.mlb.com/api/v1/stats"
@@ -190,8 +190,52 @@ def fetch_pitch_run_values(season: int) -> pd.DataFrame:
     return out.drop_duplicates("player_id")
 
 
+def local_pitcher_extension(player_id, season):
+    from scripts.prepare_source_csvs import source_specs, read_prepared
+    result = {"player_id":player_id}
+    spec = next(s for s in source_specs(season) if s["name"]=="savant_pitcher_extra")
+    try:
+        frame = norm_columns(read_prepared(spec,directory=SOURCE_DIR))
+        rows = frame[pd.to_numeric(frame["player_id"],errors="coerce").eq(player_id)]
+        column = first_column(rows,("release_extension","extension","ext"))
+        value = clean(pd.to_numeric(rows.iloc[0][column],errors="coerce")) if column and not rows.empty else None
+        if value is not None and 0 < value <= 15:
+            result.update(pitch_extension=round(value,1),pitch_extension__source=f"local_csv:{spec['filename']}")
+    except (OSError,ValueError,KeyError,IndexError):
+        pass
+    if "pitch_extension" not in result:
+        try:
+            from services import player_chart_data as charts
+            folder = charts.CHART_DIR/str(season)/str(player_id)
+            frame,_ = charts.read_chart_frame(charts.chart_spec(season,player_id,"pitching"),folder)
+            values = pd.to_numeric(frame["release_extension"],errors="coerce")
+            values = values[values.gt(0)&values.le(15)]
+            if not values.empty:
+                # Average only measured pitch extensions; never manufacture a percentile.
+                result.update(pitch_extension=round(float(values.mean()),1),
+                              pitch_extension__source=f"local_csv:player_charts/{season}/{player_id}/pitching.csv:mean_release_extension")
+        except (OSError,ValueError,KeyError):
+            return {}
+    if "pitch_extension" not in result:
+        return {}
+    try:
+        pct_spec=next(s for s in source_specs(season) if s['name']=='savant_percentiles_pitcher')
+        pct=normalize_official_percentiles(read_prepared(pct_spec,directory=SOURCE_DIR),'pitcher',f"local_csv:{pct_spec['filename']}")
+        rows=pct[pct.player_id.eq(player_id)]
+        if not rows.empty and 'extension_percentile' in rows:
+            value=clean(rows.iloc[0]['extension_percentile'],integer=True)
+            if value is not None:
+                result.update(extension_percentile=value,extension_percentile__source=f"local_csv:{pct_spec['filename']}")
+    except (OSError,ValueError,KeyError):
+        pass
+    return result
+
+
 def fetch_pitcher_extension(player_id: int, season: int) -> dict:
-    """The custom CSV leaves extension empty; use the player's season card."""
+    """Use measured local CSV values first; player cards are the last resort."""
+    local = local_pitcher_extension(player_id,season)
+    if local:
+        return local
     try:
         response = requests.get(f"{BASE}/savant-player/{player_id}",
                                 headers=HEADERS, timeout=(5, 12))
@@ -212,6 +256,7 @@ def fetch_pitcher_extension(player_id: int, season: int) -> dict:
         if value is None:
             return {}
         result = {"player_id": player_id, "pitch_extension": round(value, 1),
+                  "pitch_extension__source": "savant_player",
                   "extension_percentile__source": "savant_player",
                   "extension_percentile": clean(pd.to_numeric(
                       row.get("percent_rank_fastball_extension"), errors="coerce"), integer=True)}
@@ -356,6 +401,7 @@ def fetch_pitcher_extra(season: int, existing_pitcher_ids: set[int] | None = Non
         out["gb_percentile"] = percentile(out["gb_percentage"], True)
     if ext_col:
         out["pitch_extension"] = pd.to_numeric(df[ext_col], errors="coerce").round(1)
+        out["pitch_extension__source"] = pd.Series(df.attrs.get("source", "savant_csv"),index=out.index).where(out["pitch_extension"].notna())
         out["extension_percentile"] = percentile(out["pitch_extension"], True)
     if fv_col:
         out["fastball_velocity"] = pd.to_numeric(df[fv_col], errors="coerce").round(1)
@@ -389,12 +435,8 @@ def fetch_pitcher_extra(season: int, existing_pitcher_ids: set[int] | None = Non
 
 def fetch_pitcher_k_bb(season: int) -> pd.DataFrame:
     try:
-        resp = requests.get(MLB_STATS_API, params={
-            "stats": "season", "season": season, "group": "pitching",
-            "sportId": 1, "playerPool": "ALL", "limit": 2000
-        }, headers=HEADERS, timeout=(5, 12))
-        resp.raise_for_status()
-        splits = resp.json().get("stats", [{}])[0].get("splits", [])
+        payload = fetch_mlb_season_payload(season,True)
+        splits = payload.get("stats", [{}])[0].get("splits", [])
     except Exception as e:
         print(f"[SKIP] MLB pitcher K/BB: {e}")
         return pd.DataFrame()
@@ -601,7 +643,7 @@ def run_savant_repair(season: int = 2024, dry_run: bool = False,
                                      sorted(existing_pitcher_ids)))
         extension = pd.DataFrame([row for row in rows if row])
         if not extension.empty:
-            extension = extension[[c for c in ("player_id", "pitch_extension", "extension_percentile", "extension_percentile__source") if c in extension]]
+            extension = extension[[c for c in ("player_id", "pitch_extension", "extension_percentile", "pitch_extension__source", "extension_percentile__source") if c in extension]]
         if not dry_run:
             bulk_update_role(engine, extension, season, True, valid_db_cols)
         print(f"[EXTENSION] collected {len(extension)} pitchers in {time.time() - t0:.2f}s")

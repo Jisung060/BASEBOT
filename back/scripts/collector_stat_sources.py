@@ -192,11 +192,20 @@ def read_local_stats(provider, season, is_pitcher):
         return pd.DataFrame()
 
 
-def fetch_bref_war(season, is_pitcher, headers):
-    result = fetch_pybaseball_stats(season, is_pitcher, "bref")
-    if result.empty:
-        result = _fetch_bref_http(season, is_pitcher, headers)
-    return fill_stat_gaps(result, read_local_stats("bref", season, is_pitcher))
+def complete_local(frame, metrics, expected_ids=None):
+    if frame.empty or any(c not in frame or frame[c].isna().any() for c in metrics):
+        return False
+    return expected_ids is None or set(expected_ids).issubset(set(frame.player_id))
+
+
+def fetch_bref_war(season, is_pitcher, headers, expected_ids=None):
+    local = read_local_stats("bref", season, is_pitcher)
+    if complete_local(local, ("bwar",), expected_ids):
+        return local
+    online = fetch_pybaseball_stats(season, is_pitcher, "bref")
+    if online.empty:
+        online = _fetch_bref_http(season, is_pitcher, headers)
+    return fill_stat_gaps(local, online)
 
 
 def fetch_fangraphs_http(season, is_pitcher=False):
@@ -211,9 +220,12 @@ def fetch_fangraphs_http(season, is_pitcher=False):
     return pd.DataFrame(response.json().get("data", []))
 
 
-def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch, save_snapshot=True, local_fallback=True):
-    result = fetch_pybaseball_stats(season, is_pitcher, "fangraphs")
+def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch, save_snapshot=True, local_fallback=True, expected_ids=None):
+    local = read_local_stats("fangraphs", season, is_pitcher) if local_fallback else pd.DataFrame()
     metrics = ("fwar", "fip") if is_pitcher else ("fwar", "wrc_plus")
+    if complete_local(local, metrics, expected_ids):
+        return local
+    result = fetch_pybaseball_stats(season, is_pitcher, "fangraphs")
     if result.empty or any(result[c].isna().any() for c in metrics):
         try:
             raw = http_fetch(season, is_pitcher) if http_fetch is fetch_fangraphs_http else http_fetch(season)
@@ -221,20 +233,19 @@ def fetch_fangraphs_with_fallback(season, is_pitcher, http_fetch, save_snapshot=
                 result = fill_stat_gaps(result, normalize_fangraphs(raw, season, is_pitcher, "fangraphs_http"))
         except (requests.RequestException, ValueError, KeyError) as exc:
             print(f"[FALLBACK] FanGraphs HTTP: {exc}")
-    local = read_local_stats("fangraphs", season, is_pitcher) if local_fallback else pd.DataFrame()
     if save_snapshot and not result.empty:
         try:
             from scripts import prepare_source_csvs as prepare
             role = "pitching" if is_pitcher else "batting"
             spec = next(s for s in prepare.source_specs(season) if s["name"] == f"fangraphs_{role}")
             # Keep older published values when an online response omits players or metrics.
-            snapshot = fill_stat_gaps(result, local).copy()
+            snapshot = fill_stat_gaps(local, result).copy()
             snapshot = snapshot.drop(columns=[c for c in snapshot if c.endswith("__source")])
             snapshot["season"] = season
             prepare.write_snapshot(snapshot.to_csv(index=False).encode("utf-8"), spec, directory=SOURCE_DIR)
         except (OSError, ValueError, KeyError) as exc:
             print(f"[WARN] FanGraphs snapshot not saved: {exc}")
-    return fill_stat_gaps(result, local)
+    return fill_stat_gaps(local, result)
 
 
 def mlb_payload_frame(payload, season):
@@ -251,10 +262,25 @@ def mlb_payload_frame(payload, season):
     return pd.DataFrame(rows)
 
 
+def mlb_frame_payload(frame, season):
+    splits = []
+    for row in frame.to_dict("records"):
+        stats = {k:v for k,v in row.items() if k not in ("player_id","player_name","team_id","season") and pd.notna(v)}
+        splits.append({"player":{"id":int(row["player_id"]),"fullName":row.get("player_name")},
+                       "team":{"id":int(row["team_id"]) if pd.notna(row.get("team_id")) else 0},
+                       "season":str(season), "stat":stats})
+    return {"stats":[{"splits":splits}]}
+
+
 def fetch_mlb_season_payload(season, is_pitcher, save_snapshot=True, local_fallback=True):
     from scripts import prepare_source_csvs as prepare
     role = "pitching" if is_pitcher else "batting"
     spec = next(s for s in prepare.source_specs(season) if s["name"] == f"mlb_{role}")
+    if local_fallback:
+        try:
+            return mlb_frame_payload(prepare.read_prepared(spec,directory=SOURCE_DIR), season)
+        except (OSError,ValueError,KeyError,pd.errors.ParserError):
+            pass
     try:
         response = requests.get(spec["url"], params=spec["params"], headers={"User-Agent":"Mozilla/5.0"}, timeout=(5,20))
         response.raise_for_status()
@@ -273,18 +299,17 @@ def fetch_mlb_season_payload(season, is_pitcher, save_snapshot=True, local_fallb
             frame = prepare.read_prepared(spec, directory=SOURCE_DIR)
         except (OSError, ValueError, KeyError, pd.errors.ParserError) as local_exc:
             raise ValueError(f"MLB online and CSV fallback unavailable: {exc}; {local_exc}") from exc
-        splits = []
-        for row in frame.to_dict("records"):
-            stats = {k:v for k,v in row.items() if k not in ("player_id","player_name","team_id","season") and pd.notna(v)}
-            splits.append({"player":{"id":int(row["player_id"]),"fullName":row.get("player_name")},
-                           "team":{"id":int(row["team_id"]) if pd.notna(row.get("team_id")) else 0},
-                           "season":str(season), "stat":stats})
-        print(f"[LOCAL] MLB {role} {season}: {len(splits)} rows after online failure: {exc}")
-        return {"stats":[{"splits":splits}]}
+        return mlb_frame_payload(frame, season)
 
 
 def request_csv(url, headers=None, timeout=(5, 20), params=None):
-    """Online first; use only a validated prepared snapshot after failure."""
+    """Prefer validated original CSVs; the preparation script explicitly refreshes online."""
+    from scripts.prepare_source_csvs import read_prepared_for_request
+    from types import SimpleNamespace
+    local=read_prepared_for_request(url,params)
+    if not local.empty:
+        return SimpleNamespace(text=local.to_csv(index=False),status_code=200,
+                               stat_source=local.attrs['source'],raise_for_status=lambda:None)
     try:
         response = requests.get(url, headers=headers, timeout=timeout, params=params)
         response.raise_for_status()

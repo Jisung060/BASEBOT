@@ -489,6 +489,10 @@ class ManualFetchRequest(BaseModel):
     trigger_type: str = "MANUAL"
     refresh_pitcher_details: bool = False
     force_csv_download: bool = False
+    player_id: Optional[int] = None
+    chart_mode: str = "batting"
+    chart_all_players: bool = False
+    chart_refresh: bool = False
 
 
 def _update_log_progress(log_id: int, message: str):
@@ -639,6 +643,28 @@ def _run_model_training(data_type: str) -> str:
     return (result.stdout or "")[-2000:]
 
 
+def _run_prepare_player_charts(season: int, player_id: int, mode: str):
+    module, _ = load_script_module("prepare_player_charts.py")
+    return module.collect_player_charts(season, player_id, mode)
+
+
+def _run_prepare_season_charts(season: int, refresh: bool = False, progress=None):
+    module, _ = load_script_module("prepare_player_charts.py")
+    players = get_chart_players(season)["players"]
+    return module.collect_season_charts(season, players, refresh=refresh, progress=progress)
+
+
+@router.get("/chart-players")
+def get_chart_players(season: int = Query(..., ge=2015, le=datetime.now().year)):
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT DISTINCT p.player_id, p.player_name, s.is_pitcher
+            FROM players p JOIN player_season_stats s ON s.player_id=p.player_id
+            WHERE s.season=:season AND s.games>0 ORDER BY p.player_name, s.is_pitcher
+        """), {"season":season}).mappings().all()
+    return {"players":[{"player_id":r["player_id"],"name":r["player_name"],"mode":"pitching" if r["is_pitcher"] else "batting"} for r in rows]}
+
+
 def _run_import_source_csvs(season: int):
     module, _ = load_script_module("import_source_csvs.py")
     return module.import_source_csvs(season=season, apply=True)
@@ -657,6 +683,9 @@ def _create_sync_log(req: ManualFetchRequest) -> int:
         target_desc = "전체 DB 대상"
     else:
         target_desc = f"{req.season} 시즌"
+
+    if req.data_type == "PREPARE_PLAYER_CHARTS":
+        target_desc += " / 전체 선수·유형" if req.chart_all_players else f" / 선수 {req.player_id} / {req.chart_mode}"
 
     if req.data_type in ("PIPELINE_PLAYERS", "STEP_SAVANT_REPAIR"):
         target_desc += " / 투수 상세 갱신" if req.refresh_pitcher_details else " / 빠른 갱신"
@@ -755,6 +784,24 @@ def _execute_pipeline_job(log_id: int, req: ManualFetchRequest):
             records_cnt = _run_savant_extension(season)
             msg = f"{season} 시즌 Extension 단독 갱신 완료 (Extension 보유 {records_cnt}건)"
 
+        elif dtype == "PREPARE_PLAYER_CHARTS":
+            if req.chart_all_players:
+                _update_log_progress(log_id, f"{season} 시즌 전체 선수 차트 CSV 수집 준비 중...")
+                def chart_progress(done, total, counts):
+                    _update_log_progress(log_id, f"{season} 시즌 차트 {done}/{total}: 다운로드 {counts['downloaded']}, 기존 파일 {counts['cached']}, 실패 {counts['failed']}")
+                result = _run_prepare_season_charts(season, req.chart_refresh, chart_progress)
+                records_cnt = result['downloaded'] + result['cached']
+                status = 'PARTIAL' if result['failed'] and records_cnt else ('FAILED' if result['failed'] else 'SUCCESS')
+                failed_results = [r for r in result['results'] if r['status']=='failed']
+                failures = '; '.join(f"{r['player_id']} {r['mode']}: {r['error']}" for r in failed_results[:20])
+                if len(failed_results)>20: failures += f"; 전체 실패 목록: data/player_charts/{season}/batch_summary.json"
+                msg = f"{season} 시즌 전체 차트: {result['total']}개 선수·유형 중 다운로드 {result['downloaded']}, 기존 파일 {result['cached']}, 실패 {result['failed']} (DB 적재 없음)\n{failures}"
+            else:
+                _update_log_progress(log_id, f"{season} 시즌 선수 {req.player_id} 차트 CSV 수집 중 (DB 적재 없음)...")
+                result = _run_prepare_player_charts(season, req.player_id, req.chart_mode)
+                records_cnt = result["rows"]
+                msg = f"{season} 시즌 선수 {req.player_id} {req.chart_mode}: 차트용 {records_cnt}개 투구 기록 CSV 저장 (DB 적재 없음)"
+
         elif dtype == "IMPORT_SOURCE_CSVS":
             _update_log_progress(log_id, f"{season} 시즌 로컬 원본 CSV로 값·출처 보정 중 (온라인 조회 없음)...")
             result = _run_import_source_csvs(season)
@@ -831,6 +878,19 @@ def trigger_manual_fetch(
     req: ManualFetchRequest,
     background_tasks: BackgroundTasks,
 ):
+    if req.data_type == "PREPARE_PLAYER_CHARTS":
+        if req.season is None or not 2015 <= req.season <= datetime.now().year:
+            raise HTTPException(status_code=400, detail="차트 수집 시즌을 선택해 주세요.")
+        if req.chart_all_players:
+            if req.player_id is not None or not get_chart_players(req.season)["players"]:
+                raise HTTPException(status_code=400, detail="해당 시즌에 수집할 선수 기록이 없습니다.")
+        else:
+            if not req.player_id or req.player_id <= 0 or req.chart_mode not in ("batting","pitching"):
+                raise HTTPException(status_code=400, detail="차트 수집 선수를 선택해 주세요.")
+            with engine.connect() as conn:
+                exists = conn.execute(text("SELECT 1 FROM player_season_stats WHERE player_id=:pid AND season=:season AND is_pitcher=:pitcher AND games>0 LIMIT 1"),{"pid":req.player_id,"season":req.season,"pitcher":req.chart_mode=="pitching"}).scalar()
+            if not exists:
+                raise HTTPException(status_code=400, detail="선택 시즌에 해당 선수의 기록이 없습니다.")
     if baseball_sync_lock.locked():
         raise HTTPException(
             status_code=409,

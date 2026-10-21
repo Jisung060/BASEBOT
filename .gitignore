@@ -47,3 +47,4 @@ __pycache__/
 
 # Local original-stat CSVs and temporary pybaseball results
 /back/data/stat_sources/
+/back/data/player_charts/

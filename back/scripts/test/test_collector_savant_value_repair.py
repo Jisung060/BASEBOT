@@ -52,9 +52,9 @@ class PitcherRepairTests(unittest.TestCase):
                  "percent_rank_pitch_run_value_fastball": 0}]
         response = unittest.mock.Mock()
         response.text = "statcast: " + repair.json.dumps(rows) + ", other: []"
-        with patch.object(repair.requests, "get", return_value=response):
+        with patch.object(repair, "local_pitcher_extension", return_value={}), patch.object(repair.requests, "get", return_value=response):
             result = repair.fetch_pitcher_extension(607074, 2024)
-        self.assertEqual(result, {"player_id": 607074, "pitch_extension": 6.1,
+        self.assertEqual(result, {"player_id": 607074, "pitch_extension": 6.1, "pitch_extension__source": "savant_player",
                                   "extension_percentile": 21, "extension_percentile__source": "savant_player", "fastball_run_value_percentile": 0})
 
     def test_extension_supplements_only_existing_pitchers(self):

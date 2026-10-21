@@ -1,0 +1,25 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert/strict');
+const element={hidden:false,innerHTML:''};
+let response={charts:{}};
+const context={document:{getElementById:()=>element},fetch:async url=>({ok:true,json:async()=>({season:2025,player_id:1,mode:new URL(url).searchParams.get('mode'),...response})})};
+vm.createContext(context);vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../../../front/js/player-charts.js'),'utf8'),context);
+(async()=>{
+ await context.loadOptionalPlayerCharts(1,2025,'batting');assert.equal(element.hidden,true);
+ response={charts:{spray:{points:[{x:110,y:100,events:'single'}]}}};
+ await context.loadOptionalPlayerCharts(1,2025,'batting');assert.equal(element.hidden,false);assert.match(element.innerHTML,/안타 분포도/);assert.doesNotMatch(element.innerHTML,/최근 100타석 xwOBA/);
+ response={charts:{rolling_xwoba:{points:[{pa:100,value:.4}]}}};
+ await context.loadOptionalPlayerCharts(1,2025,'batting');assert.match(element.innerHTML,/최근 100타석 xwOBA/);assert.doesNotMatch(element.innerHTML,/안타 분포도/);
+ response={charts:{movement:{points:[{x:-12,y:18,pitch_type:'FF'}]}}};
+ await context.loadOptionalPlayerCharts(1,2025,'pitching');assert.match(element.innerHTML,/구종별 무브먼트/);
+ context.fetch=async()=>({ok:true,json:async()=>({season:2024,player_id:1,mode:'batting',charts:{spray:{points:[{x:110,y:100,events:'single'}]}}})});
+ await context.loadOptionalPlayerCharts(1,2025,'batting');assert.equal(element.hidden,true);
+ context.fetch=async()=>{throw Error('offline')};await context.loadOptionalPlayerCharts(1,2025,'pitching');assert.equal(element.hidden,true);assert.equal(element.innerHTML,'');
+ let resolveOld;
+ context.fetch=()=>new Promise(resolve=>{resolveOld=resolve;});
+ const old=context.loadOptionalPlayerCharts(1,2024,'batting');
+ context.fetch=async()=>({ok:true,json:async()=>({charts:{}})});
+ await context.loadOptionalPlayerCharts(1,2025,'pitching');
+ resolveOld({ok:true,json:async()=>({charts:{spray:{points:[{x:110,y:100,events:'single'}]}}})});
+ await old;assert.equal(element.hidden,true);assert.equal(element.innerHTML,'');
+ console.log('Player charts UI checks passed: optional cards, failure hiding, and stale-response protection.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

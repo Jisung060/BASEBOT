@@ -234,7 +234,7 @@
                                                 <option value="STEP_PITCHERS">1-B. 투수 성적 수집 (collector_pitchers_integrated.py)</option>
                                                 <option value="STEP_PLAYERS_META">2. 선수 메타데이터 갱신 (collector_players_meta.py)</option>
                                                 <option value="STEP_SAVANT_REPAIR">3. Savant 심화 지표 빠른 갱신 (Extension 제외)</option>
-                                                <option value="STEP_SAVANT_EXTENSION">4. 투수 Extension 단독 갱신 (수 분 이상 소요 가능)</option>
+                                                <option value="STEP_SAVANT_EXTENSION">4. 투수 Extension 단독 갱신 (로컬 CSV 우선)</option>
                                             </optgroup>
                                             <optgroup label="📅 경기 및 구단 개별 스크립트 실행">
                                                 <option value="STEP_GAMES">1. 경기 일정·스코어 수집 (collector_games.py)</option>
@@ -243,6 +243,7 @@
                                                 <option value="STEP_SEED_TEAMS">MLB 30개 구단 초기 적재 (seed_teams.py)</option>
                                             </optgroup>
                                             <optgroup label="원본 데이터 파일 준비">
+                                                <option value="PREPARE_PLAYER_CHARTS">선수 차트용 CSV 수집 (시즌 전체 또는 개별 선수)</option>
                                                 <option value="PREPARE_SOURCE_CSVS">시즌별 원본 CSV 다운로드·검증 (DB 적재 없음)</option>
                                                 <option value="IMPORT_SOURCE_CSVS">로컬 원본 CSV로 DB 값·출처 보정 (미확인 값 포함)</option>
                                             </optgroup>
@@ -271,6 +272,14 @@
                                         </select>
                                     </label>
 
+                                    <label id="manualChartPlayerBox" class="full-width" style="display: none;">
+                                        차트 대상 선수 · 기록 유형
+                                        <select id="manualChartPlayer" disabled><option value="">시즌을 먼저 선택해 주세요.</option></select>
+                                        <small>선택한 시즌의 정규시즌 데이터만 저장합니다. 전체 수집은 검증된 기존 파일을 재사용하며, 선수별 수집은 다시 다운로드합니다. 투수 CSV에는 Extension 원시값도 저장하며, DB 반영은 Extension 단독 갱신에서 실행합니다.</small>
+                                    </label>
+                                    <label id="manualChartRefreshBox" class="full-width" style="display: none;">
+                                        <span><input type="checkbox" id="manualChartRefresh"> 전체 수집 시 기존 파일도 다시 다운로드</span>
+                                    </label>
                                     <!-- 날짜 범위 선택 (경기 일정·결과 선택 시 표시) -->
                                     <label id="manualStartDateBox" style="display: none;">
                                         시작 날짜 (Start Date)

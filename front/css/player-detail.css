@@ -849,3 +849,12 @@
         grid-template-columns: 1fr;
     }
 }
+/* Optional charts from local Statcast CSV snapshots */
+#optionalPlayerCharts[hidden] { display: none; }
+.player-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin: 24px 0 8px; }
+.player-chart-card { border: 1px solid #dbe3ee; border-radius: 8px; padding: 18px; background: #fff; }
+.player-chart-card h3 { margin: 0 0 8px; font-size: 16px; color: #102d63; }
+.player-chart-card p, .player-chart-source { color: #64748b; font-size: 11px; }
+.player-chart-card svg { display: block; width: 100%; max-height: 350px; }
+.chart-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; font-size: 11px; }
+.chart-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; }

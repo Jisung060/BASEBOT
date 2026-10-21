@@ -100,8 +100,8 @@ def _fetch_fangraphs_pitchers_http(season: int = 2024) -> pd.DataFrame:
         
     return pd.DataFrame(columns=['player_id', 'fip', 'fwar'])
 
-def fetch_fangraphs_pitchers(season: int = 2024) -> pd.DataFrame:
-    return fetch_fangraphs_with_fallback(season, True, _fetch_fangraphs_pitchers_http)
+def fetch_fangraphs_pitchers(season: int = 2024, expected_ids=None) -> pd.DataFrame:
+    return fetch_fangraphs_with_fallback(season, True, _fetch_fangraphs_pitchers_http, expected_ids=expected_ids)
 
 # ----------------------------------------------------
 # 3. Baseball Savant: 투수 Statcast 기대치(xERA) 및 피타구질
@@ -207,8 +207,8 @@ def collect_pitchers_comprehensive(season: int = 2024):
         print("기본 성적 수집 실패")
         return
 
-    fg_df = fetch_fangraphs_pitchers(season)
-    bref_df = fetch_bref_war(season, True, HEADERS)
+    fg_df = fetch_fangraphs_pitchers(season, expected_ids=set(mlb_df.player_id))
+    bref_df = fetch_bref_war(season, True, HEADERS, expected_ids=set(mlb_df.player_id))
     official_pct = fetch_official_percentiles(season, "pitcher")
     savant_df = fetch_savant_pitcher_statcast(season)
     disc_df = fetch_savant_pitcher_discipline(season)

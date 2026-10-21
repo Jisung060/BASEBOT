@@ -104,8 +104,8 @@ def _fetch_fangraphs_batters_http(season: int = 2024) -> pd.DataFrame:
         
     return pd.DataFrame(columns=['player_id', 'wrc_plus', 'fwar'])
 
-def fetch_fangraphs_batters(season: int = 2024) -> pd.DataFrame:
-    return fetch_fangraphs_with_fallback(season, False, _fetch_fangraphs_batters_http)
+def fetch_fangraphs_batters(season: int = 2024, expected_ids=None) -> pd.DataFrame:
+    return fetch_fangraphs_with_fallback(season, False, _fetch_fangraphs_batters_http, expected_ids=expected_ids)
 
 # ----------------------------------------------------
 # 3. Baseball Savant: Statcast 기대치(xStats) & 타구질 수집
@@ -221,8 +221,8 @@ def collect_batters_comprehensive(season: int = 2024):
         print("기본 성적 수집 실패로 종료")
         return
 
-    fg_df = fetch_fangraphs_batters(season)
-    bref_df = fetch_bref_war(season, False, HEADERS)
+    fg_df = fetch_fangraphs_batters(season, expected_ids=set(mlb_df.player_id))
+    bref_df = fetch_bref_war(season, False, HEADERS, expected_ids=set(mlb_df.player_id))
     official_pct = fetch_official_percentiles(season, "batter")
     savant_df = fetch_savant_statcast_all(season)
     disc_df = fetch_savant_batter_discipline(season)

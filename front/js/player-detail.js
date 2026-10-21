@@ -175,6 +175,7 @@ function renderModeView() {
     const statsList = isBat ? currentPlayerData.batting_stats : currentPlayerData.pitching_stats;
 
     if (!statsList || statsList.length === 0) {
+        if (typeof loadOptionalPlayerCharts === "function") loadOptionalPlayerCharts(currentPlayerData.player_id, 0, activeMode);
         document.getElementById("summaryGrid").innerHTML = "";
         document.getElementById("savantBarsContainer").innerHTML = `<div style="text-align:center; padding:20px; color:#888;">해당 부문의 기록이 없습니다.</div>`;
         document.getElementById("playerStatsBody").innerHTML = `<tr><td colspan="20" class="no-data">등록된 기록이 없습니다.</td></tr>`;
@@ -183,6 +184,7 @@ function renderModeView() {
 
     // ★ 선택된 시즌 데이터 찾기 (없으면 최신 시즌 fallback)
     const targetStat = statsList.find(s => Number(s.season) === Number(selectedSeason)) || statsList[0];
+    if (typeof loadOptionalPlayerCharts === "function") loadOptionalPlayerCharts(currentPlayerData.player_id, targetStat.season, activeMode);
 
     // 1. 프로필 주요 성적 요약 (선택된 시즌 기준)
     if (isBat) {

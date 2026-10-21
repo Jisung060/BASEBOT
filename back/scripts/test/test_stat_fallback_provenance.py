@@ -40,15 +40,15 @@ class SourceFallbackTests(unittest.TestCase):
         self.assertEqual(result.iloc[0].fwar,0)
         self.assertTrue(result.iloc[0]['fwar__source'].startswith('local_csv:'))
 
-    def test_local_fills_only_missing_online_metrics(self):
+    def test_local_originals_take_priority_over_online_values(self):
         pd.DataFrame({'player_id':[1,2], 'WAR':[4,5], 'wRC+':[120,110]}).to_csv(self.folder/'fangraphs_batting_2025.csv',index=False)
         online=pd.DataFrame({'player_id':[1], 'fwar':[0], 'wrc_plus':[None], 'fwar__source':['fangraphs_pybaseball']})
         with patch.object(sources,'fetch_pybaseball_stats',return_value=online):
             result=sources.fetch_fangraphs_with_fallback(2025,False,Mock(return_value=pd.DataFrame(columns=['player_id','fwar','wrc_plus']))).set_index('player_id')
-        self.assertEqual(result.loc[1,'fwar'],0)
+        self.assertEqual(result.loc[1,'fwar'],4)
         self.assertEqual(result.loc[1,'wrc_plus'],120)
         self.assertEqual(result.loc[2,'fwar'],5)
-        self.assertEqual(result.loc[1,'fwar__source'],'fangraphs_pybaseball')
+        self.assertEqual(result.loc[1,'fwar__source'],'local_csv:fangraphs_batting_2025.csv')
 
     def test_bref_local_fallback_and_season_filter(self):
         pd.DataFrame({'mlb_ID':[1,2], 'year_ID':[2025,2024], 'WAR':[0,5], 'team_ID':['AAA','BBB']}).to_csv(self.folder/'bref_pitching_2025.csv',index=False)

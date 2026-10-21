@@ -31,6 +31,25 @@ class PrepareAdminTests(unittest.TestCase):
         self.assertEqual(params['status'],'PARTIAL')
         self.assertFalse(self.env['baseball_sync_lock'].locked())
 
+    def test_chart_job_uses_existing_worker_and_reports_pitch_count(self):
+        self.env['_run_prepare_player_charts']=Mock(return_value={'rows':100})
+        req=self.env['ManualFetchRequest'](data_type='PREPARE_PLAYER_CHARTS',season=2025,player_id=592450,chart_mode='batting')
+        self.env['_execute_pipeline_job'](1,req)
+        self.env['_run_prepare_player_charts'].assert_called_once_with(2025,592450,'batting')
+        params=self.env['engine'].begin.return_value.__enter__.return_value.execute.call_args.args[1]
+        self.assertEqual(params['status'],'SUCCESS')
+        self.assertEqual(params['rcnt'],100)
+        self.assertIn('DB 적재 없음',params['msg'])
+
+    def test_chart_batch_job_records_partial_failure(self):
+        self.env['_run_prepare_season_charts']=Mock(return_value={'total':3,'downloaded':1,'cached':1,'failed':1,'results':[{'player_id':3,'mode':'batting','status':'failed','error':'offline'}]})
+        req=self.env['ManualFetchRequest'](data_type='PREPARE_PLAYER_CHARTS',season=2024,chart_all_players=True)
+        self.env['_execute_pipeline_job'](1,req)
+        self.assertEqual(self.env['_run_prepare_season_charts'].call_args.args[:2],(2024,False))
+        params=self.env['engine'].begin.return_value.__enter__.return_value.execute.call_args.args[1]
+        self.assertEqual(params['status'],'PARTIAL');self.assertEqual(params['rcnt'],2)
+        self.assertIn('2024',params['msg']);self.assertIn('3 batting',params['msg'])
+
     def test_log_states_match_partial_failure(self):
         for downloaded,failed,expected in [(12,0,'SUCCESS'),(12,2,'PARTIAL'),(0,2,'FAILED')]:
             results=[dict(source='bref',status='failed',error='403')] if failed else []
