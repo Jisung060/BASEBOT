@@ -58,6 +58,8 @@ def source_specs(season):
         add('savant_bat_tracking','/leaderboard/bat-tracking',{'seasonStart':season,'seasonEnd':season,'minSwings':0},'avg_bat_speed')
     for role in ('batting','pitching'):
         result.append(dict(name=f'bref_{role}',url=f'https://www.baseball-reference.com/data/war_daily_{"bat" if role=="batting" else "pitch"}.txt',params={},filename=f'bref_{role}_{season}.csv',season=season,metric='war'))
+    for role in ('batting','pitching'):
+        result.append(dict(name=f'fangraphs_{role}',url='https://www.fangraphs.com/api/leaders/major-league/data',params={'season':season,'stats':'pit' if role=='pitching' else 'bat'},filename=f'fangraphs_{role}_{season}.csv',season=season,metric='fwar'))
     return result
 
 
@@ -109,6 +111,31 @@ def read_prepared_for_request(url,params=None):
         return pd.DataFrame()
 
 
+def write_snapshot(data, spec, directory=None):
+    directory=SOURCE_DIR if directory is None else directory
+    frame=validate_csv(data,spec)
+    metadata={**spec,'request_key':request_key(spec['url'],spec['params']),
+              'downloaded_at':datetime.now(timezone.utc).isoformat(),
+              'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'rows':len(frame),'format_version':1}
+    directory.mkdir(parents=True,exist_ok=True)
+    # Validate before replacing either existing file. Unique temporaries avoid races.
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        csv=Path(temporary)/spec['filename'];csv.write_bytes(data)
+        meta=csv.with_suffix('.meta.json');meta.write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
+        target=directory/spec['filename']; target_meta=target.with_suffix('.meta.json')
+        old_csv=target.read_bytes() if target.exists() else None
+        old_meta=target_meta.read_bytes() if target_meta.exists() else None
+        try:
+            os.replace(csv,target)
+            os.replace(meta,target_meta)
+        except OSError:
+            # Preserve a usable older snapshot if the second replacement fails.
+            if old_csv is not None: target.write_bytes(old_csv)
+            elif target.exists(): target.unlink()
+            if old_meta is not None: target_meta.write_bytes(old_meta)
+            raise
+
+
 def download_one(spec,force=False):
     try:
         if not force:
@@ -117,6 +144,16 @@ def download_one(spec,force=False):
                 return {'source':spec['name'],'status':'cached','rows':len(frame)}
             except (OSError,ValueError,KeyError,pd.errors.ParserError):
                 pass
+        if spec['name'].startswith('fangraphs_'):
+            from scripts.collector_stat_sources import fetch_fangraphs_with_fallback, fetch_fangraphs_http
+            frame=fetch_fangraphs_with_fallback(spec['season'],spec['name']=='fangraphs_pitching',fetch_fangraphs_http,save_snapshot=False,local_fallback=False)
+            if frame.empty:
+                raise ValueError('FanGraphs 온라인 수집 실패; 기존 CSV는 유지합니다.')
+            frame=frame.drop(columns=[c for c in frame if c.endswith('__source')])
+            frame['season']=spec['season']
+            data=frame.to_csv(index=False).encode('utf-8')
+            write_snapshot(data,spec)
+            return {'source':spec['name'],'status':'downloaded','rows':len(frame),'bytes':len(data)}
         response=requests.get(spec['url'],params=spec['params'],headers=HEADERS,timeout=(5,20),stream=True)
         try:
             response.raise_for_status()
@@ -129,26 +166,7 @@ def download_one(spec,force=False):
         finally:
             response.close()
         frame=validate_csv(data,spec)
-        metadata={**spec,'request_key':request_key(spec['url'],spec['params']),
-                  'downloaded_at':datetime.now(timezone.utc).isoformat(),
-                  'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'rows':len(frame),'format_version':1}
-        SOURCE_DIR.mkdir(parents=True,exist_ok=True)
-        # Validate before replacing either existing file. Unique temporaries avoid races.
-        with tempfile.TemporaryDirectory(dir=SOURCE_DIR) as temporary:
-            csv=Path(temporary)/spec['filename'];csv.write_bytes(data)
-            meta=csv.with_suffix('.meta.json');meta.write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
-            target=SOURCE_DIR/spec['filename']; target_meta=target.with_suffix('.meta.json')
-            old_csv=target.read_bytes() if target.exists() else None
-            old_meta=target_meta.read_bytes() if target_meta.exists() else None
-            try:
-                os.replace(csv,target)
-                os.replace(meta,target_meta)
-            except OSError:
-                # Preserve a usable older snapshot if the second replacement fails.
-                if old_csv is not None: target.write_bytes(old_csv)
-                elif target.exists(): target.unlink()
-                if old_meta is not None: target_meta.write_bytes(old_meta)
-                raise
+        write_snapshot(data,spec)
         return {'source':spec['name'],'status':'downloaded','rows':len(frame),'bytes':len(data)}
     except (requests.RequestException,OSError,ValueError,KeyError,pd.errors.ParserError) as exc:
         return {'source':spec['name'],'status':'failed','error':str(exc)[:400]}

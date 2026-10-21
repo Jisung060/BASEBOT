@@ -92,3 +92,38 @@ class PrepareCSVTests(unittest.TestCase):
         self.assertNotEqual(a,prepare.request_key('https://baseballsavant.mlb.com/leaderboard/custom?year=2024&type=batter&selections=a,b'))
 
 if __name__=='__main__':unittest.main()
+
+
+class FanGraphsSnapshotTests(unittest.TestCase):
+    def test_online_success_saved_then_offline_reused_with_timestamp(self):
+        import json
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as folder:
+            directory=Path(folder)
+            published=pd.DataFrame({'player_id':[668939], 'fwar':[1.0], 'wrc_plus':[104],
+                                    'fwar__source':['fangraphs_pybaseball'], 'wrc_plus__source':['fangraphs_pybaseball']})
+            with patch.object(sources,'SOURCE_DIR',directory), patch.object(sources,'fetch_pybaseball_stats',return_value=published):
+                result=sources.fetch_fangraphs_with_fallback(2025,False,Mock())
+            path=directory/'fangraphs_batting_2025.csv'
+            original=path.read_bytes()
+            metadata=path.with_suffix('.meta.json').read_bytes()
+            self.assertIn('downloaded_at',json.loads(metadata))
+            self.assertEqual(result.iloc[0].wrc_plus,104)
+            self.assertNotIn('__source',original.decode())
+            with patch.object(sources,'SOURCE_DIR',directory), patch.object(sources,'fetch_pybaseball_stats',return_value=pd.DataFrame()):
+                result=sources.fetch_fangraphs_with_fallback(2025,False,Mock(return_value=pd.DataFrame()))
+            self.assertEqual(result.iloc[0].fwar,1.0)
+            self.assertTrue(result.iloc[0]['fwar__source'].startswith('local_csv:'))
+            self.assertEqual(path.read_bytes(),original)
+            self.assertEqual(path.with_suffix('.meta.json').read_bytes(),metadata)
+
+    def test_admin_downloads_fangraphs_and_preserves_file_on_failure(self):
+        spec=next(s for s in prepare.source_specs(2025) if s['name']=='fangraphs_pitching')
+        frame=pd.DataFrame({'player_id':[1], 'fwar':[0.0], 'fip':[3.4]})
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as folder, patch.object(prepare,'SOURCE_DIR',Path(folder)):
+            with patch.object(sources,'fetch_fangraphs_with_fallback',return_value=frame) as fetch:
+                self.assertEqual(prepare.download_one(spec)['status'],'downloaded')
+                self.assertFalse(fetch.call_args.kwargs['local_fallback'])
+            data=(Path(folder)/spec['filename']).read_bytes()
+            with patch.object(sources,'fetch_fangraphs_with_fallback',return_value=pd.DataFrame()):
+                self.assertEqual(prepare.download_one(spec,True)['status'],'failed')
+            self.assertEqual((Path(folder)/spec['filename']).read_bytes(),data)
