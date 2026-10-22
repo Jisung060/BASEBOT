@@ -1,6 +1,5 @@
 const params = new URLSearchParams(location.search);
-let gameId = params.get("id");                          // 주소에 경기 번호가 없으면 아래에서 최근 경기로 채움
-let gameDate = params.get("date") || "2024-04-01";
+let gameId = params.get("id");                          // 주소에 경기 번호가 없으면 아래에서 최근 경기로 채움 (date는 쓰지 않음)
 let selectedGame = null;
 
 let dbHeadshots = {};                                   // DB(players.headshot_url)의 선수 사진
@@ -43,8 +42,7 @@ async function loadGame() {
             const [latest] = await latestResponse.json();
             if (latest) {
                 gameId = latest.game_id;
-                gameDate = String(latest.game_date).slice(0, 10);
-                history.replaceState(null, "", `?${new URLSearchParams({ id: gameId, date: gameDate })}`); // 주소에도 표시
+                history.replaceState(null, "", `?${new URLSearchParams({ id: gameId })}`); // 주소에도 표시
             }
         } catch (error) {
             console.error(error);
@@ -57,7 +55,7 @@ async function loadGame() {
     }
 
     try {
-        const response = await fetch(`/api/games?date=${encodeURIComponent(gameDate)}&limit=100`);
+        const response = await fetch(`/api/games?game_id=${encodeURIComponent(gameId)}`);   // 경기 번호로 한 경기만
         if (!response.ok) throw new Error(`경기 조회 API 오류 (${response.status})`);
         const games = await response.json();
         selectedGame = games.find(game => String(game.game_id) === String(gameId));
@@ -79,7 +77,7 @@ async function loadGame() {
 
 function renderGameSummary(game) {
     document.title = `${game.away_team_code} @ ${game.home_team_code} - BASEBOT`;
-    document.getElementById("game-date").textContent = game.game_date || gameDate;
+    document.getElementById("game-date").textContent = game.game_date || "";
     document.getElementById("game-venue").textContent = game.venue_name || "MLB 정규시즌";   // 구장 (DB)
 
     // 구장 줄 / 시간 줄을 나눠서 표시 (상자·아이콘 없이, 같은 글꼴·크기)
@@ -115,10 +113,13 @@ function renderGameSummary(game) {
         const loser = Number(game.away_score) < Number(game.home_score) ? "away" : "home";
         document.getElementById(`${loser}-score`).classList.add("score-loser");
     }
-    if (game.status === "FINAL") {                                            // 끝난 경기: 점수 밑 하이라이트 링크 (일정·결과와 같은 MLB 주소)
+    if (game.status === "FINAL") {                                            // 끝난 경기: 점수 밑 하이라이트 버튼 + MLB 게임데이 링크
         const highlight = document.getElementById("highlight-link");
-        highlight.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/video`;
         highlight.hidden = false;
+        highlight.onclick = () => toggleHighlights(game.game_id);
+        const gameday = document.getElementById("gameday-link");
+        gameday.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/final/box`;   // MLB가 팀·날짜 주소로 바꿔 줌
+        gameday.hidden = false;
     }
     document.getElementById("away-pitcher").textContent = "상세 기록 불러오는 중";
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";
@@ -126,6 +127,65 @@ function renderGameSummary(game) {
     setTeamLogo("home", game.home_logo_url, game.home_team_code);
     document.getElementById("away-team-link").href = `team-detail.html?id=${encodeURIComponent(game.away_team_id)}`; // 로고 → 팀 상세
     document.getElementById("home-team-link").href = `team-detail.html?id=${encodeURIComponent(game.home_team_id)}`;
+}
+
+/* ---------- 하이라이트 영상: 버튼으로 펼치기/숨기기 (서버가 MLB 공식 영상 목록을 받아 옴) ---------- */
+
+let highlightsLoaded = false;
+
+async function toggleHighlights(gameId) {
+    const button = document.getElementById("highlight-link");
+    const panel = document.getElementById("highlight-panel");
+    const video = document.getElementById("highlight-video");
+    const open = panel.hidden;                         // 지금 닫혀 있으면 열기
+    panel.hidden = !open;
+    button.textContent = open ? "하이라이트 ▲" : "하이라이트 ▼";
+    button.setAttribute("aria-expanded", String(open));
+    if (!open) {
+        video.pause();                                 // 숨기면 영상 멈춤
+        return;
+    }
+    if (highlightsLoaded) return;                      // 영상 목록은 처음 열 때 한 번만 불러옴
+
+    const title = document.getElementById("highlight-title");
+    title.textContent = "하이라이트 영상을 불러오는 중입니다...";
+    try {
+        const response = await fetch(`/api/games/${encodeURIComponent(gameId)}/highlights`);
+        if (!response.ok) throw new Error(`하이라이트 API 오류 (${response.status})`);
+        const { videos } = await response.json();
+        if (!videos.length) {
+            title.textContent = "이 경기의 하이라이트 영상이 없습니다.";
+            video.hidden = true;
+            return;
+        }
+        highlightsLoaded = true;
+        const list = document.getElementById("highlight-list");
+        const items = videos.map((clip, index) => {
+            const item = document.createElement("li");
+            const choose = document.createElement("button");
+            choose.type = "button";
+            choose.textContent = `${clip.title} (${clip.duration?.replace(/^00:/, "") || "-"})`;   // 00:03:30 → 03:30
+            choose.addEventListener("click", () => playHighlight(clip, items, index, true));
+            item.append(choose);
+            return item;
+        });
+        list.replaceChildren(...items);
+        playHighlight(videos[0], items, 0, false);     // 첫 영상 = 경기 전체 하이라이트 (자동 재생은 안 함)
+    } catch (error) {
+        console.error(error);
+        title.textContent = "하이라이트 영상을 불러오지 못했습니다.";
+        video.hidden = true;
+    }
+}
+
+function playHighlight(clip, items, index, autoplay) {    // 목록에서 고른 영상으로 바꾸기
+    const video = document.getElementById("highlight-video");
+    video.hidden = false;
+    video.poster = clip.image_url || "";
+    video.src = clip.video_url;
+    document.getElementById("highlight-title").textContent = clip.title;
+    items.forEach((item, i) => item.classList.toggle("selected", i === index));
+    if (autoplay) video.play().catch(() => {});
 }
 
 function setTeamLogo(side, url, code) {
@@ -157,7 +217,7 @@ async function loadBoxscore(id) {
 // DB에 저장되지 않는 기록 (표에서 칸을 숨김)
 const DB_MISSING_COLUMNS = {
     "batter-body": [5, 6, 9, 12],                      // 2루타, 3루타, 득점, 잔루
-    "pitcher-body": [2, 3, 7, 9]                       // 투구수, 타자수, 볼넷, 피홈런
+    "pitcher-body": [3, 7, 9]                          // 타자수, 볼넷, 피홈런 (투구수는 DB pitch_count로 표시)
 };
 // 시즌 기록(player_season_stats)으로 채우는 칸: [표, 칸 번호, DB 값 이름] → 아무도 값이 없으면 숨김
 const DB_SEASON_COLUMNS = [
@@ -193,7 +253,7 @@ function renderFromDb(detail) {
                         avg: rate3(row.season_avg), obp: rate3(row.season_obp), slg: rate3(row.season_slg), ops: rate3(row.season_ops)   // 시즌 기록 (MLB 표와 같은 기준)
                     },
                     pitching: {
-                        inningsPitched: row.innings_pitched, hits: row.hits_allowed, runs: row.runs_allowed, earnedRuns: row.earned_runs, strikeOuts: row.strikeouts_pitched,
+                        inningsPitched: row.innings_pitched, numberOfPitches: row.pitch_count, hits: row.hits_allowed, runs: row.runs_allowed, earnedRuns: row.earned_runs, strikeOuts: row.strikeouts_pitched,
                         era: rate2(row.season_era), whip: rate2(row.season_whip)                                                       // 시즌 기록
                     }
                 }
@@ -226,13 +286,16 @@ function renderFromDb(detail) {
         };
     });
 
-    // 이닝 점수 (DB linescore: [{inning, away, home}, ...])
+    // 이닝 점수: 예전 형식 [{inning, away, home}] 과 MLB 원본 형식 {innings: [{num, away: {runs}, home: {runs}}]} 둘 다 읽음
+    const rawLinescore = detail.linescore || [];
     const linescore = {
-        innings: (detail.linescore || []).map(item => ({
-            num: item.inning,
-            away: { runs: item.away ?? undefined },
-            home: { runs: item.home ?? undefined }
-        })),
+        innings: Array.isArray(rawLinescore)
+            ? rawLinescore.map(item => ({
+                num: item.inning,
+                away: { runs: item.away ?? undefined },
+                home: { runs: item.home ?? undefined }
+            }))
+            : (rawLinescore.innings || []),
         teams: {
             away: { runs: selectedGame.away_score, hits: boxscore.away.teamStats.batting.hits },
             home: { runs: selectedGame.home_score, hits: boxscore.home.teamStats.batting.hits }
@@ -292,7 +355,7 @@ function renderTeamAdvancedStats(boxscore, items = TEAM_COMPARE_ITEMS) {   // it
 
 function playerDetailUrl(playerId) {
     if (!playerId) return "";
-    const season = String(gameDate).slice(0, 4);       // 이 경기의 시즌 연도 → 선수 페이지가 그 시즌 기록으로 열림
+    const season = String(selectedGame?.game_date || "").slice(0, 4);   // 이 경기의 시즌 연도 → 선수 페이지가 그 시즌 기록으로 열림
     return `player-detail.html?${new URLSearchParams({ id: playerId, season })}`;
 }
 

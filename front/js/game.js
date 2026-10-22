@@ -442,8 +442,7 @@ function createGameCard(game) {
     );
 
     if (isFinal) {
-        const gameDate = String(game.game_date || dateInput.value).slice(0, 10);
-        const detailUrl = `game-detail.html?${new URLSearchParams({ id: game.game_id, date: gameDate })}`;
+        const detailUrl = `game-detail.html?${new URLSearchParams({ id: game.game_id })}`;   // 경기 번호만 (상세 페이지가 번호로 찾음)
         card.classList.add("is-clickable");                    // 끝난 경기: 카드 클릭 → 경기 상세
         card.addEventListener("click", event => {
             if (event.target.closest("a")) return;             // 구단 이름·로고·하이라이트 링크는 원래대로

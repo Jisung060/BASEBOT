@@ -99,10 +99,7 @@ function renderMainGameResults(games) {
         );
 
         // 박스스코어(경기 상세) 페이지 주소 - 경기 일정 페이지와 같은 형식
-        const detailUrl = `/game-detail.html?${new URLSearchParams({
-            id: game.game_id,
-            date: String(game.game_date || "").slice(0, 10)
-        })}`;
+        const detailUrl = `/game-detail.html?${new URLSearchParams({ id: game.game_id })}`;   // 경기 번호만
 
         return `
             <a class="result-item" href="${escapeGameHtml(detailUrl)}">

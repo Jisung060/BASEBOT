@@ -1,5 +1,6 @@
 from typing import Optional
 import json
+import time as time_module   # get_games의 time 인자와 이름이 겹치지 않게
 import requests
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import text
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/api/games", tags=["games"])
 
 @router.get("")
 def get_games(
+    game_id: Optional[int] = Query(None, description="경기 번호 (경기 상세에서 한 경기만 찾을 때)"),
     date: Optional[str] = Query(None, description="조회할 날짜 (YYYY-MM-DD 형식)"),
     time: Optional[str] = Query(None, description="경기 시간 24h(hh:mm:ss) 형식"),
     status: Optional[str] = Query(None, description="경기 상태 (FINAL, SCHEDULED 등)"),
@@ -52,6 +54,9 @@ def get_games(
     """
     params = {"limit": limit}
 
+    if game_id:
+        query_str += " AND g.game_id = :game_id"
+        params["game_id"] = game_id
     if date:
         query_str += " AND DATE(g.game_date) = :date"
         params["date"] = date
@@ -164,6 +169,44 @@ def get_game_detail(game_id: int, db: Session = Depends(get_session)):
             for row in players
         ],
     }
+
+
+# ==========================================================
+# 경기 하이라이트 영상 (DB에 없어서 MLB 공식 API에서 받아 옴, 1시간 저장)
+# ==========================================================
+_highlight_cache = {}  # {game_id: (저장한 시각, 결과)}
+
+
+@router.get("/{game_id}/highlights")
+def get_game_highlights(game_id: int):
+    cached = _highlight_cache.get(game_id)
+    if cached and time_module.time() - cached[0] < 3600:
+        return cached[1]
+
+    try:
+        response = requests.get(f"https://statsapi.mlb.com/api/v1/game/{game_id}/content", headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        items = ((response.json().get("highlights") or {}).get("highlights") or {}).get("items") or []
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="하이라이트 영상을 불러오지 못했습니다.")
+
+    videos = []
+    for item in items:
+        mp4 = next((p["url"] for p in item.get("playbacks", []) if p.get("name") == "mp4Avc"), None)
+        if not mp4:
+            continue
+        cuts = (item.get("image") or {}).get("cuts") or []
+        poster = next((c["src"] for c in cuts if c.get("width") == 640), cuts[0]["src"] if cuts else None)
+        videos.append({
+            "title": item.get("headline") or item.get("title"),
+            "duration": item.get("duration"),
+            "video_url": mp4,
+            "image_url": poster,
+        })
+
+    result = {"game_id": game_id, "videos": videos}  # 첫 번째가 경기 전체 하이라이트
+    _highlight_cache[game_id] = (time_module.time(), result)
+    return result
 
 
 # ==========================================================
