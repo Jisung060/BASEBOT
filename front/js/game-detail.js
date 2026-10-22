@@ -59,7 +59,10 @@ async function loadGame() {
         if (!response.ok) throw new Error(`경기 조회 API 오류 (${response.status})`);
         const games = await response.json();
         selectedGame = games.find(game => String(game.game_id) === String(gameId));
-        if (!selectedGame) throw new Error("선택한 경기 정보를 DB에서 찾지 못했습니다.");
+        if (!selectedGame) {                            // DB에 없는 경기(포스트시즌) → MLB 공식 기록에서 바로 불러옴
+            await loadMlbGame(gameId);
+            return;
+        }
         renderGameSummary(selectedGame);
         if (selectedGame.status !== "FINAL") {
             document.querySelectorAll(".boxscore-section, .detail-tabs, .scoreboard-innings").forEach(section => section.hidden = true); // 이닝 표(점수 카드 안)도 숨김
@@ -113,13 +116,14 @@ function renderGameSummary(game) {
         const loser = Number(game.away_score) < Number(game.home_score) ? "away" : "home";
         document.getElementById(`${loser}-score`).classList.add("score-loser");
     }
-    if (game.status === "FINAL") {                                            // 끝난 경기: 점수 밑 하이라이트 버튼 + MLB 게임데이 링크
+    if (game.status === "FINAL") {                                            // 끝난 경기: 점수 밑 하이라이트 버튼 + 카드 오른쪽 위 'MLB에서 보기'
         const highlight = document.getElementById("highlight-link");
         highlight.hidden = false;
         highlight.onclick = () => toggleHighlights(game.game_id);
         const gameday = document.getElementById("gameday-link");
         gameday.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/final/box`;   // MLB가 팀·날짜 주소로 바꿔 줌
         gameday.hidden = false;
+        toggleHighlights(game.game_id);                // 처음부터 하이라이트 펼친 채로 (자동 재생은 안 함)
     }
     document.getElementById("away-pitcher").textContent = "상세 기록 불러오는 중";
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";
@@ -159,33 +163,16 @@ async function toggleHighlights(gameId) {
             return;
         }
         highlightsLoaded = true;
-        const list = document.getElementById("highlight-list");
-        const items = videos.map((clip, index) => {
-            const item = document.createElement("li");
-            const choose = document.createElement("button");
-            choose.type = "button";
-            choose.textContent = `${clip.title} (${clip.duration?.replace(/^00:/, "") || "-"})`;   // 00:03:30 → 03:30
-            choose.addEventListener("click", () => playHighlight(clip, items, index, true));
-            item.append(choose);
-            return item;
-        });
-        list.replaceChildren(...items);
-        playHighlight(videos[0], items, 0, false);     // 첫 영상 = 경기 전체 하이라이트 (자동 재생은 안 함)
+        const clip = videos[0];                        // 경기 하이라이트 영상 1개 (자동 재생은 안 함)
+        video.hidden = false;
+        video.poster = clip.image_url || "";
+        video.src = clip.video_url;
+        title.hidden = true;                           // 영상 제목은 표시하지 않음 (안내 문구용 자리만 남김)
     } catch (error) {
         console.error(error);
         title.textContent = "하이라이트 영상을 불러오지 못했습니다.";
         video.hidden = true;
     }
-}
-
-function playHighlight(clip, items, index, autoplay) {    // 목록에서 고른 영상으로 바꾸기
-    const video = document.getElementById("highlight-video");
-    video.hidden = false;
-    video.poster = clip.image_url || "";
-    video.src = clip.video_url;
-    document.getElementById("highlight-title").textContent = clip.title;
-    items.forEach((item, i) => item.classList.toggle("selected", i === index));
-    if (autoplay) video.play().catch(() => {});
 }
 
 function setTeamLogo(side, url, code) {
@@ -197,6 +184,69 @@ function setTeamLogo(side, url, code) {
         mark.textContent = code || "MLB";
         mark.classList.add("team-mark-fallback");
     };
+}
+
+/* ---------- 포스트시즌 경기: DB에 없어서 MLB 공식 기록(feed/live)을 화면에서 바로 불러옴 ---------- */
+
+async function loadMlbGame(id) {
+    const response = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${encodeURIComponent(id)}/feed/live`, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error("선택한 경기 정보를 찾지 못했습니다.");
+    const { gameData, liveData } = await response.json();
+    const state = gameData.status?.abstractGameState;
+    const start = gameData.datetime?.dateTime || "";    // UTC (예: 2025-10-25T00:08:00Z) — DB의 game_date·game_time과 같은 기준
+    const side = name => {
+        const team = gameData.teams[name];
+        return {
+            [`${name}_team_id`]: team.id,
+            [`${name}_team_name`]: team.name,
+            [`${name}_team_code`]: team.abbreviation,
+            [`${name}_logo_url`]: `https://www.mlbstatic.com/team-logos/${team.id}.svg`,
+            [`${name}_score`]: liveData.linescore?.teams?.[name]?.runs
+        };
+    };
+    selectedGame = {                                   // DB 경기와 같은 모양으로 만들어서 기존 그리기 함수 사용
+        game_id: gameData.game?.pk || id,
+        status: state === "Final" ? "FINAL" : state === "Live" ? "IN_PROGRESS" : "SCHEDULED",
+        game_date: start.slice(0, 10),
+        game_time: start.slice(11, 19) || null,
+        venue_name: gameData.venue?.name,
+        ...side("away"),
+        ...side("home")
+    };
+    renderGameSummary(selectedGame);
+    document.querySelector(".sample-notice").textContent = "포스트시즌 경기는 MLB 공식 기록을 불러와 보여 줍니다.";
+    if (selectedGame.status !== "FINAL") {
+        document.querySelectorAll(".boxscore-section, .detail-tabs, .scoreboard-innings").forEach(section => section.hidden = true);
+        const notice = document.getElementById("boxscore-notice");
+        notice.textContent = "경기 종료 후 박스스코어를 확인할 수 있습니다.";
+        notice.hidden = false;
+        return;
+    }
+    renderFromMlb(liveData);
+}
+
+function renderFromMlb(liveData) {                     // MLB 박스스코어 → 기존 표 (2루타·득점·잔루 등 모든 칸 표시)
+    hiddenColumns = {};
+    dbHeadshots = {};
+    const boxscore = {};
+    ["away", "home"].forEach(side => {
+        const team = liveData.boxscore.teams[side];
+        const players = {};
+        Object.values(team.players || {}).forEach(player => {
+            const season = player.seasonStats || {};   // 타율·ERA 등은 시즌 기록 (DB 화면과 같은 기준)
+            players[`ID${player.person.id}`] = {
+                ...player,
+                stats: {
+                    batting: { ...player.stats?.batting, avg: season.batting?.avg, obp: season.batting?.obp, slg: season.batting?.slg, ops: season.batting?.ops },
+                    pitching: { ...player.stats?.pitching, era: season.pitching?.era, whip: season.pitching?.whip }
+                }
+            };
+        });
+        boxscore[side] = { players, battingOrder: team.battingOrder || [], pitchers: team.pitchers || [], teamStats: team.teamStats };
+    });
+    renderInnings(liveData.linescore, boxscore, true);  // 실책·잔루 칸까지
+    renderTeamStats(boxscore);
+    renderTeamAdvancedStats(boxscore);                 // 팀 비교 전 항목
 }
 
 /* ---------- 상세 기록: 우리 DB(game_boxscores·games.linescore)만 사용 ---------- */

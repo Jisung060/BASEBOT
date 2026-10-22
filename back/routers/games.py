@@ -190,6 +190,13 @@ def get_game_highlights(game_id: int):
     except requests.RequestException:
         raise HTTPException(status_code=502, detail="하이라이트 영상을 불러오지 못했습니다.")
 
+    # 경기 하이라이트(game-recap) 영상만 사용, 없으면 첫 영상 (개별 장면·인터뷰 등은 제외)
+    recaps = [
+        item for item in items
+        if any(k.get("value") == "game-recap" for k in item.get("keywordsAll") or [])
+    ]
+    items = recaps[:1] or items[:1]
+
     videos = []
     for item in items:
         mp4 = next((p["url"] for p in item.get("playbacks", []) if p.get("name") == "mp4Avc"), None)
@@ -204,7 +211,7 @@ def get_game_highlights(game_id: int):
             "image_url": poster,
         })
 
-    result = {"game_id": game_id, "videos": videos}  # 첫 번째가 경기 전체 하이라이트
+    result = {"game_id": game_id, "videos": videos}  # 경기 하이라이트 1개
     _highlight_cache[game_id] = (time_module.time(), result)
     return result
 

@@ -28,18 +28,17 @@
 .final-score{color:#102d63;font-size:38px}
 .final-score-box{display:flex;flex-direction:column;align-items:center;gap:8px}   /* 점수 밑에 하이라이트 링크 */
 .final-score-box .score-highlight-link{font-size:14px !important}   /* 경기 상세에서만 하이라이트 글자 크게 (game.css의 10px !important를 덮어씀, 일정·결과 목록은 그대로) */
-.score-links{display:flex;gap:8px;align-items:center}   /* 하이라이트 버튼 + MLB 게임데이 링크 나란히 */
-button.score-highlight-link{font-family:inherit;cursor:pointer}   /* 하이라이트는 버튼(펼치기)이라 글꼴·커서만 링크와 맞춤 */
-.score-links [hidden]{display:none !important}
+button.score-highlight-link{font-family:inherit;cursor:pointer;white-space:nowrap}   /* 하이라이트는 버튼(펼치기): 글꼴·커서 맞춤, 글자 한 줄로 */
+.final-score-box [hidden]{display:none !important}
+/* 'MLB에서 보기 ↗': 점수판 카드 오른쪽 위 */
+.scoreboard-card{position:relative}
+.gameday-link{position:absolute;top:16px;right:20px;color:#174b8a;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+.gameday-link:hover{text-decoration:underline;text-underline-offset:3px}
+.gameday-link[hidden]{display:none}
 /* 하이라이트 영상 영역 (펼쳤을 때만 보임) */
 .highlight-panel[hidden]{display:none}
 .highlight-video{display:block;width:100%;max-width:820px;aspect-ratio:16/9;margin:0 auto;border-radius:8px;background:#000}
-.highlight-title{margin:10px 0 8px;color:#152b52;font-size:15px;font-weight:700;text-align:center}
-.highlight-list{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
-.highlight-list button{padding:5px 10px;border:1px solid #d9e1ec;border-radius:999px;background:#fff;color:#4a5568;font:inherit;font-size:12px;cursor:pointer}
-.highlight-list button:hover{border-color:#174b8a;color:#174b8a}
-.highlight-list li.selected button{border-color:#174b8a;background:#174b8a;color:#fff}
-.final-score small{color:#777}
+.highlight-title{margin:10px 0 8px;color:#152b52;font-size:15px;font-weight:700;text-align:center}.final-score small{color:#777}
 .boxscore-section{margin-top:24px}
 .section-heading h2{color:#102d63;font-size:20px}
 .table-scroll,.lineup-card{border-color:#e1e7f0;border-radius:6px}
