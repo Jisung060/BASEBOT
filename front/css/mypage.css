@@ -1096,3 +1096,44 @@
     font-weight: 400;
     text-decoration: none;
 }
+
+
+/* ==============================
+   마이페이지 브레드크럼
+============================== */
+
+.mypage-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 24px;
+
+    font-size: 14px;
+    color: #64748b;
+}
+
+/* 홈 링크 */
+.mypage-breadcrumb .breadcrumb-home {
+    color: #64748b;
+    font-weight: 400;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.mypage-breadcrumb .breadcrumb-home:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+/* 구분 기호 */
+.mypage-breadcrumb .breadcrumb-separator {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* 현재 페이지 */
+.mypage-content .mypage-breadcrumb .breadcrumb-current {
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
