@@ -224,9 +224,15 @@
 .ps-lines path{fill:none;stroke:#d8c79f;stroke-width:4;stroke-linejoin:round}   /* 연결선 (금색 계열) */
 .ps-lines.win path{stroke:#c39a45;stroke-width:7}   /* 이겨서 올라간 길: 굵게 */
 .ps-ring{stroke:#b9bec6;stroke-width:7}   /* 로고 동그라미: 구단 색 + 회색 테두리 */
+.ps-ring.favorite{stroke:#f6d98a;stroke-width:7}   /* 선호 구단: 연한 금색 테두리 */
+.ps-badge.clickable{cursor:pointer}
+.ps-badge.clickable:hover .ps-ring{stroke:#2874fa;stroke-width:8}   /* 로고에 마우스를 올리면 파란 테두리 */
+.ps-badge.loser.clickable:hover{opacity:.75}
+.ps-fav rect{fill:#f2b705;filter:drop-shadow(0 2px 2px #00000033)}   /* 선호 구단 표시 '★ MY' (일정·결과 구단 목록과 같은 금색) */
+.ps-fav text{fill:#fff;font-size:15px;font-weight:800}
 .ps-badge.loser{opacity:.35}   /* 진 팀: 흐리게 */
 .ps-empty{fill:#d9dde3;stroke:#c5c9d0;stroke-width:6}   /* 아직 정해지지 않은 자리 */
-.ps-seed{fill:#152b52;font-size:34px;font-weight:700}   /* 시드 번호 */
+.ps-seed{fill:#4a5568;font-size:24px;font-weight:700}   /* 당시 순위(시드): 작게 */
 .ps-result{fill:#1d2a3a;font-size:30px;font-weight:700}   /* "DET wins, 2-1" */
 .ps-label{fill:#0c2b5c;font-size:42px;font-weight:900;letter-spacing:-1px}   /* WILDCARD · ALDS · ALCS */
 .ps-label-small{fill:#0c2b5c;font-size:17px;font-weight:700;letter-spacing:2px}
@@ -245,3 +251,7 @@
 .ps-league-select{width:calc(100% - 28px);height:42px;margin:10px 14px 0;padding:0 14px;border:1px solid #e1e5eb;border-radius:8px;background:#fff;color:#4a5568;font-family:inherit;font-size:14px}
 .ps-league-select:disabled{color:#b8c0cc}
 .postseason-game-label{margin-right:6px;padding:1px 6px;border-radius:9px;background:#174b8a;color:#fff;font-size:10px;white-space:nowrap}
+
+/* 경기 카드: 진 구단은 로고·이름을 살짝 흐리게 (이긴 구단이 한눈에 보이게, 너무 흐리지 않게) */
+.schedule-team-slot.is-loser .schedule-team-logo-link,
+.schedule-team-slot.is-loser .team-copy{opacity:.55;filter:grayscale(.6)}
