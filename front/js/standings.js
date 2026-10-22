@@ -26,7 +26,7 @@ async function loadStandings(season) {
         if (!response.ok) throw new Error(`구단 순위 API 오류 (${response.status})`);
         standings = await response.json();
         renderSeasonOptions();
-        renderStandings();
+        showSelected();
     } catch (error) {
         console.error(error);
         message.textContent = "구단 순위를 불러오지 못했습니다. FastAPI 서버를 확인해 주세요.";
@@ -236,6 +236,74 @@ function formatPct(pct) {                              // 0.625 → ".625", 1 �
     return text.startsWith("0") ? text.slice(1) : text;
 }
 
+/* ---------- 포스트시즌 대진표 (서버가 MLB API에서 받아 옴) ---------- */
+
+function showSelected() {                              // 선택한 탭에 맞게: 포스트시즌이면 대진표, 아니면 순위표
+    if (selectedLeague === "POST") loadPostseason(standings.season);
+    else renderStandings();
+}
+
+async function loadPostseason(season) {
+    message.textContent = "포스트시즌 대진을 불러오는 중입니다...";
+    message.hidden = false;
+    list.replaceChildren();
+    try {
+        const response = await fetch(`/api/standings/postseason?season=${encodeURIComponent(season)}`);
+        if (!response.ok) throw new Error(`포스트시즌 API 오류 (${response.status})`);
+        const data = await response.json();
+        if (selectedLeague !== "POST") return;         // 불러오는 사이 다른 탭을 누른 경우
+        renderPostseason(data);
+    } catch (error) {
+        console.error(error);
+        message.textContent = "포스트시즌 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    }
+}
+
+function renderPostseason(data) {                      // 라운드 4칸: 와일드카드 → 디비전 → 챔피언십 → 월드시리즈
+    if (!data.rounds.length) {
+        message.textContent = `${data.season} 시즌 포스트시즌 경기가 아직 없습니다.`;
+        return;
+    }
+    message.hidden = true;
+
+    const bracket = el("div", "postseason-bracket");
+    data.rounds.forEach(round => {
+        const column = el("section", "postseason-round");
+        column.append(el("h3", "postseason-round-title", round.name),
+            el("p", "postseason-round-rule", `${round.best_of}전 ${Math.floor(round.best_of / 2) + 1}선승`));
+        let lastLeague = "";
+        round.series.forEach(series => {
+            if (series.league && series.league !== lastLeague) {   // AL / NL 구분 글자
+                column.append(el("p", "postseason-league", series.league));
+                lastLeague = series.league;
+            }
+            column.append(createSeriesBox(series, round.code === "W"));
+        });
+        bracket.append(column);
+    });
+    list.replaceChildren(bracket, el("p", "standings-legend", "포스트시즌 기록은 MLB 공식 기록(statsapi.mlb.com)을 불러와 표시합니다."));
+}
+
+function createSeriesBox(series, isWorldSeries) {      // 시리즈 1개: 두 팀 + 승수
+    const box = el("div", isWorldSeries ? "postseason-series world-series" : "postseason-series");
+    series.teams.forEach(team => {
+        const row = el("div", team.is_winner ? "postseason-team winner" : "postseason-team");
+        const name = el("a", "postseason-team-name");  // 구단 클릭 → 팀 정보(로스터), 순위표와 같음
+        name.href = `team-detail.html?id=${encodeURIComponent(team.team_id)}`;
+        if (team.logo_url) {
+            const logo = el("img", "postseason-logo");
+            logo.src = team.logo_url;
+            logo.alt = "";
+            name.append(logo);
+        }
+        name.append(team.team_name);
+        row.append(name, el("strong", "postseason-wins", team.wins));
+        box.append(row);
+    });
+    if (!series.finished) box.append(el("p", "postseason-status", "진행 중"));
+    return box;
+}
+
 /* ---------- 이벤트 ---------- */
 
 function setupEvents() {
@@ -247,7 +315,7 @@ function setupEvents() {
                 t.classList.toggle("selected", isSelected);
                 t.setAttribute("aria-selected", String(isSelected));
             });
-            if (standings) renderStandings();
+            if (standings) showSelected();
         });
     });
     seasonSelect.addEventListener("change", () => loadStandings(seasonSelect.value));

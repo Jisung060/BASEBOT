@@ -3,10 +3,10 @@
    community.css 양식을 그대로 쓰고, 다른 부분만 덮어씀
 ========================================= */
 
-/* 열 5개: 분류 / 제목 / 작성자 / 날짜 / 조회 */
+/* 열 6개: 번호 / 분류 / 제목 / 작성자 / 날짜 / 조회 */
 .notice-board .board-header,
 .notice-board .board-row {
-    grid-template-columns: 80px minmax(250px, 1fr) 115px 90px 65px;
+    grid-template-columns: 60px 80px minmax(250px, 1fr) 115px 90px 65px;
 }
 
 /* 공지 목록 표 위의 검은 줄 없애기 (커뮤니티 게시판은 그대로) */

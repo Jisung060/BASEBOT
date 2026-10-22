@@ -108,6 +108,8 @@ function renderNotices() {
     const pageNotices = notices.slice(start, start + NOTICES_PER_PAGE);
 
     pageNotices.forEach(notice => {
+        // 번호: 고정 공지는 '공지', 나머지는 DB 공지 번호(notice_id) → 다른 글을 지워도 번호가 바뀌지 않음
+        const number = notice.is_pinned ? "공지" : notice.notice_id;
         const category = NOTICE_CATEGORY[notice.category] || { name: notice.category, className: "" };
 
         const row = document.createElement("a");
@@ -116,6 +118,8 @@ function renderNotices() {
         row.addEventListener("click", saveNoticeState);   // 글 보러 가기 전에 지금 페이지 저장
 
         row.innerHTML = `
+            <div>${number}</div>
+
             <div>
                 <span class="category-label ${category.className}">${category.name}</span>
             </div>

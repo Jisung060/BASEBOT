@@ -623,9 +623,12 @@ async function init() {
         const count = await loadGames();               // 오늘 보기 / 뒤로 가기 복원 → 그 날짜 경기 그리기
         if (openToday && count === 0) await goToRecentGame(); // 오늘 경기가 없으면 최근 경기 날짜로
     } else {
-        emptyMessage.textContent = "최근 경기를 불러오는 중입니다...";
-        emptyMessage.hidden = false;
-        await goToRecentGame(true);                    // 그냥 들어오면 → 최근 경기가 있는 달 전체 ('전체' 체크)
+        // 그냥 들어오면 → 오늘이 속한 달 전체 ('전체' 체크). 예: 10월 22일이면 10월 경기 모두
+        dateInput.value = formatKey(new Date());
+        selectedDay = null;
+        showWholeMonth = true;
+        renderMonthStrip();
+        const monthCount = await loadGames();
     }
     if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" }); // 스크롤 위치 복원
 }
