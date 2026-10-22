@@ -11,11 +11,13 @@ ALGORITHM = "HS256"
 # JWT 생성
 def create_access_token(
         user_id: int,
-        username: str
+        username: str,
+role: str = "USER"
 ):
     payload = {
         "user_id": user_id,
         "username": username,
+        "role": role,
         "exp": datetime.now(timezone.utc) + timedelta(hours=1)
     }
 

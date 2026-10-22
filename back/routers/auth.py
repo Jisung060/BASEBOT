@@ -174,7 +174,8 @@ def login(
     # 4. JWT 생성
     access_token = create_access_token(
         user_id=user.user_id,
-        username=user.username
+        username=user.username,
+        role=user.role
     )
 
     # 5. 로그인 결과 반환

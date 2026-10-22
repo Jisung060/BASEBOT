@@ -28,6 +28,10 @@ router = APIRouter(
     tags=["Community"]
 )
 
+# 관리자 여부 확인
+def is_admin(user: User) -> bool:
+    return str(getattr(user, "role", "")).upper() == "ADMIN"
+
 # =========================================
 # 게시글 신고 요청 데이터
 # =========================================
@@ -274,7 +278,10 @@ def update_post(
         )
 
     # 게시글 작성자 확인
-    if existing_post.user_id != current_user.user_id:
+    if (
+        existing_post.user_id != current_user.user_id
+        and not is_admin(current_user)
+    ):
         raise HTTPException(
             status_code=403,
             detail="본인이 작성한 게시글만 수정할 수 있습니다."
@@ -454,7 +461,10 @@ def delete_post(
             detail="게시글을 찾을 수 없습니다."
         )
     # 게시글 작성자 확인
-    if post.user_id != current_user.user_id:
+    if (
+        post.user_id != current_user.user_id
+        and not is_admin(current_user)
+    ):
         raise HTTPException(
             status_code=403,
             detail="본인이 작성한 게시글만 삭제할 수 있습니다."

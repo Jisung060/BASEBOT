@@ -205,6 +205,20 @@ function getCurrentUserId() {
     }
 }
 
+// 로그인한 사용자가 관리자인지 확인 (토큰의 role 값 사용)
+function isAdminUser() {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return false;
+    try {
+        const payload = JSON.parse(
+            atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+        );
+        return String(payload.role || "").toUpperCase() === "ADMIN";
+    } catch (error) {
+        return false;
+    }
+}
+
 
 // =========================================
 // HTML 특수문자 변환
@@ -1921,8 +1935,9 @@ async function loadPostDetail() {
 
             // 작성자 본인일 때만 표시
             ownerArea.style.display =
-                ownerUserId !== null &&
-                Number(post.user_id) === ownerUserId
+                (ownerUserId !== null &&
+                    Number(post.user_id) === ownerUserId) ||
+                isAdminUser()
                     ? "flex"
                     : "none";
         }
@@ -1970,7 +1985,8 @@ async function loadPostDetail() {
 
                 // 게시글 작성자와 로그인 사용자 비교
                 if (
-                    Number(post.user_id) !== currentUserId
+                    Number(post.user_id) !== currentUserId &&
+                    !isAdminUser()
                 ) {
                     showBasebotModal(
                         "수정 권한 없음",
