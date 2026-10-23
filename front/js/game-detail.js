@@ -123,7 +123,6 @@ function renderGameSummary(game) {
         const gameday = document.getElementById("gameday-link");
         gameday.href = `https://www.mlb.com/gameday/${encodeURIComponent(game.game_id)}/final/box`;   // MLB가 팀·날짜 주소로 바꿔 줌
         gameday.hidden = false;
-        toggleHighlights(game.game_id);                // 처음부터 하이라이트 펼친 채로 (자동 재생은 안 함)
     }
     document.getElementById("away-pitcher").textContent = "상세 기록 불러오는 중";
     document.getElementById("home-pitcher").textContent = "상세 기록 불러오는 중";

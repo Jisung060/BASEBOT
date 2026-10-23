@@ -235,7 +235,7 @@
 .ps-empty{fill:#d9dde3;stroke:#c5c9d0;stroke-width:6}   /* 아직 정해지지 않은 자리 */
 .ps-seed{fill:#4a5568;font-size:24px;font-weight:700}   /* 당시 순위(시드): 작게 */
 .ps-result{fill:#1d2a3a;font-size:30px;font-weight:700}   /* "DET wins, 2-1" */
-.ps-label{fill:#0c2b5c;font-size:42px;font-weight:900;letter-spacing:-1px}   /* WILDCARD · ALDS · ALCS */
+.ps-label{fill:#0c2b5c;font-size:34px;font-weight:900;letter-spacing:-1px}   /* WILDCARD · ALDS · ALCS */
 .ps-winner{fill:#b8913f;font-size:32px;font-weight:800;letter-spacing:6px}   /* 우승 팀 아래 WINNER (연도와 같은 금색) */
 .ps-rule{fill:#6b7686;font-size:26px;font-weight:600}   /* 몇 전 몇 선승제 */
 .ps-label-small{fill:#0c2b5c;font-size:17px;font-weight:700;letter-spacing:2px}

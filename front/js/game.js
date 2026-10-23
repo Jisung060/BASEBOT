@@ -969,7 +969,7 @@ function renderPostseasonBracket(box, series, pct, year) {
         });
         if (next && !winner) line(`M${join} ${next.y} H${next.x - dir * next.r}`, false);   // 아직 아무도 안 올라감
         const result = item ? seriesResultText(item) : "";
-        if (result) text(x, (yTop + yBottom) / 2 + 10, result, "ps-result");   // 스코어: 두 로고 사이 정중앙
+        if (result) text(x, resultY ?? (yTop + yBottom) / 2 + 10, result, "ps-result");   // 스코어: 두 로고 사이 정중앙 (resultY가 있으면 그 높이)
         hit(item, x - r - 14, yTop - r - 14, x + r + 40, yBottom + r + 14);
     };
 
@@ -992,7 +992,7 @@ function renderPostseasonBracket(box, series, pct, year) {
         });
         // 챔피언십 → 월드시리즈
         const csTarget = { x: wsX, y: POSTER.ws.y, r: POSTER.ws.r };
-        if (L.cs) drawSeries(L.cs, L.csTeams, mx(POSTER.cs.x), POSTER.cs.ys[0], league, mx(POSTER.cs.joinX), csTarget, null, true, 470);   // 결과 글자는 'ALCS' 아래
+        if (L.cs) drawSeries(L.cs, L.csTeams, mx(POSTER.cs.x), POSTER.cs.ys[0], league, mx(POSTER.cs.joinX), csTarget, null, true, 432);   // 스코어: 'ALCS' 글자와 아래 로고 사이 빈 공간 가운데
         // 리그 이름 표시 (그림의 'WILDCARD', 'ALDS', 'ALCS' 자리)
         const rule = code => {                         // 몇 전 몇 선승제 (예: "3전 2선승제")
             const item = series.find(s => s.code === code);

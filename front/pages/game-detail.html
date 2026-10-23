@@ -28,17 +28,17 @@
                 </div>
                 <div class="detail-team"><a id="home-team-link" class="team-logo-link" href="#"><span class="team-mark" id="home-mark"><img id="home-logo" alt=""></span></a><h2 id="home-team-name">불러오는 중</h2><p><a id="home-pitcher" class="player-name-link" href="#">-</a> 선발</p></div>
             </div>
-            <!-- 이닝별 점수: 점수 카드 안에 함께 표시 -->
+            <!-- 하이라이트 영상: 점수 바로 아래 (처음엔 닫힘, '하이라이트' 버튼으로 펼치기/숨기기) -->
+            <div id="highlight-panel" class="highlight-panel" hidden>
+                <video id="highlight-video" class="highlight-video" controls playsinline preload="none"></video>
+                <p id="highlight-title" class="highlight-title"></p>
+            </div>
+            <!-- 이닝별 점수: 하이라이트 영상 아래 -->
             <div class="scoreboard-innings" id="scoreboard-innings">
                 <div class="table-scroll"><table class="box-table inning-table"><thead id="inning-head"></thead><tbody id="inning-body"><tr><td>MLB 경기 기록을 불러오는 중입니다.</td></tr></tbody></table></div>
             </div>
         </section>
 
-        <!-- 하이라이트 영상: 점수 밑 '하이라이트' 버튼으로 펼치기/숨기기 (MLB 공식 영상) -->
-        <section id="highlight-panel" class="boxscore-section highlight-panel" hidden>
-            <video id="highlight-video" class="highlight-video" controls playsinline preload="none"></video>
-            <p id="highlight-title" class="highlight-title"></p>
-        </section>
 
         <p id="boxscore-notice" class="boxscore-notice" hidden></p>
 

@@ -98,3 +98,5 @@ button.score-highlight-link{font-family:inherit;cursor:pointer;white-space:nowra
 /* 선수 얼굴 사진 크게 (얼굴이 잘 보이게): 라인업 25→40px, 타자·투수 표 28→34px */
 .lineup-card .boxscore-player-headshot{width:40px;height:40px;flex-basis:40px}
 .box-table .boxscore-player-headshot{width:34px;height:34px;flex-basis:34px}
+/* 하이라이트 영상: 점수판 카드 안, 점수와 이닝 점수 표 사이 */
+.scoreboard-card .highlight-panel{margin:14px 0 6px}
