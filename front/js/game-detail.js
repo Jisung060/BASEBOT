@@ -213,6 +213,7 @@ async function loadMlbGame(id) {
         ...side("home")
     };
     renderGameSummary(selectedGame);
+    showSeriesGame(id);                                // '월드시리즈 7차전' 같은 표시 (기다리지 않고 따로 불러옴)
     document.querySelector(".sample-notice").textContent = "포스트시즌 경기는 MLB 공식 기록을 불러와 보여 줍니다.";
     if (selectedGame.status !== "FINAL") {
         document.querySelectorAll(".boxscore-section, .detail-tabs, .scoreboard-innings").forEach(section => section.hidden = true);
@@ -222,6 +223,22 @@ async function loadMlbGame(id) {
         return;
     }
     renderFromMlb(liveData);
+}
+
+async function showSeriesGame(id) {                     // 포스트시즌 몇 차전: MLB 일정 정보에서 가져와 '경기 종료' 왼쪽에 표시
+    const names = { F: "와일드카드", D: "디비전시리즈", L: "챔피언십시리즈", W: "월드시리즈" };
+    try {
+        const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?gamePk=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
+        const game = (await response.json()).dates?.[0]?.games?.[0];
+        if (!game || !names[game.gameType] || !game.seriesGameNumber) return;
+        const tag = document.getElementById("series-game-tag") || document.createElement("span");
+        tag.id = "series-game-tag";
+        tag.textContent = `${names[game.gameType]} ${game.seriesGameNumber}차전`;
+        tag.style.cssText = "display:inline-block;margin-right:6px;padding:3px 10px;border-radius:999px;background:#0d3b8c;color:#fff;font-size:12px;font-weight:700;vertical-align:middle";
+        document.getElementById("game-status").before(tag);
+    } catch (error) {
+        console.warn("몇 차전 정보를 불러오지 못했습니다.", error);   // 못 불러와도 나머지 화면은 그대로
+    }
 }
 
 function renderFromMlb(liveData) {                     // MLB 박스스코어 → 기존 표 (2루타·득점·잔루 등 모든 칸 표시)
