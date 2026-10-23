@@ -102,6 +102,12 @@ function setupEvents() {
     $("btn-next-year").addEventListener("click", () => moveYear(1));
     $("btn-today").addEventListener("click", goToToday);      // '오늘' 버튼: 오늘 날짜 경기로 이동
     $("btn-calendar").addEventListener("click", toggleCalendar);
+    document.addEventListener("click", event => {      // 달력이 열린 상태에서 달력 바깥을 누르면 닫기
+        if (calendar.hidden) return;
+        const path = event.composedPath();             // 누른 순간의 경로 (달력 안 버튼이 다시 그려져도 정확)
+        if (path.includes(calendar) || path.includes($("btn-calendar"))) return;
+        calendar.hidden = true;
+    });
     // 월 버튼은 init()에서 보여 줄 날짜가 정해진 뒤에 그림 (처음에 4월이 잠깐 보이는 문제 방지)
 }
 
@@ -206,9 +212,15 @@ function setWholeMonth(checked) {                      // 달력의 '전체' 체
 function renderMonthStrip() {                          // 1월~12월 버튼 그리기
     const [year, selectedMonth] = dateInput.value.split("-").map(Number);
     $("year-display").textContent = year;
+    if (!monthAvailability.has(year)) loadMonthAvailability(year);   // 경기가 있는 달 확인 (끝나면 다시 그림)
+    const available = monthAvailability.get(year);     // Set이면 그 달들만 누를 수 있음 ("loading"·null이면 모두 누를 수 있음)
     const monthButtons = MONTH_ORDER.map(month => {
         const button = el("button", "month-option", `${month}월`);
         button.type = "button";
+        if (available instanceof Set && !available.has(month)) {   // 경기가 하나도 없는 달: 회색 + 누를 수 없음
+            button.disabled = true;
+            button.title = "이 달에는 경기가 없습니다";
+        }
         const selected = !postseasonMode && month === selectedMonth;
         button.classList.toggle("selected", selected);
         button.setAttribute("aria-pressed", String(selected));
@@ -518,7 +530,7 @@ function createScoreNode(game, showScore) {
             if (Number(game.home_score) > Number(game.away_score)) { home.className = "winner"; away.className = "loser"; }   // 진 쪽은 연하게
         }
         block.append(el("div", "score-line"));
-        block.querySelector(".score-line").append(away, el("span", "", ":"), home);
+        block.querySelector(".score-line").append(away, el("strong", "score-colon", ":"), home);   // ':'도 점수와 같은 크기 (점수 글자 규칙을 그대로 받음)
     } else if (game.status === "CANCELLED") {          // 취소 경기: 점수 자리에 '취소'만 크게
         block.append(el("span", "scheduled-vs cancelled-mark", "취소"));
         return block;
@@ -551,9 +563,51 @@ async function fetchMonthGames(dateStr) {              // 한 달 경기 가져�
             return { ...merged, display_date: koreanDate(startUtc, merged.game_date) };
         })
         .filter(game => game.display_date.startsWith(monthKey)); // 요청한 달만 남기기
+    games.push(...await postseasonGamesInMonth(monthKey));     // 9~11월: 포스트시즌 경기도 함께 (MLB에서 바로)
 
     monthCache.set(monthKey, games);
     return games;
+}
+
+async function postseasonGamesInMonth(monthKey) {      // 그 달(한국 날짜)에 열린 포스트시즌 경기 — 우리 DB에 있는 시즌만
+    const [year, month] = monthKey.split("-").map(Number);
+    if (month < 9 || month > 11) return [];            // 포스트시즌은 9월 말 ~ 11월 초
+    try {
+        if (!(await getDbSeasons()).includes(year)) return [];
+        return (await fetchPostseason(year)).flatMap(s => s.games).filter(g => g.display_date.startsWith(monthKey));
+    } catch (error) {
+        console.warn("포스트시즌 경기를 불러오지 못해 정규시즌 경기만 표시합니다.", error);
+        return [];
+    }
+}
+
+/* ---------- 경기가 있는 달 (없는 달 버튼은 회색 · 누를 수 없음) ---------- */
+
+const monthAvailability = new Map();                   // 연도 → 경기가 있는 달 Set (불러오는 중이면 "loading")
+
+async function loadMonthAvailability(year) {           // 정규시즌 기간(MLB 시즌 정보) + 포스트시즌 경기 날짜로 계산
+    monthAvailability.set(year, "loading");
+    const months = new Set();
+    try {
+        if ((await getDbSeasons()).includes(year)) {   // 우리 DB에 없는 시즌은 모든 달이 비어 있음
+            const response = await fetch(`https://statsapi.mlb.com/api/v1/seasons/${year}?sportId=1`, { signal: AbortSignal.timeout(8000) });
+            const season = (await response.json()).seasons?.[0];
+            if (season?.regularSeasonStartDate && season?.regularSeasonEndDate) {
+                const end = shiftDate(season.regularSeasonEndDate, 1);   // 미국 마지막 밤 경기는 한국 날짜로 다음 날
+                for (let d = season.regularSeasonStartDate.slice(0, 7); d <= end.slice(0, 7); d = shiftDate(`${d}-28`, 7).slice(0, 7)) {
+                    months.add(Number(d.slice(5, 7)));
+                }
+            }
+            (await fetchPostseason(year)).flatMap(s => s.games)
+                .filter(g => g.status !== "CANCELLED")
+                .forEach(g => months.add(Number(g.display_date.slice(5, 7))));
+        }
+        monthAvailability.set(year, months);
+    } catch (error) {
+        console.warn("경기가 있는 달을 확인하지 못해 모든 달을 누를 수 있게 둡니다.", error);
+        monthAvailability.set(year, null);             // 모르면 막지 않음
+    }
+    if ($("year-display").textContent === String(year)) renderMonthStrip();   // 결과가 오면 월 버튼 다시 그리기
 }
 
 async function fetchGamesByRange(start, end) {         // 기간 안의 날짜를 6개씩 나눠 요청
@@ -761,11 +815,11 @@ let psSeriesId = null;                                 // 대진표에서 누른
 
 const POSTER = {                                       // AL(왼쪽) 기준 좌표, NL은 좌우를 뒤집어서 사용
     r: 50,                                             // 로고 동그라미 반지름
-    wc: { x: 135, ys: [[70, 235], [450, 620]], joinX: 275 },   // 와일드카드: 위 짝(6·3), 아래 짝(5·4)
-    ds: { x: 355, ys: [[150, 325], [540, 715]], joinX: 440 },  // 디비전: 위(WC 승자·2번), 아래(WC 승자·1번)
-    cs: { x: 520, ys: [[240, 625]], joinX: 610 },              // 챔피언십
-    ws: { x: 690, y: 390, r: 52 },                             // 월드시리즈 (AL 쪽 로고)
-    champion: { x: 768, y: 540, r: 60 }                        // 우승 팀
+    wc: { x: 135, ys: [[63, 212], [405, 558]], joinX: 275 },   // 와일드카드: 위 짝(6·3), 아래 짝(5·4)
+    ds: { x: 355, ys: [[135, 293], [486, 644]], joinX: 440 },  // 디비전: 위(WC 승자·2번), 아래(WC 승자·1번)
+    cs: { x: 520, ys: [[216, 563]], joinX: 610 },              // 챔피언십
+    ws: { x: 690, y: 351, r: 52 },                             // 월드시리즈 (AL 쪽 로고)
+    champion: { x: 768, y: 504, r: 60 }                        // 우승 팀
 };
 const mirrorX = (x, league) => (league === "NL" ? 1536 - x : x);
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -778,12 +832,21 @@ function svgEl(tag, attrs = {}, text = "") {           // SVG 요소 만들기
 }
 
 const seasonPctCache = new Map();
-async function getSeasonPct(year) {                    // 우리 DB 순위로 구단별 승률 (1·2번 시드 구분용)
+async function getSeasonPct(year) {                    // 우리 DB 순위로 구단별 승률 (1·2번 시드 구분용) + 리그 순위(pct.rank)
     if (seasonPctCache.has(year)) return seasonPctCache.get(year);
     const pct = new Map();
+    pct.rank = new Map();                              // 구단 → 정규리그 순위 (AL·NL 각각 승률순 1~15위)
     try {
         const response = await fetch(`${API_BASE}/api/standings?season=${encodeURIComponent(year)}`);
-        if (response.ok) (await response.json()).divisions.forEach(d => d.teams.forEach(t => pct.set(t.team_id, Number(t.pct) || 0)));
+        if (response.ok) {
+            const divisions = (await response.json()).divisions;
+            divisions.forEach(d => d.teams.forEach(t => pct.set(t.team_id, Number(t.pct) || 0)));
+            ["AL", "NL"].forEach(league => divisions
+                .filter(d => d.league === league)
+                .flatMap(d => d.teams)
+                .sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0) || (b.wins || 0) - (a.wins || 0))
+                .forEach((t, i) => pct.rank.set(t.team_id, i + 1)));
+        }
     } catch (error) {
         console.warn("순위(승률)를 불러오지 못해 시드는 표시하지 않습니다.", error);
     }
@@ -813,22 +876,14 @@ function layoutLeague(series, league, pct) {
     return { wc: [wcTop, wcBottom], ds: [dsTop, dsBottom], cs, csTeams, seeds };
 }
 
-function seriesResultText(item) {                      // "DET wins, 2-1" / 진행 중이면 "TOR leads, 2-1" · "Tied, 1-1"
+function seriesResultText(item) {                      // 시리즈 스코어만: "2-1" (많이 이긴 쪽 먼저, 아직 경기 없으면 빈칸)
     const [a, b] = item.teams;
-    const winner = item.teams.find(t => t.isWinner);
-    const tag = team => team.abbr || team.name;
-    if (winner) {
-        const loser = item.teams.find(t => !t.isWinner);
-        return `${tag(winner)} wins, ${winner.wins}-${loser.wins}`;
-    }
     if (a.wins + b.wins === 0) return "";
-    if (a.wins === b.wins) return `Tied, ${a.wins}-${b.wins}`;
-    const lead = a.wins > b.wins ? a : b;
-    return `${tag(lead)} leads, ${Math.max(a.wins, b.wins)}-${Math.min(a.wins, b.wins)}`;
+    return `${Math.max(a.wins, b.wins)}-${Math.min(a.wins, b.wins)}`;
 }
 
 function renderPostseasonBracket(box, series, pct, year) {
-    const svg = svgEl("svg", { viewBox: "0 0 1536 864", class: "ps-poster", role: "img", "aria-label": `${year} MLB 포스트시즌 대진표` });
+    const svg = svgEl("svg", { viewBox: "0 0 1536 712", class: "ps-poster", role: "img", "aria-label": `${year} MLB 포스트시즌 대진표` });
     const defs = svgEl("defs");
     const shadow = svgEl("filter", { id: "ps-shadow", x: "-30%", y: "-30%", width: "160%", height: "160%" });
     shadow.append(svgEl("feDropShadow", { dx: "0", dy: "5", stdDeviation: "5", "flood-color": "#000", "flood-opacity": "0.35" }));
@@ -851,31 +906,40 @@ function renderPostseasonBracket(box, series, pct, year) {
         renderPostseasonGames();
         gameList.scrollIntoView({ behavior: "smooth", block: "start" });
     };
+    const growSeries = (id, on) =>                     // 한 시리즈(경기한 두 구단)의 로고를 함께 크게
+        svg.querySelectorAll(`.ps-badge[data-series="${id}"]`).forEach(node => node.classList.toggle("grow", on));
     let favTagShown = false;                           // '★ MY'는 선호 구단이 처음 나오는 자리 한 곳만
     const badge = (x, y, r, team, faded, seed, seedBelow, seriesItem) => {   // 구단 색 동그라미 + 모자 로고 (+ 시드 번호)
-        const g = svgEl("g", { class: faded ? "ps-badge loser" : "ps-badge" });
-        if (team && seriesItem) {                      // 로고를 눌러도 그 시리즈 경기 (마우스를 올리면 파란 테두리: CSS)
+        const g = svgEl("g", { class: "ps-badge" });
+        if (team && seriesItem) {                      // 로고를 눌러도 그 시리즈 경기, 마우스를 올리면 그 시리즈 두 로고가 커짐
             g.classList.add("clickable");
+            g.dataset.series = seriesItem.id;
             g.addEventListener("click", () => selectSeries(seriesItem));
+            g.addEventListener("mouseenter", () => growSeries(seriesItem.id, true));
+            g.addEventListener("mouseleave", () => growSeries(seriesItem.id, false));
         }
         if (!team) {                                   // 아직 정해지지 않은 자리
             g.append(svgEl("circle", { cx: x, cy: y, r, class: "ps-empty" }));
             marks.append(g);
             return;
         }
-        g.append(svgEl("circle", { cx: x, cy: y, r, fill: TEAM_COLORS[team.id] || "#152b52", class: "ps-ring", filter: "url(#ps-shadow)" }));
+        g.append(svgEl("circle", { cx: x, cy: y, r, class: "ps-backdrop" }));   // 배경색 동그라미: 흐린 로고 뒤로 선이 비치지 않게
+        const face = svgEl("g", { class: faded ? "ps-face loser" : "ps-face" });   // 진 팀은 이 부분만 흐리게
+        face.append(svgEl("circle", { cx: x, cy: y, r, fill: TEAM_COLORS[team.id] || "#152b52", class: "ps-ring", filter: "url(#ps-shadow)" }));
         const size = r * 1.2;
         const img = svgEl("image", { x: x - size / 2, y: y - size / 2, width: size, height: size, href: capLogoUrl(team.id) });
         img.addEventListener("error", () => img.setAttribute("href", teamLogoUrl(team.id)), { once: true });
-        g.append(img, svgEl("title", {}, team.name));
+        face.append(img);
+        const rank = r < 60 ? pct.rank?.get(team.id) : null;   // 정규리그 순위: 로고 동그라미 안쪽 왼쪽 위 작은 숫자 (모양은 그대로, 우승 팀 자리는 뺌)
+        if (rank) face.append(svgEl("text", { x: x - r * 0.5, y: y - r * 0.3, "text-anchor": "middle", class: "ps-rank-text" }, String(rank)));
+        g.append(face, svgEl("title", {}, team.name));
         marks.append(g);
-        if (seed) text(x + r + 14, seedBelow ? y + r - 6 : y - r + 22, String(seed), "ps-seed");   // 당시 순위(시드): 작게
         if (myFavoriteTeamId && String(team.id) === String(myFavoriteTeamId)) {   // 선호 구단: 금색 테두리는 모든 자리, '★ MY'는 처음 한 곳만
             g.querySelector(".ps-ring").classList.add("favorite");
             if (favTagShown) return;
             favTagShown = true;
             const tag = svgEl("g", { class: "ps-fav" });
-            const top = seedBelow ? y + r + 4 : y - r - 28;   // 짝의 아래 로고는 아래에, 나머지는 위에 (결과 글자와 안 겹치게)
+            const top = y - r - 14;                    // 로고 위쪽 (테두리에 살짝 걸치게)
             tag.append(svgEl("rect", { x: x - 30, y: top, width: 60, height: 24, rx: 12 }),
                 svgEl("text", { x, y: top + 18, "text-anchor": "middle" }, "★ MY"));
             marks.append(tag);
@@ -886,6 +950,8 @@ function renderPostseasonBracket(box, series, pct, year) {
         const area = svgEl("rect", { x: x1, y: y1, width: x2 - x1, height: y2 - y1, rx: 24, class: "ps-hit", "data-id": item.id });
         area.append(svgEl("title", {}, `${item.teams.map(t => `${t.name} ${t.wins}승`).join(" vs ")} · 누르면 경기 기록`));
         area.addEventListener("click", () => selectSeries(item));
+        area.addEventListener("mouseenter", () => growSeries(item.id, true));
+        area.addEventListener("mouseleave", () => growSeries(item.id, false));
         svg.insertBefore(area, lines);                 // 선·로고보다 아래 (로고에 마우스 올림이 되도록, 빈 곳을 눌러도 선택)
     };
     // 한 시리즈: 위·아래 로고 + 가운데 결과 글자 + 다음 라운드 자리로 이어지는 선
@@ -903,7 +969,7 @@ function renderPostseasonBracket(box, series, pct, year) {
         });
         if (next && !winner) line(`M${join} ${next.y} H${next.x - dir * next.r}`, false);   // 아직 아무도 안 올라감
         const result = item ? seriesResultText(item) : "";
-        if (result) text(x, resultY ?? (yTop + yBottom) / 2 + (resultLines ? -6 : 10), result, "ps-result", resultLines ? result.split(/(?<=,) /) : null);
+        if (result) text(x, (yTop + yBottom) / 2 + 10, result, "ps-result");   // 스코어: 두 로고 사이 정중앙
         hit(item, x - r - 14, yTop - r - 14, x + r + 40, yBottom + r + 14);
     };
 
@@ -928,10 +994,17 @@ function renderPostseasonBracket(box, series, pct, year) {
         const csTarget = { x: wsX, y: POSTER.ws.y, r: POSTER.ws.r };
         if (L.cs) drawSeries(L.cs, L.csTeams, mx(POSTER.cs.x), POSTER.cs.ys[0], league, mx(POSTER.cs.joinX), csTarget, null, true, 470);   // 결과 글자는 'ALCS' 아래
         // 리그 이름 표시 (그림의 'WILDCARD', 'ALDS', 'ALCS' 자리)
-        text(mx(POSTER.wc.x), 330, league === "AL" ? "AMERICAN LEAGUE" : "NATIONAL LEAGUE", "ps-label-small");
-        text(mx(POSTER.wc.x), 368, "WILDCARD", "ps-label");
-        text(mx(POSTER.ds.x) + (league === "AL" ? 8 : -8), 452, `${league}DS`, "ps-label");
-        text(mx(POSTER.cs.x), 400, `${league}CS`, "ps-label");
+        const rule = code => {                         // 몇 전 몇 선승제 (예: "3전 2선승제")
+            const item = series.find(s => s.code === code);
+            return item ? `${item.bestOf}전 ${item.need}선승제` : "";
+        };
+        text(mx(POSTER.wc.x), 292, rule("F"), "ps-rule");   // 와일드카드 문구: 두 짝 사이 가운데
+        text(mx(POSTER.wc.x), 314, league === "AL" ? "AMERICAN LEAGUE" : "NATIONAL LEAGUE", "ps-label-small");
+        text(mx(POSTER.wc.x), 347, "WILDCARD", "ps-label");
+        text(mx(POSTER.ds.x) + (league === "AL" ? 8 : -8), 373, rule("D"), "ps-rule");
+        text(mx(POSTER.ds.x) + (league === "AL" ? 8 : -8), 407, `${league}DS`, "ps-label");
+        text(mx(POSTER.cs.x), 326, rule("L"), "ps-rule");
+        text(mx(POSTER.cs.x), 360, `${league}CS`, "ps-label");
     });
 
     // 월드시리즈: AL 팀 왼쪽 · NL 팀 오른쪽, 끝나면 아래에 우승 팀
@@ -950,22 +1023,20 @@ function renderPostseasonBracket(box, series, pct, year) {
     });
     if (champion) {
         badge(C.x, C.y, C.r, champion, false);
-        text(C.x, C.y + C.r + 42, seriesResultText(ws), "ps-result");
     } else if (ws) {
         badge(C.x, C.y, C.r, null);
-        const status = seriesResultText(ws);
-        if (status) text(C.x, C.y + C.r + 42, status, "ps-result");
     }
+    text(C.x, C.y + C.r + 40, "CHAMPION", "ps-winner");   // 우승 팀 자리 아래 'CHAMPION'
+    if (ws && seriesResultText(ws)) text(768, POSTER.ws.y + 10, seriesResultText(ws), "ps-result");   // 월드시리즈 스코어: 두 로고 사이 정중앙
     if (ws) hit(ws, mirrorX(POSTER.ws.x, "AL") - 70, POSTER.ws.y - 70, mirrorX(POSTER.ws.x, "NL") + 70, POSTER.ws.y + 70);
 
-    // 가운데 제목 (그림의 'POSTSEASON PICTURE 2025', 스폰서 로고는 뺌)과 아래 'World Series'
-    text(768, 128, "POSTSEASON", "ps-title");
-    text(768, 200, "PICTURE", "ps-title");
-    marks.append(svgEl("path", { d: "M600 228 H690 M846 228 H936", class: "ps-gold-rule" }));
-    text(768, 240, String(year), "ps-year");
-    text(768, 760, "World Series", "ps-ws-title");
-    marks.append(svgEl("path", { d: "M640 790 H700 M836 790 H896", class: "ps-gold-rule" }));
-    text(768, 802, String(year), "ps-year");
+    // 가운데 위: MLB 로고 + 'POSTSEASON' + 연도
+    marks.append(svgEl("image", { x: 723, y: 4, width: 90, height: 50, href: "https://www.mlbstatic.com/team-logos/league-on-light/1.svg" }));
+    text(768, 114, "POSTSEASON", "ps-title");
+    text(768, 160, String(year), "ps-year");   // 연도: POSTSEASON 아래, 크게
+    // 월드시리즈 로고 위: 몇 전 몇 선승제 → 'World Series'
+    if (ws) text(768, 200, `${ws.bestOf}전 ${ws.need}선승제`, "ps-rule");   // 위·아래 글자와 간격 같게
+    text(768, 250, "World Series", "ps-ws-title");
 
     // 아래: 라운드 탭 + 리그 선택 → 경기 목록 거르기 (네이버 스포츠 포스트시즌 화면 참고)
     const tabs = el("div", "ps-tabs");

@@ -220,28 +220,30 @@
 .postseason-bracket[hidden]{display:none}
 .postseason-message{padding:18px 0;color:#586475;font-size:14px;text-align:center}
 /* 대진표 포스터: MLB 'Postseason Picture'와 같은 배치 (그림 좌표 1536×864, 화면 폭에 맞춰 늘고 줄어듦) */
-.ps-poster{display:block;width:100%;min-width:560px;height:auto;background:radial-gradient(ellipse at 50% 40%,#f7f7f7,#e2e4e8);font-family:inherit}
+.ps-poster{display:block;width:100%;min-width:520px;height:auto;background:#eceef1;font-family:inherit}
 .ps-lines path{fill:none;stroke:#d8c79f;stroke-width:4;stroke-linejoin:round}   /* 연결선 (금색 계열) */
-.ps-lines.win path{stroke:#c39a45;stroke-width:7}   /* 이겨서 올라간 길: 굵게 */
-.ps-ring{stroke:#b9bec6;stroke-width:7}   /* 로고 동그라미: 구단 색 + 회색 테두리 */
-.ps-ring.favorite{stroke:#f6d98a;stroke-width:7}   /* 선호 구단: 연한 금색 테두리 */
-.ps-badge.clickable{cursor:pointer}
-.ps-badge.clickable:hover .ps-ring{stroke:#2874fa;stroke-width:8}   /* 로고에 마우스를 올리면 파란 테두리 */
-.ps-badge.loser.clickable:hover{opacity:.75}
+.ps-lines.win path{stroke:#c39a45;stroke-width:5}   /* 이겨서 올라간 길: 굵게 */
+.ps-ring{stroke:none}   /* 로고 동그라미: 구단 색만 (회색 테두리 없음) */
+.ps-ring.favorite{stroke:#f6d98a;stroke-width:4}   /* 선호 구단: 연한 금색 테두리 (얇게) */
+.ps-badge.clickable{cursor:pointer;transform-box:fill-box;transform-origin:center;transition:transform .15s}
+.ps-badge.grow{transform:scale(1.15)}   /* 마우스를 올린 시리즈: 경기한 두 구단 로고를 크게 */
 .ps-fav rect{fill:#f2b705;filter:drop-shadow(0 2px 2px #00000033)}   /* 선호 구단 표시 '★ MY' (일정·결과 구단 목록과 같은 금색) */
 .ps-fav text{fill:#fff;font-size:15px;font-weight:800}
-.ps-badge.loser{opacity:.35}   /* 진 팀: 흐리게 */
+.ps-face.loser{opacity:.35}
+.ps-backdrop{fill:#eceef1}
+.ps-rank-text{fill:#fff;font-size:20px;font-weight:700;paint-order:stroke;stroke:#0000004d;stroke-width:3px}   /* 정규리그 순위: 로고 안쪽 왼쪽 위 흰 숫자 (밝은 로고에서도 보이게 얇은 그림자 테두리) */   /* 흐린 로고 뒤 배경색 (선이 비치지 않게) */   /* 진 팀: 흐리게 */
 .ps-empty{fill:#d9dde3;stroke:#c5c9d0;stroke-width:6}   /* 아직 정해지지 않은 자리 */
 .ps-seed{fill:#4a5568;font-size:24px;font-weight:700}   /* 당시 순위(시드): 작게 */
 .ps-result{fill:#1d2a3a;font-size:30px;font-weight:700}   /* "DET wins, 2-1" */
 .ps-label{fill:#0c2b5c;font-size:42px;font-weight:900;letter-spacing:-1px}   /* WILDCARD · ALDS · ALCS */
+.ps-winner{fill:#b8913f;font-size:32px;font-weight:800;letter-spacing:6px}   /* 우승 팀 아래 WINNER (연도와 같은 금색) */
+.ps-rule{fill:#6b7686;font-size:26px;font-weight:600}   /* 몇 전 몇 선승제 */
 .ps-label-small{fill:#0c2b5c;font-size:17px;font-weight:700;letter-spacing:2px}
 .ps-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:76px;font-weight:900;letter-spacing:-2px}   /* POSTSEASON PICTURE */
-.ps-year{fill:#b8913f;font-size:30px;font-weight:800;letter-spacing:8px}
-.ps-ws-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:58px;font-style:italic;font-weight:900}   /* World Series */
+.ps-year{fill:#b8913f;font-size:46px;font-weight:800;letter-spacing:10px}   /* 연도: 크게 */
+.ps-ws-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:46px;font-style:italic;font-weight:900}   /* World Series */
 .ps-gold-rule{stroke:#c9a35a;stroke-width:3}
 .ps-hit{fill:transparent;cursor:pointer}   /* 시리즈 누르는 영역 */
-.ps-hit:hover{fill:#ffffff40}
 /* 대진표 아래: 라운드 탭 + 리그 선택 (네이버 스포츠 참고) */
 .ps-tabs{display:grid;grid-template-columns:repeat(4,1fr);margin:0;border-top:1px solid #d9dee6;border-bottom:1px solid #d9dee6;background:#f5f5f5}
 .ps-tab{height:44px;border:0;border-bottom:2px solid transparent;background:transparent;color:#4a5568;font-family:inherit;font-size:14px;cursor:pointer}
@@ -255,3 +257,11 @@
 /* 경기 카드: 진 구단은 로고·이름을 살짝 흐리게 (이긴 구단이 한눈에 보이게, 너무 흐리지 않게) */
 .schedule-team-slot.is-loser .schedule-team-logo-link,
 .schedule-team-slot.is-loser .team-copy{opacity:.55;filter:grayscale(.6)}
+
+/* 경기가 하나도 없는 달: 회색 글씨, 누를 수 없음 */
+#month-strip .month-option:disabled{color:#b8c0cc;cursor:default}
+#month-strip .month-option:disabled:hover{color:#b8c0cc}
+
+/* 경기 카드 점수: ':'를 점수와 같은 크기·같은 줄에 */
+#game-list .score-line{align-items:baseline}
+#game-list .score-line strong.score-colon{position:relative;top:-.1em;min-width:0;color:#8b95a5;font-weight:400}   /* ':'는 글꼴에서 숫자보다 낮게 그려져서 살짝 올림 */   /* ':' 는 점수와 같은 크기, 연한 색 */
