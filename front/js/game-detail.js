@@ -78,7 +78,25 @@ async function loadGame() {
     }
 }
 
+let postseasonView = null;                              // 포스트시즌 경기면 일정·결과의 포스트시즌 화면 정보 (showSeriesGame에서 채움)
+
+function setupListLinks(game) {                       // '경기 목록'·'일정·결과' 링크: 메인 등에서 바로 들어왔으면 이 경기 날짜 목록이 열리게
+    const kstDate = getGameTimes(game)?.kst.slice(0, 10);
+    if (!kstDate) return;
+    document.querySelectorAll('a[href="game.html"]').forEach(link => {
+        link.onclick = () => {
+            if (sessionStorage.getItem("gameListState")) return;   // 일정·결과에서 왔으면 보던 화면 그대로
+            sessionStorage.setItem("gameListState", JSON.stringify({   // game.js의 화면 복원 형식 (그 날짜, 전체 구단)
+                date: kstDate, day: Number(kstDate.slice(-2)), team: "ALL",
+                scrollY: postseasonView ? 560 : 0,                     // 포스트시즌: 대진표 아래 경기 결과가 보이게
+                postseason: postseasonView                             // 포스트시즌 경기면 '포스트시즌' 화면의 그 라운드·리그
+            }));
+        };
+    });
+}
+
 function renderGameSummary(game) {
+    setupListLinks(game);
     document.title = `${game.away_team_code} @ ${game.home_team_code} - BASEBOT`;
     document.getElementById("game-date").textContent = game.game_date || "";
     document.getElementById("game-venue").textContent = game.venue_name || "MLB 정규시즌";   // 구장 (DB)
@@ -228,14 +246,24 @@ async function loadMlbGame(id) {
 async function showSeriesGame(id) {                     // 포스트시즌 몇 차전: MLB 일정 정보에서 가져와 '경기 종료' 왼쪽에 표시
     const names = { F: "와일드카드", D: "디비전시리즈", L: "챔피언십시리즈", W: "월드시리즈" };
     try {
-        const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?gamePk=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
+        const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?gamePk=${encodeURIComponent(id)}&hydrate=team`, { signal: AbortSignal.timeout(10000) });
         const game = (await response.json()).dates?.[0]?.games?.[0];
         if (!game || !names[game.gameType] || !game.seriesGameNumber) return;
+        const leagueId = game.teams?.home?.team?.league?.id;
+        postseasonView = {                             // '경기 목록'을 누르면 포스트시즌 화면의 이 라운드·리그 경기 결과로
+            year: Number(game.season),
+            round: game.gameType,
+            league: game.gameType === "W" ? "ALL" : leagueId === 103 ? "AL" : leagueId === 104 ? "NL" : "ALL",
+            seriesId: null
+        };
         const tag = document.getElementById("series-game-tag") || document.createElement("span");
         tag.id = "series-game-tag";
         tag.textContent = `${names[game.gameType]} ${game.seriesGameNumber}차전`;
-        tag.style.cssText = "display:inline-block;margin-right:6px;padding:3px 10px;border-radius:999px;background:#0d3b8c;color:#fff;font-size:12px;font-weight:700;vertical-align:middle";
-        document.getElementById("game-status").before(tag);
+        tag.style.cssText = "display:inline-block;margin-right:6px;padding:3px 10px;border-radius:999px;background:#0d3b8c;color:#fff;font-size:12px;font-weight:700;vertical-align:middle;white-space:nowrap";
+        const status = document.getElementById("game-status");
+        status.before(tag);
+        status.style.whiteSpace = "nowrap";               // '경기 종료'도 한 줄로
+        status.parentElement.style.whiteSpace = "nowrap";  // 두 표시를 한 줄에 나란히
     } catch (error) {
         console.warn("몇 차전 정보를 불러오지 못했습니다.", error);   // 못 불러와도 나머지 화면은 그대로
     }

@@ -272,7 +272,7 @@ async function renderCalendar() {
         const button = el("button", "game-calendar-day", String(day));
         button.type = "button";
         if (gameDays.has(date)) button.classList.add("has-games");
-        if (!showWholeMonth && date === dateInput.value) button.classList.add("selected");
+        if (showWholeMonth ? gameDays.has(date) : date === dateInput.value) button.classList.add("selected");   // '전체'면 경기 있는 날 모두 파랗게
         button.addEventListener("click", () => {       // 날짜 선택하면 달력 닫기
             calendar.hidden = true;
             setSelectedDate(date);
@@ -462,9 +462,9 @@ function createGameCard(game) {
 
     const matchup = el("div", "matchup-summary");      // 가운데: 원정팀 · 점수 · 홈팀
     matchup.append(
-        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFav(game.away_team_id)),
+        createTeamNode(game.away_team_name, game.away_team_code, game.away_logo_url, "away", game.away_team_id, game.away_pitcher, isFav(game.away_team_id), game.away_pitcher_id, String(game.game_date || "").slice(0, 4)),
         scoreNode,
-        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFav(game.home_team_id))
+        createTeamNode(game.home_team_name, game.home_team_code, game.home_logo_url, "home", game.home_team_id, game.home_pitcher, isFav(game.home_team_id), game.home_pitcher_id, String(game.game_date || "").slice(0, 4))
     );
     if (isFinal && Number(game.away_score) !== Number(game.home_score)) {   // 끝난 경기: 진 구단의 로고·이름을 살짝 흐리게
         const loserSide = Number(game.away_score) < Number(game.home_score) ? "away" : "home";
@@ -492,7 +492,7 @@ function createGameCard(game) {
     return card;
 }
 
-function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavoriteTeam) {
+function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavoriteTeam, pitcherId, season) {
     const slot = el("div", `schedule-team-slot ${side}`);
     const teamHref = `team-detail.html?id=${encodeURIComponent(teamId || "")}`;
 
@@ -513,6 +513,14 @@ function createTeamNode(name, code, logoUrl, side, teamId, pitcherName, isFavori
     const label = el("a", "team-name", name || "팀 정보 없음");
     label.href = teamHref;
     const pitcher = el("small", "team-pitcher", pitcherName ? `${pitcherName} 선발` : "선발 미정");   // 선수명 뒤에 '선발'
+    if (pitcherName && pitcherId) {                    // 선수 이름 → 선수 정보 페이지 (그 시즌 기록)
+        const playerLink = el("a", "team-pitcher-link", pitcherName);
+        playerLink.href = `player-detail.html?${new URLSearchParams({ id: pitcherId, season })}`;
+        playerLink.style.cssText = "color:inherit;text-decoration:none";
+        playerLink.addEventListener("mouseenter", () => { playerLink.style.color = "#2874fa"; playerLink.style.textDecoration = "underline"; });
+        playerLink.addEventListener("mouseleave", () => { playerLink.style.color = "inherit"; playerLink.style.textDecoration = "none"; });
+        pitcher.replaceChildren(playerLink, " 선발");
+    }
     copy.append(label, pitcher);
 
     if (side === "home") slot.append(copy, logoLink);  // 홈팀은 글자가 로고 앞
@@ -642,7 +650,9 @@ async function loadScheduleInfo(start, end) {          // MLB에서 선발 투�
         (data.dates || []).flatMap(day => day.games || []).forEach(item => {
             info.set(String(item.gamePk), {
                 away_pitcher: item.teams?.away?.probablePitcher?.fullName || "",
-                home_pitcher: item.teams?.home?.probablePitcher?.fullName || ""
+                home_pitcher: item.teams?.home?.probablePitcher?.fullName || "",
+                away_pitcher_id: item.teams?.away?.probablePitcher?.id || null,   // 선수 정보 페이지 링크용
+                home_pitcher_id: item.teams?.home?.probablePitcher?.id || null
             });
         });
     } catch (error) {
@@ -789,7 +799,8 @@ function toPostseasonGame(game, short) {               // MLB 경기 → 경기 
             [`${name}_team_code`]: info.team.abbreviation,
             [`${name}_logo_url`]: teamLogoUrl(info.team.id),
             [`${name}_score`]: info.score,
-            [`${name}_pitcher`]: info.probablePitcher?.fullName || ""
+            [`${name}_pitcher`]: info.probablePitcher?.fullName || "",
+            [`${name}_pitcher_id`]: info.probablePitcher?.id || null   // 선수 정보 페이지 링크용
         };
     };
     return {
@@ -931,7 +942,7 @@ function renderPostseasonBracket(box, series, pct, year) {
         img.addEventListener("error", () => img.setAttribute("href", teamLogoUrl(team.id)), { once: true });
         face.append(img);
         const rank = r < 60 ? pct.rank?.get(team.id) : null;   // 정규리그 순위: 로고 동그라미 안쪽 왼쪽 위 작은 숫자 (모양은 그대로, 우승 팀 자리는 뺌)
-        if (rank) face.append(svgEl("text", { x: x - r * 0.5, y: y - r * 0.3, "text-anchor": "middle", class: "ps-rank-text" }, String(rank)));
+        if (rank) face.append(svgEl("text", { x: x - r * 0.56, y: y - r * 0.42, "text-anchor": "middle", class: "ps-rank-text" }, String(rank)));
         g.append(face, svgEl("title", {}, team.name));
         marks.append(g);
         if (myFavoriteTeamId && String(team.id) === String(myFavoriteTeamId)) {   // 선호 구단: 금색 테두리는 모든 자리, '★ MY'는 처음 한 곳만
@@ -1027,7 +1038,7 @@ function renderPostseasonBracket(box, series, pct, year) {
         badge(C.x, C.y, C.r, null);
     }
     text(C.x, C.y + C.r + 40, "CHAMPION", "ps-winner");   // 우승 팀 자리 아래 'CHAMPION'
-    if (ws && seriesResultText(ws)) text(768, POSTER.ws.y + 10, seriesResultText(ws), "ps-result");   // 월드시리즈 스코어: 두 로고 사이 정중앙
+    if (ws && seriesResultText(ws)) text(768, POSTER.ws.y + 10, `${wsTeams[0]?.wins ?? 0}-${wsTeams[1]?.wins ?? 0}`, "ps-result");   // 월드시리즈 스코어: 두 로고 사이 정중앙 (왼쪽 팀 승수-오른쪽 팀 승수)
     if (ws) hit(ws, mirrorX(POSTER.ws.x, "AL") - 70, POSTER.ws.y - 70, mirrorX(POSTER.ws.x, "NL") + 70, POSTER.ws.y + 70);
 
     // 가운데 위: MLB 로고 + 'POSTSEASON' + 연도
@@ -1035,7 +1046,7 @@ function renderPostseasonBracket(box, series, pct, year) {
     text(768, 114, "POSTSEASON", "ps-title");
     text(768, 160, String(year), "ps-year");   // 연도: POSTSEASON 아래, 크게
     // 월드시리즈 로고 위: 몇 전 몇 선승제 → 'World Series'
-    if (ws) text(768, 200, `${ws.bestOf}전 ${ws.need}선승제`, "ps-rule");   // 위·아래 글자와 간격 같게
+    if (ws) text(768, 214, `${ws.bestOf}전 ${ws.need}선승제`, "ps-rule");   // 위·아래 글자와 간격 같게
     text(768, 250, "World Series", "ps-ws-title");
 
     // 아래: 라운드 탭 + 리그 선택 → 경기 목록 거르기 (네이버 스포츠 포스트시즌 화면 참고)
@@ -1064,6 +1075,8 @@ function renderPostseasonGames() {                     // 고른 라운드·리�
         tab.classList.toggle("selected", selected);
         tab.setAttribute("aria-selected", String(selected));
     });
+    const picked = psSeriesId && postseasonSeries.find(s => s.id === psSeriesId);
+    if (picked) psLeague = picked.code === "W" ? "ALL" : picked.league;   // 대진표에서 누른 시리즈의 리그를 드롭다운에도 표시 → '리그 전체'를 다시 고를 수 있게
     const league = document.querySelector(".ps-league-select");
     if (league) {
         league.value = psLeague;

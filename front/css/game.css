@@ -241,7 +241,7 @@
 .ps-label-small{fill:#0c2b5c;font-size:17px;font-weight:700;letter-spacing:2px}
 .ps-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:76px;font-weight:900;letter-spacing:-2px}   /* POSTSEASON PICTURE */
 .ps-year{fill:#b8913f;font-size:46px;font-weight:800;letter-spacing:10px}   /* 연도: 크게 */
-.ps-ws-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:46px;font-style:italic;font-weight:900}   /* World Series */
+.ps-ws-title{fill:#0c2b5c;font-family:Georgia,'Times New Roman',serif;font-size:38px;font-style:italic;font-weight:900}   /* World Series */
 .ps-gold-rule{stroke:#c9a35a;stroke-width:3}
 .ps-hit{fill:transparent;cursor:pointer}   /* 시리즈 누르는 영역 */
 /* 대진표 아래: 라운드 탭 + 리그 선택 (네이버 스포츠 참고) */
