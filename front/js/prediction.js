@@ -633,6 +633,7 @@ function renderPredictionUI(pred, voteStatus) {
     if (myVoteBox) {
         myVoteBox.innerHTML = `원하는 팀을 선택하여 승부예측 투표(100P)에 참여해 보세요!${deadlineNoticeHtml}`;
     }
+}
 
 // ==================================================
 // 6. 투표 실행
@@ -932,5 +933,4 @@ function renderSaberComparisonTable(mc) {
     });
 
     tbody.innerHTML = html;
-}
 }
