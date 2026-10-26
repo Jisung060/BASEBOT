@@ -113,28 +113,45 @@ async function updateHeader() {
        로그인한 상태
     ================================================== */
 
-    // 1. 닉네임 표시 (세션에 nickname이 없으면 백엔드에서 보완 조회)
+    // 1. 최신 닉네임 조회 및 표시
     if (userGreetingArea && userNicknameText) {
         let displayName = user
             ? (user.nickname || user.username || user.name)
             : null;
 
-        if (!displayName && user && (user.user_id || user.id)) {
+        // 로그인 사용자 ID가 있으면 백엔드에서 최신 닉네임 조회
+        if (user && (user.user_id || user.id)) {
             try {
                 const uid = user.user_id || user.id;
-                const res = await fetch(`/api/rankings/me?user_id=${uid}`);
+
+                const res = await fetch(
+                    `/api/rankings/me?user_id=${uid}`
+                );
 
                 if (res.ok) {
                     const rankData = await res.json();
 
-                    if (rankData.user_info && rankData.user_info.nickname) {
+                    if (rankData.user_info?.nickname) {
                         displayName = rankData.user_info.nickname;
+
+                        // 세션에 저장된 닉네임도 최신 값으로 갱신
                         user.nickname = displayName;
-                        sessionStorage.setItem("user", JSON.stringify(user));
+                        sessionStorage.setItem(
+                            "user",
+                            JSON.stringify(user)
+                        );
+
+                        // localStorage에 사용자 정보가 있다면 함께 갱신
+                        if (localStorage.getItem("user")) {
+                            localStorage.setItem(
+                                "user",
+                                JSON.stringify(user)
+                            );
+                        }
                     }
                 }
-            } catch (e) {
-                console.warn("닉네임 추가 조회 실패:", e);
+            } catch (error) {
+                console.warn("최신 닉네임 조회 실패:", error);
             }
         }
 
