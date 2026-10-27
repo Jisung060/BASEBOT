@@ -16,8 +16,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.db_connection import engine, get_db
+from routers.admin_users import get_admin_user
 
-router = APIRouter(prefix="/api/admin/baseball-data", tags=["Admin Baseball Data"])
+router = APIRouter(
+    prefix="/api/admin/baseball-data",
+    tags=["Admin Baseball Data"],
+    dependencies=[Depends(get_admin_user)],
+)
 
 BACK_DIR = Path(__file__).resolve().parent.parent
 

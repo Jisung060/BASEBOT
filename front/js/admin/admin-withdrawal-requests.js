@@ -1,5 +1,7 @@
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     const tbody = document.getElementById(
         "withdrawalRequestsBody"
     );

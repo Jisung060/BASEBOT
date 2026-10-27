@@ -47,7 +47,9 @@ const communityTieBreaker = {
     history: "reviewed_at"
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     setupCommunitySearch();
     setupCommunityMenu();
     setupRefreshButton();

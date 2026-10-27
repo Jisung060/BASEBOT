@@ -4,8 +4,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.db_connection import get_db
+from routers.admin_users import get_admin_user
 
-router = APIRouter(prefix="/api/admin/predictions", tags=["Admin Predictions"])
+router = APIRouter(
+    prefix="/api/admin/predictions",
+    tags=["Admin Predictions"],
+    dependencies=[Depends(get_admin_user)],
+)
 
 
 # =========================================================

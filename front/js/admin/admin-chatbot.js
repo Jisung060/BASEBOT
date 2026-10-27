@@ -3,7 +3,9 @@
    파일: front/js/admin/admin-chatbot.js
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     const API_URL = "/admin/chatbot";
     const PAGE_SIZE = 10;
 

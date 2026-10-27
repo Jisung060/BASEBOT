@@ -3,7 +3,9 @@
    파일: front/js/admin/activity-logs.js
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     const form = document.getElementById("activity-log-search");
     const tbody = document.getElementById("activity-log-tbody");
     const totalElement = document.getElementById("activity-log-total");

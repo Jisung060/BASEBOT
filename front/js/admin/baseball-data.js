@@ -89,7 +89,9 @@ const CATEGORY_COLUMNS = {
     ]
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     initSeasonDropdowns(); // ★ 2015년 ~ 현재 연도 드롭다운 자동 생성
     initCategoryTabs();
     initManualSyncControls();
@@ -168,7 +170,7 @@ function initSeasonDropdowns(collectedSeasons = []) {
 // =========================================================
 async function loadDashboardSummary() {
     try {
-        const res = await fetch("/api/admin/baseball-data/summary");
+        const res = await adminFetch("/api/admin/baseball-data/summary");
         if (!res.ok) return;
         const data = await res.json();
 
@@ -250,7 +252,7 @@ async function loadCategoryData() {
     tbody.innerHTML = `<tr><td colspan="16" class="table-empty">데이터를 불러오는 중입니다...</td></tr>`;
 
     try {
-        const res = await fetch(`/api/admin/baseball-data/items?${params.toString()}`);
+        const res = await adminFetch(`/api/admin/baseball-data/items?${params.toString()}`);
         if (!res.ok) throw new Error("데이터 조회 실패");
         const data = await res.json();
         currentDataItems = data.items || [];
@@ -341,7 +343,7 @@ function initManualSyncControls() {
         select.disabled = true;
         select.innerHTML = '<option value="">선수 목록 조회 중...</option>';
         try {
-            const res = await fetch(`/api/admin/baseball-data/chart-players?season=${Number(document.getElementById('manualSeasonSelect').value)}`);
+            const res = await adminFetch(`/api/admin/baseball-data/chart-players?season=${Number(document.getElementById('manualSeasonSelect').value)}`);
             if (!res.ok) throw new Error('선수 목록 조회 실패');
             const data = await res.json();
             if (request !== chartRequest) return;
@@ -437,7 +439,7 @@ let logPollTimer = null;
 
 async function executeManualSync(payload) {
     try {
-        const res = await fetch("/api/admin/baseball-data/fetch", {
+        const res = await adminFetch("/api/admin/baseball-data/fetch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -480,7 +482,7 @@ async function loadSchedules() {
     if (!container) return;
 
     try {
-        const res = await fetch("/api/admin/baseball-data/schedules");
+        const res = await adminFetch("/api/admin/baseball-data/schedules");
         if (!res.ok) return;
         const data = await res.json();
         const list = data.schedules || [];
@@ -533,7 +535,7 @@ async function saveSchedulesConfig() {
     });
 
     try {
-        const res = await fetch("/api/admin/baseball-data/schedules", {
+        const res = await adminFetch("/api/admin/baseball-data/schedules", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ schedules })
@@ -585,7 +587,7 @@ function initLogTableSorting() {
 
 async function loadSyncLogs() {
     try {
-        const res = await fetch("/api/admin/baseball-data/logs?limit=50");
+        const res = await adminFetch("/api/admin/baseball-data/logs?limit=50");
         if (!res.ok) return;
         const data = await res.json();
         currentLogs = data.logs || [];

@@ -4,7 +4,9 @@
    파일: front/js/admin/admin-dashboard.js
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     loadDashboardStats();
 });
 
@@ -136,7 +138,9 @@ function showDashboardError() {
    최근 활동 이력
 ================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     loadRecentActivityLogs();
 });
 

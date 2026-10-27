@@ -29,9 +29,12 @@ router = APIRouter(prefix="/admin/users", tags=["Admin - Users"])
 # ==================================================
 
 def get_admin_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_session),
 ) -> User:
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
     token = credentials.credentials
     payload = decode_access_token(token)
 
@@ -60,6 +63,11 @@ def get_admin_user(
         )
 
     return user
+
+
+@router.get("/access-check")
+def check_admin_access(admin: User = Depends(get_admin_user)):
+    return {"status": "ok"}
 
 
 # ==================================================

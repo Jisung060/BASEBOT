@@ -16,6 +16,53 @@ const ADMIN_PAGE_TITLES = {
 };
 
 
+let adminAccessDenied = false;
+
+/* 관리자 API 인증 및 중복 권한 경고 방지 */
+async function adminFetch(url, options = {}) {
+    if (adminAccessDenied) {
+        throw new Error("관리자 접근이 제한되었습니다.");
+    }
+
+    const token = sessionStorage.getItem("access_token");
+    let response;
+    if (token) {
+        const headers = new Headers(options.headers);
+        headers.set("Authorization", `Bearer ${token}`);
+        response = await fetch(url, { ...options, headers });
+    }
+
+    if (!token || response.status === 401 || response.status === 403) {
+        if (!adminAccessDenied) {
+            adminAccessDenied = true;
+            const needsLogin = !token || response.status === 401;
+            if (needsLogin) sessionStorage.removeItem("access_token");
+            alert(needsLogin ? "로그인이 필요하거나 만료되었습니다." : "관리자 권한이 필요합니다.");
+            window.location.href = needsLogin ? "/login.html" : "/";
+        }
+        throw new Error("관리자 접근이 제한되었습니다.");
+    }
+
+    return response;
+}
+
+async function verifyAdminAccess() {
+    try {
+        const response = await adminFetch("/admin/users/access-check");
+        if (!response.ok) throw new Error("관리자 권한 확인 실패");
+        return true;
+    } catch (error) {
+        if (!adminAccessDenied) {
+            adminAccessDenied = true;
+            alert("관리자 권한을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+            window.location.href = "/";
+        }
+        return false;
+    }
+}
+
+const adminAccessReady = verifyAdminAccess();
+
 /* 공통 HTML 컴포넌트 로드 */
 async function loadAdminComponent(containerId, url) {
     const container = document.getElementById(containerId);
@@ -101,6 +148,8 @@ function initializeAdminProfile() {
 
 /* 컴포넌트 로드가 완료된 뒤 메뉴 초기화 */
 async function initializeAdminLayout() {
+    if (!await adminAccessReady) return;
+
     try {
         await Promise.all([
             loadAdminComponent(

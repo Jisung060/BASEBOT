@@ -5,6 +5,7 @@ from sqlalchemy import text, select, func, or_, and_, desc
 from sqlalchemy.orm import Session, aliased
 
 from database.db_connection import get_session, get_db
+from routers.admin_users import get_admin_user
 from services.prediction_service import predictor
 from datetime import datetime, timedelta
 
@@ -235,7 +236,7 @@ def cast_prediction_vote(
 # ----------------------------------------------------
 # 3. 경기 종료 시 포인트 정산 (적중 여부 판정 및 지급)
 # ----------------------------------------------------
-@router.post("/settle/{game_id}")
+@router.post("/settle/{game_id}", dependencies=[Depends(get_admin_user)])
 def settle_game_votes(game_id: int, db: Session = Depends(get_session)):
     """
     경기가 FINAL이 되었을 때 호출하여 승자를 맞춘 유저에게 보상 지급

@@ -214,6 +214,8 @@
     }
 
     async function initialize() {
+        if (!await adminAccessReady) return;
+
         accessToken = readToken();
         if (!accessToken) {
             setStatus("로그인 필요", "error");

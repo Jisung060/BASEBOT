@@ -663,6 +663,8 @@
     // 최초 실행
     // --------------------------------------------------
     async function initialize() {
+        if (!await adminAccessReady) return;
+
         if (!documentList) return;
 
         if (detailContainer) {

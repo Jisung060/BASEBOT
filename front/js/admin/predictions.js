@@ -12,7 +12,9 @@ let rankSort = { key: "rank", dir: "asc" };
 let userRecordData = [];
 let recordSort = { key: "vote_id", dir: "desc" };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!await adminAccessReady) return;
+
     initSortableTable("teamStatsThead", teamSort, renderTeamStatsTable);
     initSortableTable("gamePredThead", gameSort, renderGamePredTable);
     initSortableTable("userRankingThead", rankSort, renderUserRankingTable);
@@ -111,7 +113,7 @@ function initFilterForms() {
 // =========================================================
 async function loadOverviewAndTeamStats() {
     try {
-        const res = await fetch("/api/admin/predictions/overview");
+        const res = await adminFetch("/api/admin/predictions/overview");
         if (!res.ok) throw new Error("통계 로드 실패");
         const data = await res.json();
 
@@ -215,7 +217,7 @@ async function loadGamePredictions() {
     tbody.innerHTML = `<tr><td colspan="13" class="table-empty">경기별 예측 데이터를 불러오는 중입니다...</td></tr>`;
 
     try {
-        const res = await fetch(`/api/admin/predictions/games?${params.toString()}`);
+        const res = await adminFetch(`/api/admin/predictions/games?${params.toString()}`);
         if (!res.ok) throw new Error("경기별 예측 조회 실패");
         const data = await res.json();
         gamePredData = data.games || [];
@@ -278,7 +280,7 @@ function renderGamePredTable() {
 async function settleGameFromAdmin(gameId) {
     if (!confirm(`경기 #${gameId}의 미정산 투표를 즉시 정산하시겠습니까?`)) return;
     try {
-        const res = await fetch(`/api/predictions/settle/${gameId}`, { method: "POST" });
+        const res = await adminFetch(`/api/predictions/settle/${gameId}`, { method: "POST" });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "정산 실패");
 
@@ -309,7 +311,7 @@ async function loadUserRankings() {
     tbody.innerHTML = `<tr><td colspan="14" class="table-empty">사용자 랭킹 데이터를 불러오는 중입니다...</td></tr>`;
 
     try {
-        const res = await fetch(`/api/admin/predictions/user-rankings?${params.toString()}`);
+        const res = await adminFetch(`/api/admin/predictions/user-rankings?${params.toString()}`);
         if (!res.ok) throw new Error("랭킹 조회 실패");
         const data = await res.json();
         userRankingData = data.rankings || [];
@@ -376,7 +378,7 @@ async function loadUserRecords() {
     tbody.innerHTML = `<tr><td colspan="11" class="table-empty">예측 기록을 불러오는 중입니다...</td></tr>`;
 
     try {
-        const res = await fetch(`/api/admin/predictions/records?${params.toString()}`);
+        const res = await adminFetch(`/api/admin/predictions/records?${params.toString()}`);
         if (!res.ok) throw new Error("기록 조회 실패");
         const data = await res.json();
         userRecordData = data.records || [];
